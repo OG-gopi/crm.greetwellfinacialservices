@@ -230,10 +230,6 @@ export async function createAgentInvitation(req: AuthRequest, res: Response) {
       return res.status(400).json({ success: false, message: 'Please select a valid Agent Role (Loan, Insurance, or Investment).' });
     }
 
-    if (!aadhaarDocUrl || !aadhaarDocUrl.trim()) {
-      return res.status(400).json({ success: false, message: 'Aadhaar Document is mandatory for agent invitation.' });
-    }
-
     const cleanEmail = email.trim().toLowerCase();
 
     // 2. Existing User Check

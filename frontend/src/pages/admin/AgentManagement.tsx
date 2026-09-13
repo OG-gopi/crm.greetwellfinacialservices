@@ -994,14 +994,14 @@ export const AgentManagement: React.FC = () => {
               <strong className="text-[#0c5837] font-mono">{viewingDocsAgent.agentIdCode || 'AGT'}</strong>.
             </p>
 
-            {/* Aadhaar Document (Mandatory) */}
+            {/* Aadhaar Document (Optional) */}
             <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-[#0c5837]" />
                   <span className="font-bold text-slate-900">Aadhaar Identity Document</span>
-                  <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-rose-100 text-rose-800 rounded">
-                    Mandatory
+                  <span className="px-2 py-0.5 text-[9px] font-bold uppercase bg-slate-200 text-slate-700 rounded">
+                    Optional
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">Government Issued Aadhaar Card PDF / Image</p>

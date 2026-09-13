@@ -245,59 +245,59 @@ export const CreateApplication: React.FC = () => {
     if (appType === 'LOAN') {
       if (productType === 'Education Loan') {
         return [
-          { title: 'Identity Proof (Aadhaar/PAN)', required: true },
-          { title: 'Address Proof', required: true },
-          { title: 'Admission Letter', required: true },
-          { title: 'Tuition Fee Structure', required: true },
-          { title: 'Bank Statements (6 Months)', required: true },
+          { title: 'Identity Proof (Aadhaar/PAN)', required: false },
+          { title: 'Address Proof', required: false },
+          { title: 'Admission Letter', required: false },
+          { title: 'Tuition Fee Structure', required: false },
+          { title: 'Bank Statements (6 Months)', required: false },
         ];
       }
       if (productType === 'Home Loan') {
         return [
-          { title: 'Identity Proof (Aadhaar/PAN)', required: true },
-          { title: 'Address Proof', required: true },
-          { title: 'Property Sale Agreement', required: true },
-          { title: 'Income Proof / Salary Slips', required: true },
-          { title: 'Bank Statements', required: true },
+          { title: 'Identity Proof (Aadhaar/PAN)', required: false },
+          { title: 'Address Proof', required: false },
+          { title: 'Property Sale Agreement', required: false },
+          { title: 'Income Proof / Salary Slips', required: false },
+          { title: 'Bank Statements', required: false },
         ];
       }
       if (productType === 'Business Loan') {
         return [
-          { title: 'Identity Proof', required: true },
-          { title: 'Business Registration Certificate', required: true },
-          { title: 'GST Return / Tax Filings', required: true },
-          { title: '12 Months Bank Statements', required: true },
+          { title: 'Identity Proof', required: false },
+          { title: 'Business Registration Certificate', required: false },
+          { title: 'GST Return / Tax Filings', required: false },
+          { title: '12 Months Bank Statements', required: false },
         ];
       }
       return [
-        { title: 'Identity Proof (Aadhaar/PAN)', required: true },
-        { title: 'Address Proof', required: true },
-        { title: 'Income Proof / Salary Slips', required: true },
-        { title: 'Bank Statements (6 Months)', required: true },
+        { title: 'Identity Proof (Aadhaar/PAN)', required: false },
+        { title: 'Address Proof', required: false },
+        { title: 'Income Proof / Salary Slips', required: false },
+        { title: 'Bank Statements (6 Months)', required: false },
       ];
     }
 
     if (appType === 'INSURANCE') {
       if (productType === 'Motor Insurance') {
         return [
-          { title: 'Identity Proof', required: true },
-          { title: 'Vehicle RC Copy', required: true },
-          { title: 'Previous Policy Copy', required: true },
-          { title: 'Vehicle Inspection Photo', required: true },
+          { title: 'Identity Proof', required: false },
+          { title: 'Vehicle RC Copy', required: false },
+          { title: 'Previous Policy Copy', required: false },
+          { title: 'Vehicle Inspection Photo', required: false },
         ];
       }
       return [
-        { title: 'Identity Proof (Aadhaar/PAN)', required: true },
-        { title: 'Address Proof', required: true },
-        { title: 'Medical Examination Report', required: true },
-        { title: 'Income Proof', required: true },
+        { title: 'Identity Proof (Aadhaar/PAN)', required: false },
+        { title: 'Address Proof', required: false },
+        { title: 'Medical Examination Report', required: false },
+        { title: 'Income Proof', required: false },
       ];
     }
 
     if (appType === 'INVESTMENT') {
       if (productType === 'Chit Investment') {
         return [
-          { title: 'Aadhaar Card', required: true, description: 'Mandatory identity verification' },
+          { title: 'Aadhaar Card', required: false, description: 'Optional identity verification' },
           { title: 'PAN Card', required: false, description: 'Optional tax verification' },
           { title: 'Address Proof', required: false, description: 'Optional residential proof' },
           { title: 'Bank Passbook / Cancelled Cheque', required: false, description: 'Optional payout account proof' },
@@ -305,36 +305,20 @@ export const CreateApplication: React.FC = () => {
         ];
       }
       return [
-        { title: 'Identity Proof (Aadhaar/PAN)', required: true },
+        { title: 'Identity Proof (Aadhaar/PAN)', required: false },
         { title: 'Address Proof', required: false },
         { title: 'Bank Passbook / Cancelled Cheque', required: false },
       ];
     }
 
     return [
-      { title: 'Identity Proof', required: true },
-      { title: 'Address Proof', required: true },
+      { title: 'Identity Proof', required: false },
+      { title: 'Address Proof', required: false },
     ];
   };
 
   const handleValidateStep3 = () => {
     setError('');
-    const docSpecs = getRequiredDocsForProduct();
-    const mandatorySpecs = docSpecs.filter((d) => d.required);
-
-    for (const spec of mandatorySpecs) {
-      const isUploaded = uploadedDocs.some(
-        (d) =>
-          d.type === spec.title ||
-          d.type.includes(spec.title) ||
-          (spec.title.includes('Aadhaar') && d.type.includes('Aadhaar'))
-      );
-      if (!isUploaded) {
-        setError(`Please upload mandatory document: ${spec.title}`);
-        return;
-      }
-    }
-
     setCurrentStep(4);
   };
 
@@ -933,8 +917,8 @@ export const CreateApplication: React.FC = () => {
       {currentStep === 3 && (
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6 text-xs">
           <div className="border-b pb-3">
-            <h3 className="text-sm font-extrabold text-slate-900 uppercase">Step 3: Upload Required Documents</h3>
-            <p className="text-slate-500">Provide official identity and scheme verification documents</p>
+            <h3 className="text-sm font-extrabold text-slate-900 uppercase">Step 3: Upload Supporting Documents (Optional)</h3>
+            <p className="text-slate-500">Optionally attach identity or scheme supporting documents if available</p>
           </div>
 
           <div className="space-y-3">

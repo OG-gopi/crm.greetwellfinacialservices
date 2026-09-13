@@ -131,8 +131,9 @@ export const InviteAgentModal: React.FC<InviteAgentModalProps> = ({
   const validateStep3 = () => {
     const errs: { [key: string]: string } = {};
 
-    if (!aadhaarDocUrl || !aadhaarDocUrl.trim()) {
-      errs.aadhaarDocUrl = 'Aadhaar Document is mandatory.';
+    // Aadhaar document is optional
+    if (aadhaarDocUrl && aadhaarDocUrl.trim() && !aadhaarDocUrl.startsWith('http')) {
+      errs.aadhaarDocUrl = 'Please provide a valid document URL.';
     }
 
     setErrors(errs);
@@ -522,9 +523,9 @@ export const InviteAgentModal: React.FC<InviteAgentModalProps> = ({
         {step === 3 && (
           <div className="space-y-4 text-xs">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">3. Documents & Final Dispatch</h3>
+              <h3 className="text-sm font-bold text-slate-900">3. Supporting Documents (Optional)</h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Attach mandatory Aadhaar document and optional certificates.
+                Attach optional Aadhaar document or certificates.
               </p>
             </div>
 
@@ -536,10 +537,10 @@ export const InviteAgentModal: React.FC<InviteAgentModalProps> = ({
             )}
 
             <div className="space-y-3">
-              {/* Mandatory Aadhaar */}
+              {/* Optional Aadhaar */}
               <div>
                 <label className="block font-semibold text-slate-800 mb-1">
-                  Aadhaar Document Attachment <span className="text-rose-500">* (Mandatory)</span>
+                  Aadhaar Document Attachment <span className="text-slate-400 font-normal">(Optional)</span>
                 </label>
                 <div className="flex gap-2">
                   <input
