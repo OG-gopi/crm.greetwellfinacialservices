@@ -35,22 +35,54 @@ const sqliteSchemaPath = path.resolve(__dirname, '../backend/prisma/schema.sqlit
 // Dynamically resolve installed Prisma CLI binary
 function getPrismaCliScript() {
   try {
+    const mainPath = require.resolve('prisma');
+    if (fs.existsSync(mainPath)) return mainPath;
+  } catch (e) {}
+
+  try {
     const prismaPkgPath = require.resolve('prisma/package.json');
     const cliPath = path.join(path.dirname(prismaPkgPath), 'build/index.js');
-    if (fs.existsSync(cliPath)) {
-      return cliPath;
-    }
-  } catch (e) {
-    // Ignore resolution errors and check fallback paths
-  }
+    if (fs.existsSync(cliPath)) return cliPath;
+  } catch (e) {}
 
   const fallbackPaths = [
     path.resolve(__dirname, '../node_modules/prisma/build/index.js'),
     path.resolve(__dirname, '../backend/node_modules/prisma/build/index.js'),
     path.resolve(__dirname, '../../node_modules/prisma/build/index.js'),
+    path.resolve(process.cwd(), 'node_modules/prisma/build/index.js'),
+    path.resolve(process.cwd(), 'backend/node_modules/prisma/build/index.js'),
   ];
 
   return fallbackPaths.find(p => fs.existsSync(p)) || null;
+}
+
+function executePrisma(commandName, schemaPath, extraArgs = '') {
+  const prismaScript = getPrismaCliScript();
+  if (prismaScript) {
+    console.log(`[Prisma Generator] Executing installed Prisma CLI: ${prismaScript}`);
+    execSync(`node "${prismaScript}" ${commandName} --schema="${schemaPath}" ${extraArgs}`, { stdio: 'inherit', env: process.env });
+    return;
+  }
+
+  const binCandidates = [
+    path.resolve(__dirname, '../node_modules/.bin/prisma'),
+    path.resolve(__dirname, '../backend/node_modules/.bin/prisma'),
+    path.resolve(process.cwd(), 'node_modules/.bin/prisma'),
+    path.resolve(process.cwd(), 'backend/node_modules/.bin/prisma'),
+  ];
+
+  for (const binPath of binCandidates) {
+    const binExecutable = process.platform === 'win32' ? `${binPath}.cmd` : binPath;
+    if (fs.existsSync(binExecutable) || fs.existsSync(binPath)) {
+      const targetBin = fs.existsSync(binExecutable) ? binExecutable : binPath;
+      console.log(`[Prisma Generator] Executing Prisma via bin: ${targetBin}`);
+      execSync(`"${targetBin}" ${commandName} --schema="${schemaPath}" ${extraArgs}`, { stdio: 'inherit', env: process.env });
+      return;
+    }
+  }
+
+  console.log('[Prisma Generator] Executing Prisma CLI via npx --yes prisma@5.22.0...');
+  execSync(`npx --yes prisma@5.22.0 ${commandName} --schema="${schemaPath}" ${extraArgs}`, { stdio: 'inherit', env: process.env });
 }
 
 async function isPortOpen(host, port, timeout = 800) {
@@ -112,25 +144,13 @@ async function run() {
   console.log(`[Prisma Generator] Environment: ${isVercel ? 'Vercel Production' : 'Local Development'}`);
   console.log(`[Prisma Generator] Using schema: ${targetSchema}`);
 
-  const prismaScript = getPrismaCliScript();
-
   try {
-    if (prismaScript) {
-      console.log(`[Prisma Generator] Executing installed Prisma CLI: ${prismaScript}`);
-      execSync(`node "${prismaScript}" generate --schema="${targetSchema}"`, { stdio: 'inherit', env: process.env });
-    } else {
-      console.log('[Prisma Generator] Executing Prisma CLI via npx --no-install...');
-      execSync(`npx --no-install prisma generate --schema="${targetSchema}"`, { stdio: 'inherit', env: process.env });
-    }
+    executePrisma('generate', targetSchema);
 
     if (useSqlite && fs.existsSync(sqliteSchemaPath)) {
       console.log('[Prisma Generator] Pushing SQLite schema & syncing local dev database...');
       try {
-        if (prismaScript) {
-          execSync(`node "${prismaScript}" db push --schema="${targetSchema}" --accept-data-loss`, { stdio: 'inherit', env: process.env });
-        } else {
-          execSync(`npx --no-install prisma db push --schema="${targetSchema}" --accept-data-loss`, { stdio: 'inherit', env: process.env });
-        }
+        executePrisma('db push', targetSchema, '--accept-data-loss');
       } catch (pushErr) {
         console.warn('Notice during db push:', pushErr.message);
       }
