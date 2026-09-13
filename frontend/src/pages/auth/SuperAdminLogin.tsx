@@ -190,14 +190,22 @@ export const SuperAdminLogin: React.FC = () => {
               </button>
 
               {showPresets && (
-                <div className="mt-2 p-2 rounded-lg bg-slate-50 border border-slate-200 text-left text-xs">
+                <div className="mt-2 p-2 rounded-lg bg-slate-50 border border-slate-200 text-left text-xs space-y-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin('gopikrishnabeesu@gmail.com', 'Data@1234')}
+                    className="w-full p-2 bg-slate-900 text-white rounded font-mono text-[11px] flex justify-between items-center"
+                  >
+                    <span>gopikrishnabeesu@gmail.com</span>
+                    <span className="text-amber-400 font-bold">Auto Fill</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleQuickLogin('admin@greetwell.com', 'Admin@123456')}
-                    className="w-full p-2 bg-slate-900 text-white rounded font-mono text-[11px] flex justify-between items-center"
+                    className="w-full p-2 bg-slate-800 text-slate-200 rounded font-mono text-[11px] flex justify-between items-center"
                   >
                     <span>admin@greetwell.com</span>
-                    <span className="text-amber-400 font-bold">Auto Fill</span>
+                    <span className="text-slate-400 font-bold">Legacy</span>
                   </button>
                 </div>
               )}
