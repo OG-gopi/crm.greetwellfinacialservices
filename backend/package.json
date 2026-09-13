@@ -5,10 +5,10 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "node ../node_modules/prisma/build/index.js generate --schema=prisma/schema.prisma || prisma generate --schema=prisma/schema.prisma && tsc",
+    "build": "node ../scripts/generate-prisma.js && tsc",
     "vercel-build": "npm run build",
     "start": "node dist/server.js",
-    "db:generate": "node ../node_modules/prisma/build/index.js generate --schema=prisma/schema.prisma || prisma generate --schema=prisma/schema.prisma",
+    "db:generate": "node ../scripts/generate-prisma.js",
     "db:push": "prisma db push",
     "db:seed": "ts-node prisma/seed.ts",
     "db:clean": "ts-node scripts/clean-production-db.ts",

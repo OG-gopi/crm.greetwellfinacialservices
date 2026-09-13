@@ -7,8 +7,8 @@
     "backend"
   ],
   "scripts": {
-    "postinstall": "node node_modules/prisma/build/index.js generate --schema=backend/prisma/schema.prisma || npx prisma generate --schema=backend/prisma/schema.prisma",
-    "build:backend": "node node_modules/prisma/build/index.js generate --schema=backend/prisma/schema.prisma && tsc -p backend/tsconfig.json",
+    "postinstall": "node scripts/generate-prisma.js",
+    "build:backend": "node scripts/generate-prisma.js && tsc -p backend/tsconfig.json",
     "build:frontend": "npm --prefix frontend run build && node -e \"const fs=require('fs'); ['dist', 'public', 'build'].forEach(d => fs.cpSync('frontend/dist', d, {recursive: true}));\"",
     "build": "npm run build:backend && npm run build:frontend",
     "vercel-build": "npm run build",
@@ -16,8 +16,8 @@
     "test": "cd backend && npm test"
   },
   "dependencies": {
-    "@prisma/client": "5.22.0",
-    "prisma": "5.22.0",
+    "@prisma/client": "^5.22.0",
+    "prisma": "^5.22.0",
     "typescript": "^5.3.3"
   },
   "optionalDependencies": {
