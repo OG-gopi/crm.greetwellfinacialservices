@@ -234,32 +234,107 @@ export const CreateApplication: React.FC = () => {
     }
   };
 
-  const getRequiredDocsForProduct = () => {
+  interface DocumentSpec {
+    title: string;
+    required: boolean;
+    description?: string;
+  }
+
+  const getRequiredDocsForProduct = (): DocumentSpec[] => {
     if (appType === 'LOAN') {
       if (productType === 'Education Loan') {
-        return ['Identity Proof (Aadhaar/PAN)', 'Address Proof', 'Admission Letter', 'Tuition Fee Structure', 'Bank Statements (6 Months)'];
+        return [
+          { title: 'Identity Proof (Aadhaar/PAN)', required: true },
+          { title: 'Address Proof', required: true },
+          { title: 'Admission Letter', required: true },
+          { title: 'Tuition Fee Structure', required: true },
+          { title: 'Bank Statements (6 Months)', required: true },
+        ];
       }
       if (productType === 'Home Loan') {
-        return ['Identity Proof (Aadhaar/PAN)', 'Address Proof', 'Property Sale Agreement', 'Income Proof / Salary Slips', 'Bank Statements'];
+        return [
+          { title: 'Identity Proof (Aadhaar/PAN)', required: true },
+          { title: 'Address Proof', required: true },
+          { title: 'Property Sale Agreement', required: true },
+          { title: 'Income Proof / Salary Slips', required: true },
+          { title: 'Bank Statements', required: true },
+        ];
       }
       if (productType === 'Business Loan') {
-        return ['Identity Proof', 'Business Registration Certificate', 'GST Return / Tax Filings', '12 Months Bank Statements'];
+        return [
+          { title: 'Identity Proof', required: true },
+          { title: 'Business Registration Certificate', required: true },
+          { title: 'GST Return / Tax Filings', required: true },
+          { title: '12 Months Bank Statements', required: true },
+        ];
       }
-      return ['Identity Proof (Aadhaar/PAN)', 'Address Proof', 'Income Proof / Salary Slips', 'Bank Statements (6 Months)'];
+      return [
+        { title: 'Identity Proof (Aadhaar/PAN)', required: true },
+        { title: 'Address Proof', required: true },
+        { title: 'Income Proof / Salary Slips', required: true },
+        { title: 'Bank Statements (6 Months)', required: true },
+      ];
     }
+
     if (appType === 'INSURANCE') {
       if (productType === 'Motor Insurance') {
-        return ['Identity Proof', 'Vehicle RC Copy', 'Previous Policy Copy', 'Vehicle Inspection Photo'];
+        return [
+          { title: 'Identity Proof', required: true },
+          { title: 'Vehicle RC Copy', required: true },
+          { title: 'Previous Policy Copy', required: true },
+          { title: 'Vehicle Inspection Photo', required: true },
+        ];
       }
-      return ['Identity Proof (Aadhaar/PAN)', 'Address Proof', 'Medical Examination Report', 'Income Proof'];
+      return [
+        { title: 'Identity Proof (Aadhaar/PAN)', required: true },
+        { title: 'Address Proof', required: true },
+        { title: 'Medical Examination Report', required: true },
+        { title: 'Income Proof', required: true },
+      ];
     }
+
     if (appType === 'INVESTMENT') {
       if (productType === 'Chit Investment') {
-        return ['Identity Proof (Aadhaar/PAN)', 'Address Proof', 'Bank Passbook / Cancelled Cheque', 'Nominee Identity Proof'];
+        return [
+          { title: 'Aadhaar Card', required: true, description: 'Mandatory identity verification' },
+          { title: 'PAN Card', required: false, description: 'Optional tax verification' },
+          { title: 'Address Proof', required: false, description: 'Optional residential proof' },
+          { title: 'Bank Passbook / Cancelled Cheque', required: false, description: 'Optional payout account proof' },
+          { title: 'Nominee Identity Proof', required: false, description: 'Optional nominee proof' },
+        ];
       }
-      return ['Identity Proof (PAN Card)', 'Address Proof', 'Bank Passbook / Cancelled Cheque'];
+      return [
+        { title: 'Identity Proof (Aadhaar/PAN)', required: true },
+        { title: 'Address Proof', required: false },
+        { title: 'Bank Passbook / Cancelled Cheque', required: false },
+      ];
     }
-    return ['Identity Proof', 'Address Proof'];
+
+    return [
+      { title: 'Identity Proof', required: true },
+      { title: 'Address Proof', required: true },
+    ];
+  };
+
+  const handleValidateStep3 = () => {
+    setError('');
+    const docSpecs = getRequiredDocsForProduct();
+    const mandatorySpecs = docSpecs.filter((d) => d.required);
+
+    for (const spec of mandatorySpecs) {
+      const isUploaded = uploadedDocs.some(
+        (d) =>
+          d.type === spec.title ||
+          d.type.includes(spec.title) ||
+          (spec.title.includes('Aadhaar') && d.type.includes('Aadhaar'))
+      );
+      if (!isUploaded) {
+        setError(`Please upload mandatory document: ${spec.title}`);
+        return;
+      }
+    }
+
+    setCurrentStep(4);
   };
 
   if (successAppId) {
@@ -853,33 +928,48 @@ export const CreateApplication: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            {getRequiredDocsForProduct().map((docTitle, idx) => {
-              const uploaded = uploadedDocs.find((d) => d.type === docTitle);
+            {getRequiredDocsForProduct().map((docSpec) => {
+              const uploaded = uploadedDocs.find(
+                (d) =>
+                  d.type === docSpec.title ||
+                  d.type.includes(docSpec.title) ||
+                  (docSpec.title.includes('Aadhaar') && d.type.includes('Aadhaar'))
+              );
               return (
                 <div
-                  key={docTitle}
+                  key={docSpec.title}
                   className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                     uploaded ? 'bg-emerald-50/60 border-emerald-200' : 'bg-slate-50 border-slate-200'
                   }`}
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900">{docTitle}</span>
-                      <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-slate-200 text-slate-700">Mandatory</span>
+                      <span className="font-bold text-slate-900">{docSpec.title}</span>
+                      {docSpec.required ? (
+                        <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-100 text-blue-800 border border-blue-200">
+                          Mandatory
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-slate-200 text-slate-600 border border-slate-300">
+                          Optional
+                        </span>
+                      )}
                     </div>
                     {uploaded ? (
                       <p className="text-[11px] text-emerald-700 font-medium mt-1">
                         ✓ File uploaded: <strong>{uploaded.name}</strong> ({uploaded.size} KB)
                       </p>
                     ) : (
-                      <p className="text-[10px] text-slate-400 mt-1">Allowed formats: PDF, JPG, PNG (Max 5MB)</p>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        {docSpec.description || 'Allowed formats: PDF, JPG, PNG (Max 5MB)'}
+                      </p>
                     )}
                   </div>
 
                   <div>
                     {uploaded ? (
                       <button
-                        onClick={() => handleRemoveDoc(docTitle)}
+                        onClick={() => handleRemoveDoc(docSpec.title)}
                         className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-lg flex items-center gap-1"
                       >
                         <X className="w-3.5 h-3.5" /> Remove
@@ -891,7 +981,7 @@ export const CreateApplication: React.FC = () => {
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png"
                           className="hidden"
-                          onChange={(e) => handleDocSimulatedUpload(docTitle, e)}
+                          onChange={(e) => handleDocSimulatedUpload(docSpec.title, e)}
                         />
                       </label>
                     )}
@@ -911,7 +1001,7 @@ export const CreateApplication: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setCurrentStep(4)}
+              onClick={handleValidateStep3}
               className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md"
             >
               <span>Next: Review & Submit</span>
