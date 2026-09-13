@@ -20,16 +20,26 @@ export async function login(req: Request, res: Response) {
     const loginIdentifier = email.trim().toLowerCase();
     const rawIdentifier = email.trim();
 
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: loginIdentifier },
-          { phone: rawIdentifier },
-          { customerIdCode: rawIdentifier.toUpperCase() },
-          { agentIdCode: rawIdentifier.toUpperCase() },
-        ],
-      },
-    });
+    let user = null;
+    try {
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: loginIdentifier },
+            { phone: rawIdentifier },
+            { customerIdCode: rawIdentifier.toUpperCase() },
+            { agentIdCode: rawIdentifier.toUpperCase() },
+          ],
+        },
+      });
+    } catch (dbErr: any) {
+      console.error('Database connection error during login lookup:', dbErr);
+      return res.status(503).json({
+        success: false,
+        message: 'Unable to connect to database. Please ensure DATABASE_URL and DIRECT_URL are set in Vercel Environment Variables.',
+      });
+    }
+
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid credentials.' });
     }

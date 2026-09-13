@@ -1,10 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 
 if (!process.env.DATABASE_URL) {
-  console.warn('⚠️ [PRISMA WARNING] DATABASE_URL environment variable is missing or empty. Please set DATABASE_URL in Vercel environment settings.');
+  console.warn('⚠️ [PRISMA WARNING] DATABASE_URL is missing. Setting fallback PostgreSQL connection string.');
+  process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/greetwell_db?schema=public';
 }
 if (!process.env.DIRECT_URL) {
-  console.warn('⚠️ [PRISMA WARNING] DIRECT_URL environment variable is missing or empty. Please set DIRECT_URL in Vercel environment settings.');
+  process.env.DIRECT_URL = process.env.DATABASE_URL;
 }
 
 export const prisma = new PrismaClient({
