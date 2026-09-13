@@ -57,10 +57,10 @@ export async function createMethodPermission(req: AuthRequest, res: Response) {
     await createAuditLog({
       userId: req.user?.id,
       userRole: req.user?.role,
-      action: 'CREATE_METHOD_PERMISSION',
+      action: 'ADD_METHOD_PERMISSION',
       entityType: 'METHOD_PERMISSION',
       entityId: newDef.id,
-      description: `Created method permission '${newDef.methodName}' [${newDef.httpMethod} ${newDef.endpoint}].`,
+      description: `Added method permission '${newDef.methodName}' [${newDef.httpMethod} ${newDef.endpoint}] with initial permissions: ${Object.entries(rolesInput).map(([r, v]) => `${r}:${v ? 'ALLOWED' : 'DENIED'}`).join(', ')}.`,
       ipAddress: req.ip,
     });
 
@@ -116,7 +116,7 @@ export async function updateMethodPermission(req: AuthRequest, res: Response) {
       action: 'UPDATE_METHOD_PERMISSION',
       entityType: 'METHOD_PERMISSION',
       entityId: id,
-      description: `Updated method permission '${updated.methodName}'.`,
+      description: `Updated method permission '${updated.methodName}' [${updated.httpMethod} ${updated.endpoint}] definition and role permissions.`,
       ipAddress: req.ip,
     });
 
@@ -145,10 +145,10 @@ export async function deleteMethodPermission(req: AuthRequest, res: Response) {
     await createAuditLog({
       userId: req.user?.id,
       userRole: req.user?.role,
-      action: 'DELETE_METHOD_PERMISSION',
+      action: 'REMOVE_METHOD_PERMISSION',
       entityType: 'METHOD_PERMISSION',
       entityId: id,
-      description: `Deleted method permission '${existing.methodName}'.`,
+      description: `Removed method permission '${existing.methodName}' [${existing.httpMethod} ${existing.endpoint}].`,
       ipAddress: req.ip,
     });
 
@@ -178,10 +178,10 @@ export async function toggleMethodPermissionStatus(req: AuthRequest, res: Respon
     await createAuditLog({
       userId: req.user?.id,
       userRole: req.user?.role,
-      action: isActive ? 'ACTIVATE_METHOD_PERMISSION' : 'DEACTIVATE_METHOD_PERMISSION',
+      action: isActive ? 'ENABLE_METHOD_PERMISSION' : 'DISABLE_METHOD_PERMISSION',
       entityType: 'METHOD_PERMISSION',
       entityId: id,
-      description: `Set method permission '${existing.methodName}' status to ${isActive ? 'ACTIVE' : 'INACTIVE'}.`,
+      description: `Changed active status of method permission '${existing.methodName}' [${existing.httpMethod} ${existing.endpoint}] to ${isActive ? 'ENABLED (Active)' : 'DISABLED (Inactive)'}.`,
       ipAddress: req.ip,
     });
 

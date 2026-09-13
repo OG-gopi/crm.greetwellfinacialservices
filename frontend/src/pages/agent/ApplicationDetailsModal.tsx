@@ -26,22 +26,24 @@ import {
   FileCheck,
   UserCheck,
   Sparkles,
+  Check,
+  ArrowLeft,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { Application, DocumentItem, NoteItem, TaskItem } from '../../types';
-import { StatusBadge } from '../../components/common/StatusBadge';
-import { Modal } from '../../components/common/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { SearchableSelect } from '../../components/common/SearchableSelect';
 
 interface ApplicationDetailsModalProps {
   applicationId: string | null;
   isOpen: boolean;
   onClose: () => void;
   onStatusUpdated?: () => void;
+  isFullPage?: boolean;
 }
 
-// Helper: Check if value is present (not null, undefined, empty, or string "null" / "undefined" / "N/A")
+// Helper: Check if value is present
 const isValPresent = (val: any): boolean => {
   if (val === null || val === undefined) return false;
   if (typeof val === 'string') {
@@ -74,14 +76,14 @@ const formatFileSize = (bytes?: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-// Helper: Render detail card if value exists (returns null if empty)
-const renderDetailCard = (label: string, val: any, prefix: string = '', suffix: string = '') => {
+// Helper: Render summary card item with smooth rounded corners
+const renderSummaryBlock = (label: string, val: any, prefix: string = '', suffix: string = '') => {
   if (!isValPresent(val)) return null;
   const displayVal = typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val);
   return (
-    <div key={label} className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 hover:border-slate-300 transition-all">
-      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">{label}</span>
-      <span className="font-extrabold text-slate-900 text-xs block mt-0.5">
+    <div key={label} className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/70 hover:border-slate-300 transition-all">
+      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">{label}</span>
+      <span className="text-xs sm:text-sm font-extrabold text-slate-900 block truncate">
         {prefix}{displayVal}{suffix}
       </span>
     </div>
@@ -93,6 +95,7 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
   isOpen,
   onClose,
   onStatusUpdated,
+  isFullPage = true,
 }) => {
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -103,7 +106,7 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
   const [loading, setLoading] = useState(false);
 
   const [activeTab, setActiveTab] = useState<
-    'OVERVIEW' | 'CUSTOMER_DETAILS' | 'SCHEME_DETAILS' | 'DOCUMENTS' | 'REQUESTS' | 'HISTORY' | 'TASKS_NOTES'
+    'OVERVIEW' | 'CUSTOMER_DETAILS' | 'SCHEME_DETAILS' | 'DOCUMENTS' | 'REQUESTS' | 'TASKS_NOTES' | 'HISTORY'
   >('OVERVIEW');
 
   // Status transition state
@@ -153,7 +156,7 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
         setApp(fetchedApp);
         setNewStatus(fetchedApp.status);
 
-        // Fetch customer's other applications for quick switcher sidebar
+        // Fetch customer's other applications for sidebar switcher
         if (fetchedApp.customer?.email) {
           try {
             const custRes = await api.get(`/applications?search=${encodeURIComponent(fetchedApp.customer.email)}`);
@@ -336,7 +339,9 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
   const getStageIndex = (status: string) => {
     const map: Record<string, number> = {
       SUBMITTED: 1,
+      DOCUMENTS_SUBMITTED: 2,
       DOCUMENTS_REQUIRED: 2,
+      PENDING_ASSIGNMENT: 3,
       ASSIGNED: 3,
       UNDER_REVIEW: 4,
       INFORMATION_REQUIRED: 5,
@@ -371,7 +376,11 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
     ? formatFullName(app.customer.firstName, app.customer.lastName)
     : 'Customer';
 
-  const getServiceSpecificTabTitle = () => {
+  const customerInitials = app?.customer
+    ? `${app.customer.firstName ? app.customer.firstName[0].toUpperCase() : ''}${app.customer.lastName ? app.customer.lastName[0].toUpperCase() : ''}`
+    : 'LC';
+
+  const getCategoryTabTitle = () => {
     if (app?.type === 'LOAN') return 'Loan Details';
     if (app?.type === 'INSURANCE') return 'Policy Details';
     if (app?.type === 'INVESTMENT') return 'Scheme Information';
@@ -384,666 +393,743 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
     return `${url.startsWith('/') ? '' : '/'}${url}`;
   };
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Application Overview: ${app?.id || ''}`} maxWidth="max-w-6xl">
+  const getPermittedStatuses = () => {
+    if (!app) return [];
+    if (user?.role === 'SUPER_ADMIN') {
+      return [
+        'SUBMITTED',
+        'DOCUMENTS_SUBMITTED',
+        'ASSIGNED',
+        'UNDER_REVIEW',
+        'INFORMATION_REQUIRED',
+        'DOCUMENTS_REQUIRED',
+        'VERIFICATION',
+        'APPROVED',
+        'REJECTED',
+        'COMPLETED',
+      ];
+    }
+    const ALLOWED: Record<string, string[]> = {
+      DRAFT: ['SUBMITTED'],
+      SUBMITTED: ['PENDING_ASSIGNMENT', 'ASSIGNED', 'UNDER_REVIEW', 'REJECTED'],
+      PENDING_ASSIGNMENT: ['ASSIGNED', 'REJECTED'],
+      ASSIGNED: ['UNDER_REVIEW', 'INFORMATION_REQUIRED', 'DOCUMENTS_REQUIRED', 'REJECTED'],
+      UNDER_REVIEW: ['INFORMATION_REQUIRED', 'DOCUMENTS_REQUIRED', 'VERIFICATION', 'APPROVED', 'REJECTED'],
+      INFORMATION_REQUIRED: ['UNDER_REVIEW', 'DOCUMENTS_REQUIRED', 'REJECTED'],
+      DOCUMENTS_REQUIRED: ['UNDER_REVIEW', 'VERIFICATION', 'REJECTED'],
+      VERIFICATION: ['APPROVED', 'REJECTED', 'INFORMATION_REQUIRED'],
+      APPROVED: ['COMPLETED'],
+      REJECTED: ['DRAFT', 'UNDER_REVIEW'],
+      COMPLETED: [],
+    };
+    const allowed = ALLOWED[app.status] || [];
+    return Array.from(new Set([app.status, ...allowed]));
+  };
+
+  // FULL PAGE CONTAINER WRAPPER
+  const containerContent = (
+    <div className="space-y-6 w-full max-w-full font-['Inter',sans-serif]">
+      
+      {/* PAGE TOP ACTION HEADER & BREADCRUMBS */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs border border-slate-200"
+            title="Back to Applications List"
+          >
+            <ArrowLeft className="w-4 h-4 text-slate-700" />
+            <span>Back to Applications</span>
+          </button>
+          <div>
+            <h1 className="font-['Fraunces',serif] font-bold text-xl sm:text-2xl text-[#10233F] tracking-tight">
+              Application Overview <span className="text-[#B8862E]">·</span> {app?.id || ''}
+            </h1>
+          </div>
+        </div>
+
+        {/* BREADCRUMBS TRAIL */}
+        <div className="px-3.5 py-2 text-xs font-semibold text-slate-500 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center flex-wrap gap-1.5">
+          <span>Dashboard</span>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+          <span>Applications</span>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+          <span className="capitalize">
+            {app?.type === 'LOAN'
+              ? 'Loan Applications'
+              : app?.type === 'INSURANCE'
+              ? 'Insurance Applications'
+              : app?.type === 'INVESTMENT'
+              ? 'Investment Applications'
+              : 'Applications'}
+          </span>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+          <span className="text-[#10233F] font-black">{app?.id}</span>
+        </div>
+      </div>
+
       {loading || !app ? (
-        <div className="py-16 text-center text-slate-500">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto mb-2" />
-          Loading application record...
+        <div className="bg-white rounded-2xl border border-slate-200 p-24 text-center text-slate-500 shadow-sm">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#B8862E] border-t-transparent mx-auto mb-3" />
+          Loading application record details...
         </div>
       ) : (
-        <div className="space-y-4 text-xs">
-          {/* Breadcrumb Navigation Trail */}
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
-            <span>Dashboard</span>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-            <span>Applications</span>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-            <span className="capitalize">{app.type.toLowerCase()} Applications</span>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-            <span className="font-extrabold text-blue-700">{app.id}</span>
-          </div>
-
-          {/* Main 2-Column Responsive Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        /* MAIN FULL-PAGE 2-COLUMN LAYOUT */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* LEFT COLUMN: Customer Profile & Quick App Switcher (4 Cols on lg) */}
+          <div className="lg:col-span-4 space-y-5">
             
-            {/* LEFT COLUMN: Customer Profile Card & Quick App Switcher (~35% width) */}
-            <div className="lg:col-span-4 space-y-4">
-              
-              {/* Customer Profile Card */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
-                <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white font-extrabold text-lg flex items-center justify-center border-2 border-blue-500 shadow-sm shrink-0">
-                    {app.customer?.firstName ? app.customer.firstName[0].toUpperCase() : 'C'}
-                    {app.customer?.lastName ? app.customer.lastName[0].toUpperCase() : ''}
-                  </div>
-                  <div className="min-w-0">
-                    <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-extrabold">
-                      {app.customer?.customerIdCode || 'CUS-2026-000001'}
-                    </span>
-                    <h3 className="font-extrabold text-slate-900 text-sm mt-0.5 truncate">
-                      {customerFullName}
-                    </h3>
-                  </div>
+            {/* CUSTOMER PROFILE CARD */}
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center gap-3.5 border-b border-slate-100 pb-4">
+                <div className="w-14 h-14 rounded-2xl bg-[#10233F] text-[#E8C877] flex items-center justify-center font-['Fraunces',serif] font-bold text-xl shrink-0 shadow-xs border-2 border-amber-400/30">
+                  {customerInitials}
                 </div>
-
-                <div className="grid grid-cols-1 gap-2 text-slate-700 font-medium">
-                  {renderDetailCard('Email Address', app.customer?.email)}
-                  {renderDetailCard('Mobile Phone', app.customer?.phone)}
-                  {renderDetailCard('Education', app.customer?.education)}
-                  {app.customer?.hasExperience !== undefined && renderDetailCard('Prior Experience', app.customer?.hasExperience)}
-                  {renderDetailCard('Previous Employer', app.customer?.previousCompany)}
-                  {renderDetailCard('Job Role', app.customer?.previousJobRole)}
-                  {renderDetailCard('Years of Experience', app.customer?.yearsOfExperience)}
+                <div className="min-w-0">
+                  <span className="inline-block text-[11px] font-extrabold text-[#10233F] bg-blue-50 border border-blue-100 px-2.5 py-0.5 rounded-lg mb-1">
+                    {app.customer?.customerIdCode || 'CUS-2026-000001'}
+                  </span>
+                  <h3 className="text-base font-extrabold text-slate-900 truncate">
+                    {customerFullName}
+                  </h3>
                 </div>
               </div>
 
-              {/* Customer's Applications Quick Switcher */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <Layers className="w-4 h-4 text-blue-600" /> Customer Applications
-                  </h4>
-                  <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">
-                    {customerApps.length} total
+              <div className="space-y-2.5">
+                {renderSummaryBlock('Email Address', app.customer?.email)}
+                {renderSummaryBlock('Mobile Phone', app.customer?.phone)}
+                {app.customer?.education && renderSummaryBlock('Education Qualification', app.customer.education)}
+                {app.customer?.hasExperience !== undefined && renderSummaryBlock('Prior Professional Experience', app.customer.hasExperience ? 'Yes' : 'No')}
+                {app.customer?.previousCompany && renderSummaryBlock('Previous Employer', app.customer.previousCompany)}
+                {app.customer?.previousJobRole && renderSummaryBlock('Previous Job Role', app.customer.previousJobRole)}
+              </div>
+            </div>
+
+            {/* CUSTOMER APPLICATIONS SWITCHER */}
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-[#B8862E]" /> Customer Applications
+                </h4>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-extrabold text-[10px]">
+                  {customerApps.length} total
+                </span>
+              </div>
+
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                {customerApps.length === 0 ? (
+                  <div className="p-4 text-xs text-slate-400 italic">No other applications.</div>
+                ) : (
+                  customerApps.map((cApp) => {
+                    const isCurrent = cApp.id === app.id;
+                    return (
+                      <div
+                        key={cApp.id}
+                        onClick={() => setActiveAppId(cApp.id)}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                          isCurrent
+                            ? 'bg-gradient-to-r from-amber-50/70 to-white border-amber-300 border-l-4 border-l-[#B8862E] shadow-xs'
+                            : 'bg-slate-50/70 border-slate-200/70 hover:bg-slate-100/80'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-[#10233F] text-xs">{cApp.id}</span>
+                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">
+                              {cApp.type}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium truncate max-w-[150px] mt-0.5">
+                            {cApp.purpose || `${cApp.type} Application`}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase whitespace-nowrap">
+                          {cApp.status}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+          </div>
+
+          {/* RIGHT COLUMN: Hero Banner, Stepper, Tabs & Detailed Cards (8 Cols on lg) */}
+          <div className="lg:col-span-8 space-y-5">
+            
+            {/* HERO BANNER CARD */}
+            <div className="bg-gradient-to-r from-[#10233F] via-slate-900 to-[#0A1830] text-white rounded-2xl p-6 shadow-md border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="bg-white/15 text-[#E8C877] font-extrabold text-xs tracking-wider px-3 py-1 rounded-lg uppercase backdrop-blur-xs">
+                    {app.type}
+                  </span>
+                  <span className="font-['Fraunces',serif] font-bold text-2xl text-white">
+                    {app.id}
+                  </span>
+                  <span className="bg-white/15 text-white font-extrabold text-xs px-3 py-1 rounded-lg uppercase">
+                    {app.status}
                   </span>
                 </div>
+                <div className="text-xs text-slate-300">
+                  Submitted on: <b className="text-[#E8C877] font-semibold">{new Date(app.createdAt).toLocaleString()}</b> &nbsp;·&nbsp; Priority: <b className="text-[#E8C877] font-semibold">{app.priority || 'MEDIUM'}</b>
+                </div>
+              </div>
 
-                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
-                  {customerApps.map((cApp) => (
-                    <button
-                      key={cApp.id}
-                      onClick={() => setActiveAppId(cApp.id)}
-                      className={`w-full p-2.5 rounded-xl border text-left transition-all flex items-center justify-between ${
-                        cApp.id === app.id
-                          ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-500/20'
-                          : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-extrabold text-blue-700 text-xs">{cApp.id}</span>
-                          <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-slate-200 text-slate-700">
-                            {cApp.type}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-500 font-medium truncate max-w-[140px] mt-0.5">
-                          {cApp.purpose || cApp.type}
-                        </p>
-                      </div>
-                      <StatusBadge status={cApp.status} />
-                    </button>
-                  ))}
+              <div className="text-right">
+                <div className="text-[10px] tracking-wider text-slate-400 font-extrabold uppercase mb-1">ASSIGNED AGENT</div>
+                <div className="text-sm font-extrabold text-[#E8C877]">
+                  {assignedAgentName || 'Awaiting assignment'}
                 </div>
               </div>
             </div>
 
-            {/* RIGHT COLUMN: Application Header, Stepper, & Tab Content (~65% width) */}
-            <div className="lg:col-span-8 space-y-4">
-              
-              {/* Application Top Header Banner */}
-              <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl shadow-sm flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2.5 py-1 rounded bg-blue-600 text-white font-black text-xs uppercase">
-                      {app.type}
-                    </span>
-                    <span className="font-black text-lg text-blue-300">{app.id}</span>
-                    <StatusBadge status={app.status} />
-                  </div>
-                  <p className="text-slate-300 text-xs mt-1">
-                    Submitted on: <strong>{new Date(app.createdAt).toLocaleString()}</strong> • Priority:{' '}
-                    <span className="font-extrabold text-amber-400">{app.priority || 'MEDIUM'}</span>
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Assigned Agent:</span>
-                  <span className={`font-bold text-xs ${assignedAgentName ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {assignedAgentName || 'Awaiting Assignment'}
-                  </span>
-                </div>
+            {/* 8-STAGE PROCESSING LIFECYCLE STEPPER */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                  Application Processing Lifecycle Stepper
+                </h4>
+                <span className="text-xs font-extrabold text-[#B8862E]">Stage {currentStage} of 8</span>
               </div>
 
-              {/* 8-Stage Processing Stepper */}
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider">
-                    Application Processing Lifecycle Stepper
-                  </h4>
-                  <span className="text-[10px] font-bold text-blue-700">Stage {currentStage} of 8</span>
-                </div>
-                <div className="grid grid-cols-4 sm:grid-cols-8 gap-1 text-center text-[10px]">
-                  {[
-                    { idx: 1, name: 'Created' },
-                    { idx: 2, name: 'Docs Submitted' },
-                    { idx: 3, name: 'Assigned' },
-                    { idx: 4, name: 'Under Review' },
-                    { idx: 5, name: 'Info Required' },
-                    { idx: 6, name: 'Verification' },
-                    { idx: 7, name: 'Decision' },
-                    { idx: 8, name: 'Completed' },
-                  ].map((st) => (
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 text-center text-xs font-bold">
+                {[
+                  { idx: 1, name: 'Created' },
+                  { idx: 2, name: 'Docs submitted' },
+                  { idx: 3, name: 'Assigned' },
+                  { idx: 4, name: 'Under review' },
+                  { idx: 5, name: 'Info required' },
+                  { idx: 6, name: 'Verification' },
+                  { idx: 7, name: 'Decision' },
+                  { idx: 8, name: 'Completed' },
+                ].map((st) => {
+                  const isActive = currentStage === st.idx;
+                  const isPassed = currentStage > st.idx;
+                  return (
                     <div
                       key={st.idx}
-                      className={`p-1.5 rounded-lg font-bold border transition-all ${
-                        currentStage === st.idx
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                          : currentStage > st.idx
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                          : 'bg-white text-slate-400 border-slate-200'
+                      className={`p-2.5 rounded-xl transition-all relative ${
+                        isActive
+                          ? 'bg-[#10233F] text-white font-extrabold shadow-sm ring-2 ring-[#B8862E]/40'
+                          : isPassed
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold'
+                          : 'bg-slate-50 text-slate-400 border border-slate-200/60 font-medium'
                       }`}
                     >
-                      <p>{st.idx}. {st.name}</p>
+                      <span className="block text-[10px] opacity-70 mb-0.5">{st.idx}</span>
+                      <span className="block truncate">{st.name}</span>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tab Navigation Bar */}
-              <div className="flex border-b border-slate-200 gap-1.5 font-bold text-xs overflow-x-auto pb-0.5 scrollbar-none">
-                {[
-                  { id: 'OVERVIEW', label: 'Overview' },
-                  { id: 'CUSTOMER_DETAILS', label: 'Customer Details' },
-                  { id: 'SCHEME_DETAILS', label: getServiceSpecificTabTitle() },
-                  { id: 'DOCUMENTS', label: `Documents (${app.documents?.length || 0})` },
-                  { id: 'REQUESTS', label: `Comments & Requests (${app.requirements?.length || 0})` },
-                  { id: 'TASKS_NOTES', label: `Tasks & Notes (${(app.tasks?.length || 0) + (app.notes?.length || 0)})`, agentOnly: true },
-                  { id: 'HISTORY', label: 'App History' },
-                ].map((t) => {
-                  if (t.agentOnly && user?.role === 'CUSTOMER') return null;
-                  const active = activeTab === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => setActiveTab(t.id as any)}
-                      className={`py-2 px-3 border-b-2 transition-colors whitespace-nowrap ${
-                        active
-                          ? 'border-blue-600 text-blue-700 font-extrabold'
-                          : 'border-transparent text-slate-500 hover:text-slate-900'
-                      }`}
-                    >
-                      {t.label}
-                    </button>
                   );
                 })}
               </div>
+            </div>
 
-              {/* TAB 1: OVERVIEW & STATUS TRANSITION CONTROL */}
-              {activeTab === 'OVERVIEW' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-2xl border border-slate-200 bg-white space-y-3 shadow-sm">
-                      <h4 className="font-extrabold text-slate-900 text-xs uppercase border-b pb-2 flex items-center gap-1.5">
-                        <FileText className="w-4 h-4 text-blue-600" /> Application Summary
-                      </h4>
-                      <div className="grid grid-cols-1 gap-2">
-                        {renderDetailCard('Application Category', app.type)}
-                        {renderDetailCard('Goal / Purpose', app.purpose)}
-                        {renderDetailCard('Requested Amount', app.amount, '₹ ')}
-                        {renderDetailCard('Tenure / Horizon', app.term)}
-                        {renderDetailCard('Priority Level', app.priority)}
-                        {renderDetailCard('Submission Date', new Date(app.createdAt).toLocaleString())}
-                        {renderDetailCard('Assigned Agent', assignedAgentName || 'Awaiting Assignment')}
-                      </div>
-                    </div>
+            {/* TABS NAVIGATION BAR */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-2 shadow-sm flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+              {[
+                { id: 'OVERVIEW', label: 'Overview' },
+                { id: 'CUSTOMER_DETAILS', label: 'Customer details' },
+                { id: 'SCHEME_DETAILS', label: getCategoryTabTitle() },
+                { id: 'DOCUMENTS', label: `Documents (${app.documents?.length || 0})` },
+                { id: 'REQUESTS', label: `Comments & requests (${app.requirements?.length || 0})` },
+                { id: 'TASKS_NOTES', label: `Tasks & notes (${(app.tasks?.length || 0) + (app.notes?.length || 0)})`, agentOnly: true },
+                { id: 'HISTORY', label: 'App history' },
+              ].map((t) => {
+                if (t.agentOnly && user?.role === 'CUSTOMER') return null;
+                const active = activeTab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveTab(t.id as any)}
+                    className={`px-4 py-2.5 rounded-xl text-xs whitespace-nowrap transition-all cursor-pointer ${
+                      active
+                        ? 'bg-[#10233F] text-white font-extrabold shadow-xs border border-[#10233F]'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
 
-                    {/* Status Transition Control for Agents & Super Admin */}
-                    {user?.role !== 'CUSTOMER' && (
-                      <div className="p-4 rounded-2xl border border-blue-200 bg-blue-50/40 space-y-3 shadow-sm">
-                        <h4 className="font-extrabold text-slate-900 text-xs uppercase border-b border-blue-200 pb-2 flex items-center gap-1.5">
-                          <Sparkles className="w-4 h-4 text-blue-600" /> Update Application Status Workflow
-                        </h4>
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-1">New Permitted Status:</label>
-                          <select
-                            value={newStatus}
-                            onChange={(e) => setNewStatus(e.target.value)}
-                            className="w-full p-2.5 border rounded-xl bg-white font-bold text-xs"
-                          >
-                            <option value="DRAFT">DRAFT</option>
-                            <option value="SUBMITTED">SUBMITTED</option>
-                            <option value="ASSIGNED">ASSIGNED</option>
-                            <option value="UNDER_REVIEW">UNDER REVIEW</option>
-                            <option value="INFORMATION_REQUIRED">INFORMATION REQUIRED</option>
-                            <option value="DOCUMENTS_REQUIRED">DOCUMENTS REQUIRED</option>
-                            <option value="VERIFICATION">VERIFICATION</option>
-                            <option value="APPROVED">APPROVED</option>
-                            <option value="REJECTED">REJECTED</option>
-                            <option value="COMPLETED">COMPLETED</option>
-                          </select>
-                        </div>
+            {/* TAB 1: OVERVIEW & APPLICATION SUMMARY BOX */}
+            {activeTab === 'OVERVIEW' && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                
+                {/* APPLICATION SUMMARY BOX */}
+                <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+                  <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider border-b border-slate-100 pb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[#B8862E]" /> Application Summary
+                  </h4>
 
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-1">Status Update Note (Customer Visible):</label>
-                          <input
-                            type="text"
-                            value={statusNote}
-                            onChange={(e) => setStatusNote(e.target.value)}
-                            className="w-full p-2.5 border rounded-xl bg-white text-xs font-medium"
-                            placeholder="Reason for status change..."
-                          />
-                        </div>
-
-                        <button
-                          onClick={handleUpdateStatus}
-                          disabled={updatingStatus || newStatus === app.status}
-                          className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs shadow transition-all disabled:opacity-40"
-                        >
-                          {updatingStatus ? 'Updating Status...' : 'Commit Status Transition'}
-                        </button>
-                      </div>
-                    )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {renderSummaryBlock('Application Category', app.type)}
+                    {renderSummaryBlock('Goal / Purpose', app.purpose || `${app.type} Application`)}
+                    {renderSummaryBlock('Requested Amount', app.amount ? app.amount.toLocaleString() : 'N/A', '₹ ')}
+                    {renderSummaryBlock('Tenure / Horizon', app.term || 'N/A')}
+                    {renderSummaryBlock('Priority Level', app.priority || 'MEDIUM')}
+                    {renderSummaryBlock('Submission Date', new Date(app.createdAt).toLocaleString())}
+                    {renderSummaryBlock('Assigned Agent', assignedAgentName || 'Awaiting assignment')}
                   </div>
                 </div>
-              )}
 
-              {/* TAB 2: CUSTOMER DETAILS */}
-              {activeTab === 'CUSTOMER_DETAILS' && (
-                <div className="p-4 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-sm">
-                  <h4 className="font-extrabold text-slate-900 text-xs uppercase border-b pb-2 flex items-center gap-1.5">
-                    <UserIcon className="w-4 h-4 text-blue-600" /> Customer Information & Profile
+                {/* UPDATE APPLICATION STATUS WORKFLOW BOX */}
+                {user?.role !== 'CUSTOMER' && (
+                  <div className="lg:col-span-5 bg-gradient-to-br from-amber-50/50 via-white to-amber-50/20 border border-amber-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h4 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider border-b border-amber-200/60 pb-3 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-[#B8862E]" /> Update Application Status Workflow
+                    </h4>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                          New Permitted Status:
+                        </label>
+                        <SearchableSelect
+                          options={getPermittedStatuses().map((st) => ({
+                            value: st,
+                            label: st.replace(/_/g, ' '),
+                          }))}
+                          value={newStatus}
+                          onChange={setNewStatus}
+                          placeholder="Select new status..."
+                          searchPlaceholder="Search status..."
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                          Status Update Note (Customer Visible):
+                        </label>
+                        <textarea
+                          value={statusNote}
+                          onChange={(e) => setStatusNote(e.target.value)}
+                          placeholder="Reason for status change…"
+                          className="w-full border border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-900 bg-white min-h-[80px] shadow-xs focus:ring-2 focus:ring-[#B8862E] focus:outline-none resize-y"
+                        />
+                      </div>
+
+                      <button
+                        onClick={handleUpdateStatus}
+                        disabled={updatingStatus || newStatus === app.status}
+                        className="w-full py-3 bg-[#B8862E] hover:bg-[#A5761F] text-white text-xs font-extrabold rounded-xl shadow-md cursor-pointer transition-all disabled:opacity-40"
+                      >
+                        {updatingStatus ? 'Updating Status...' : 'Commit Status Transition'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            )}
+
+            {/* TAB 2: CUSTOMER DETAILS */}
+            {activeTab === 'CUSTOMER_DETAILS' && (
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+                <h4 className="font-extrabold text-slate-900 text-xs uppercase border-b border-slate-100 pb-3 flex items-center gap-2">
+                  <UserIcon className="w-4 h-4 text-[#B8862E]" /> Customer Information & Profile
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {renderSummaryBlock('Full Name', customerFullName)}
+                  {renderSummaryBlock('Customer ID Code', app.customer?.customerIdCode)}
+                  {renderSummaryBlock('Email Address', app.customer?.email)}
+                  {renderSummaryBlock('Mobile Phone', app.customer?.phone)}
+                  {app.customer?.dob && renderSummaryBlock('Date of Birth', new Date(app.customer.dob).toLocaleDateString())}
+                  {renderSummaryBlock('Education Qualification', app.customer?.education)}
+                  {app.customer?.hasExperience !== undefined && renderSummaryBlock('Prior Experience', app.customer.hasExperience ? 'Yes' : 'No')}
+                  {renderSummaryBlock('Previous Employer', app.customer?.previousCompany)}
+                  {renderSummaryBlock('Previous Job Role', app.customer?.previousJobRole)}
+                  {renderSummaryBlock('Years of Experience', app.customer?.yearsOfExperience)}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: SCHEME DETAILS */}
+            {activeTab === 'SCHEME_DETAILS' && (
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+                <h4 className="font-extrabold text-slate-900 text-xs uppercase border-b border-slate-100 pb-3 flex items-center gap-2">
+                  <Award className="w-4 h-4 text-[#B8862E]" />
+                  {getCategoryTabTitle()} Details ({parsedForm?.selectedProduct || parsedForm?.productType || app.type})
+                </h4>
+
+                {parsedForm ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {Object.entries(parsedForm)
+                      .filter(([k, v]) => !['customerName', 'email', 'phone'].includes(k) && isValPresent(v))
+                      .map(([key, val]) =>
+                        renderSummaryBlock(
+                          key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase()),
+                          val
+                        )
+                      )}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-slate-400 italic text-xs">
+                    No additional dynamic scheme parameters recorded for this application.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 4: DOCUMENTS */}
+            {activeTab === 'DOCUMENTS' && (
+              <div className="space-y-5">
+                {/* Upload Form */}
+                <form onSubmit={handleUploadDocument} className="bg-white border border-slate-200/80 rounded-2xl p-5 space-y-3 shadow-sm">
+                  <h4 className="font-extrabold text-slate-900 text-xs uppercase flex items-center gap-2">
+                    <Upload className="w-4 h-4 text-[#B8862E]" /> Upload New Document to Application
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {renderDetailCard('Full Name', customerFullName)}
-                    {renderDetailCard('Customer ID Code', app.customer?.customerIdCode)}
-                    {renderDetailCard('Email Address', app.customer?.email)}
-                    {renderDetailCard('Mobile Phone', app.customer?.phone)}
-                    {app.customer?.dob && renderDetailCard('Date of Birth', new Date(app.customer.dob).toLocaleDateString())}
-                    {renderDetailCard('Education Qualification', app.customer?.education)}
-                    {app.customer?.hasExperience !== undefined && renderDetailCard('Prior Professional Experience', app.customer?.hasExperience)}
-                    {renderDetailCard('Previous Employer', app.customer?.previousCompany)}
-                    {renderDetailCard('Previous Job Role', app.customer?.previousJobRole)}
-                    {renderDetailCard('Years of Experience', app.customer?.yearsOfExperience)}
+                    <input
+                      type="text"
+                      value={uploadTitle}
+                      onChange={(e) => setUploadTitle(e.target.value)}
+                      placeholder="Document Title (e.g. Income Proof, Aadhaar)"
+                      className="p-3 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70"
+                    />
+                    <input
+                      type="file"
+                      required
+                      onChange={(e) => setUploadFile(e.target.files ? e.target.files[0] : null)}
+                      className="p-2.5 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70"
+                    />
                   </div>
-                </div>
-              )}
+                  <button
+                    type="submit"
+                    disabled={uploadingDoc || !uploadFile}
+                    className="px-5 py-2.5 bg-[#B8862E] hover:bg-[#A5761F] text-white font-extrabold rounded-xl text-xs transition-all disabled:opacity-40 flex items-center gap-2 cursor-pointer shadow-xs"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{uploadingDoc ? 'Uploading File...' : 'Upload Document'}</span>
+                  </button>
+                </form>
 
-              {/* TAB 3: SERVICE SPECIFIC SCHEME DETAILS */}
-              {activeTab === 'SCHEME_DETAILS' && (
-                <div className="p-4 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-sm">
-                  <h4 className="font-extrabold text-slate-900 text-xs uppercase border-b pb-2 flex items-center gap-1.5">
-                    <Award className="w-4 h-4 text-emerald-600" />
-                    {getServiceSpecificTabTitle()} Information ({parsedForm?.productType || app.type})
+                {/* Documents List */}
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-6 space-y-4 shadow-sm">
+                  <h4 className="font-extrabold text-slate-900 text-xs uppercase flex items-center gap-2">
+                    <FileCheck className="w-4 h-4 text-emerald-600" /> Attached Application Documents
                   </h4>
 
-                  {parsedForm ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {Object.entries(parsedForm)
-                        .filter(([k, v]) => !['customerName', 'email', 'phone'].includes(k) && isValPresent(v))
-                        .map(([key, val]) =>
-                          renderDetailCard(
-                            key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase()),
-                            val
-                          )
-                        )}
+                  {app.documents?.length === 0 ? (
+                    <div className="p-8 text-center bg-slate-50 border border-slate-200/70 rounded-xl text-slate-400 text-xs">
+                      No documents attached yet.
                     </div>
                   ) : (
-                    <div className="py-8 text-center text-slate-500 italic">
-                      No additional dynamic scheme form attributes recorded for this application.
+                    <div className="space-y-3">
+                      {app.documents?.map((doc) => {
+                        const fullUrl = getFullFileUrl(doc.fileUrl);
+                        const uploaderName = doc.uploadedByUser
+                          ? formatFullName(doc.uploadedByUser.firstName, doc.uploadedByUser.lastName)
+                          : 'Customer';
+
+                        return (
+                          <div
+                            key={doc.id}
+                            className="p-4 border border-slate-200/80 rounded-xl bg-slate-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs hover:border-slate-300 transition-all"
+                          >
+                            <div className="flex items-start gap-3 min-w-0">
+                              <div className="p-2.5 bg-blue-50 text-[#10233F] rounded-xl shrink-0 border border-blue-100">
+                                <FileText className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <h5 className="font-extrabold text-slate-900 text-xs truncate">
+                                  {doc.title}
+                                </h5>
+                                <p className="text-[11px] text-slate-500 mt-0.5">
+                                  File: <strong className="text-slate-800">{doc.fileName}</strong> ({formatFileSize(doc.fileSize)}) • Uploaded by: {uploaderName} • {new Date(doc.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase ${
+                                  doc.status === 'VERIFIED'
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                    : doc.status === 'REJECTED'
+                                    ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                    : 'bg-amber-100 text-amber-800 border border-amber-200'
+                                }`}
+                              >
+                                {doc.status}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() => setPreviewDoc(doc)}
+                                className="p-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl transition-all flex items-center gap-1 font-bold text-[11px] cursor-pointer shadow-2xs"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>View</span>
+                              </button>
+
+                              <a
+                                href={fullUrl}
+                                download={doc.fileName}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-2 bg-[#10233F] hover:bg-[#0A1830] text-white rounded-xl transition-all flex items-center gap-1 font-bold text-[11px] shadow-2xs"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                                <span>Download</span>
+                              </a>
+
+                              {user?.role !== 'CUSTOMER' && doc.status === 'PENDING' && (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => handleVerifyDoc(doc.id, 'VERIFIED')}
+                                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-lg text-[10px] cursor-pointer shadow-2xs"
+                                  >
+                                    Verify
+                                  </button>
+                                  <button
+                                    onClick={() => handleVerifyDoc(doc.id, 'REJECTED')}
+                                    className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-lg text-[10px] cursor-pointer shadow-2xs"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* TAB 4: DOCUMENTS & FILE UPLOAD */}
-              {activeTab === 'DOCUMENTS' && (
-                <div className="space-y-5">
-                  {/* Upload New Document Form */}
-                  <form onSubmit={handleUploadDocument} className="p-4 rounded-2xl border border-blue-200 bg-blue-50/40 space-y-3 shadow-sm">
-                    <h4 className="font-extrabold text-slate-900 text-xs uppercase flex items-center gap-1.5">
-                      <Upload className="w-4 h-4 text-blue-600" /> Upload New Document to Application
+            {/* TAB 5: COMMENTS & REQUESTS */}
+            {activeTab === 'REQUESTS' && (
+              <div className="space-y-5">
+                {user?.role !== 'CUSTOMER' && (
+                  <form onSubmit={handleCreateRequest} className="bg-white border border-slate-200/80 rounded-2xl p-5 space-y-3 shadow-sm">
+                    <h4 className="font-extrabold text-slate-900 text-xs uppercase flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-[#B8862E]" /> Create Information / Document Request to Customer
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <input
                         type="text"
-                        value={uploadTitle}
-                        onChange={(e) => setUploadTitle(e.target.value)}
-                        placeholder="Document Title (e.g. Income Proof, Aadhaar)"
-                        className="p-2.5 border rounded-xl bg-white text-xs font-medium"
+                        required
+                        value={requestTitle}
+                        onChange={(e) => setRequestTitle(e.target.value)}
+                        placeholder="Request Title (e.g. Upload 3 Months Bank Statement)"
+                        className="p-3 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70"
                       />
                       <input
-                        type="file"
-                        required
-                        onChange={(e) => setUploadFile(e.target.files ? e.target.files[0] : null)}
-                        className="p-2 border rounded-xl bg-white text-xs font-medium"
+                        type="text"
+                        value={requestDesc}
+                        onChange={(e) => setRequestDesc(e.target.value)}
+                        placeholder="Description / Instructions for Customer"
+                        className="p-3 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70"
                       />
                     </div>
                     <button
                       type="submit"
-                      disabled={uploadingDoc || !uploadFile}
-                      className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs shadow transition-all disabled:opacity-40 flex items-center gap-2"
+                      disabled={creatingRequest}
+                      className="px-5 py-2.5 bg-[#B8862E] hover:bg-[#A5761F] text-white font-extrabold rounded-xl text-xs cursor-pointer transition-all shadow-xs"
                     >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>{uploadingDoc ? 'Uploading File...' : 'Upload Document'}</span>
+                      {creatingRequest ? 'Creating Request...' : 'Send Request & Notify Customer'}
                     </button>
                   </form>
+                )}
 
-                  {/* Uploaded Documents List */}
-                  <div className="space-y-3">
-                    <h4 className="font-extrabold text-slate-900 text-xs uppercase flex items-center gap-1.5">
-                      <FileCheck className="w-4 h-4 text-emerald-600" /> Attached Application Documents
-                    </h4>
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-6 space-y-4 shadow-sm">
+                  <h4 className="font-extrabold text-slate-900 text-xs uppercase">Application Requirements & Requests</h4>
+                  {app.requirements?.length === 0 ? (
+                    <div className="p-8 text-center bg-slate-50 border border-slate-200/70 rounded-xl text-slate-400 text-xs italic">
+                      No open requests or comment threads for this application.
+                    </div>
+                  ) : (
+                    app.requirements?.map((req) => (
+                      <div key={req.id} className="p-4 border border-slate-200/80 rounded-xl bg-slate-50/60 space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                          <span className="font-extrabold text-slate-900 text-xs">{req.title}</span>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold uppercase ${
+                              req.status === 'CUSTOMER_REPLIED'
+                                ? 'bg-blue-100 text-blue-800'
+                                : req.status === 'COMPLETED'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}
+                          >
+                            {req.status}
+                          </span>
+                        </div>
 
-                    {app.documents?.length === 0 ? (
-                      <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 text-xs">
-                        No documents uploaded yet. Use the upload box above to attach files.
-                      </div>
-                    ) : (
-                      <div className="space-y-2.5">
-                        {app.documents?.map((doc) => {
-                          const fullUrl = getFullFileUrl(doc.fileUrl);
-                          const uploaderName = doc.uploadedByUser
-                            ? formatFullName(doc.uploadedByUser.firstName, doc.uploadedByUser.lastName)
-                            : 'Customer';
+                        {req.description && <p className="text-slate-600 text-xs font-medium">{req.description}</p>}
 
-                          return (
-                            <div
-                              key={doc.id}
-                              className="p-4 border border-slate-200 rounded-2xl bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm hover:border-blue-200 transition-all"
-                            >
-                              <div className="flex items-start gap-3 min-w-0">
-                                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl shrink-0">
-                                  <FileText className="w-5 h-5" />
-                                </div>
-                                <div className="min-w-0">
-                                  <h5 className="font-extrabold text-slate-900 text-xs truncate">
-                                    {doc.title}
-                                  </h5>
-                                  <p className="text-[11px] text-slate-500 mt-0.5">
-                                    File: <strong className="text-slate-700">{doc.fileName}</strong> ({formatFileSize(doc.fileSize)}) • Uploaded by: {uploaderName} • {new Date(doc.createdAt).toLocaleDateString()}
-                                  </p>
+                        {req.customerReply && (
+                          <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-blue-900 space-y-1">
+                            <p className="font-extrabold text-[10px] text-blue-700 uppercase">Customer Reply:</p>
+                            <p className="text-xs font-medium">{req.customerReply}</p>
+                            {req.replyDocUrl && (
+                              <a
+                                href={getFullFileUrl(req.replyDocUrl)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-700 font-extrabold underline text-[10px] inline-flex items-center gap-1 mt-1"
+                              >
+                                <ExternalLink className="w-3 h-3" /> View Uploaded Reply Document
+                              </a>
+                            )}
+                          </div>
+                        )}
+
+                        {user?.role === 'CUSTOMER' && req.status !== 'COMPLETED' && (
+                          <div className="pt-2">
+                            {replyingRequestId === req.id ? (
+                              <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
+                                <textarea
+                                  value={customerReplyText}
+                                  onChange={(e) => setCustomerReplyText(e.target.value)}
+                                  placeholder="Type your reply or explanation..."
+                                  className="w-full p-3 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70"
+                                  rows={2}
+                                />
+                                <input
+                                  type="text"
+                                  value={customerReplyDocUrl}
+                                  onChange={(e) => setCustomerReplyDocUrl(e.target.value)}
+                                  placeholder="Document URL (Optional)"
+                                  className="w-full p-3 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70"
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleSubmitReply(req.id)}
+                                    disabled={submittingReply}
+                                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs shadow-xs"
+                                  >
+                                    Submit Reply
+                                  </button>
+                                  <button
+                                    onClick={() => setReplyingRequestId(null)}
+                                    className="px-4 py-2 bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
+                                  >
+                                    Cancel
+                                  </button>
                                 </div>
                               </div>
-
-                              <div className="flex items-center gap-2 shrink-0">
-                                <span
-                                  className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${
-                                    doc.status === 'VERIFIED'
-                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                      : doc.status === 'REJECTED'
-                                      ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                                      : 'bg-amber-100 text-amber-800 border border-amber-300'
-                                  }`}
-                                >
-                                  {doc.status}
-                                </span>
-
-                                {/* Preview Button */}
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewDoc(doc)}
-                                  className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all flex items-center gap-1 font-bold text-[11px]"
-                                  title="Preview Document"
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                  <span>View</span>
-                                </button>
-
-                                {/* Download Button */}
-                                <a
-                                  href={fullUrl}
-                                  download={doc.fileName}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all flex items-center gap-1 font-bold text-[11px] shadow-sm"
-                                  title="Download File"
-                                >
-                                  <Download className="w-3.5 h-3.5" />
-                                  <span>Download</span>
-                                </a>
-
-                                {/* Agent / Admin Verification Controls */}
-                                {user?.role !== 'CUSTOMER' && doc.status === 'PENDING' && (
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      onClick={() => handleVerifyDoc(doc.id, 'VERIFIED')}
-                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] shadow-sm"
-                                    >
-                                      Verify
-                                    </button>
-                                    <button
-                                      onClick={() => handleVerifyDoc(doc.id, 'REJECTED')}
-                                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-[10px] shadow-sm"
-                                    >
-                                      Reject
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
+                            ) : (
+                              <button
+                                onClick={() => setReplyingRequestId(req.id)}
+                                className="px-4 py-2 bg-[#10233F] hover:bg-[#0A1830] text-white font-extrabold rounded-xl text-xs shadow-xs cursor-pointer"
+                              >
+                                Reply to this Request
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 5: COMMENTS & REQUESTS */}
-              {activeTab === 'REQUESTS' && (
-                <div className="space-y-5">
-                  {user?.role !== 'CUSTOMER' && (
-                    <form onSubmit={handleCreateRequest} className="p-4 rounded-2xl border border-amber-200 bg-amber-50/40 space-y-3 shadow-sm">
-                      <h4 className="font-extrabold text-slate-900 text-xs uppercase flex items-center gap-1.5">
-                        <MessageSquare className="w-4 h-4 text-amber-600" /> Create Information / Document Request to Customer
-                      </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          required
-                          value={requestTitle}
-                          onChange={(e) => setRequestTitle(e.target.value)}
-                          placeholder="Request Title (e.g. Upload 3 Months Bank Statement)"
-                          className="p-2.5 border rounded-xl bg-white text-xs font-medium"
-                        />
-                        <input
-                          type="text"
-                          value={requestDesc}
-                          onChange={(e) => setRequestDesc(e.target.value)}
-                          placeholder="Description / Instructions for Customer"
-                          className="p-2.5 border rounded-xl bg-white text-xs font-medium"
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        disabled={creatingRequest}
-                        className="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold rounded-xl text-xs shadow transition-all"
-                      >
-                        {creatingRequest ? 'Creating Request...' : 'Send Request & Notify Customer'}
-                      </button>
-                    </form>
+                    ))
                   )}
-
-                  <div className="space-y-3">
-                    <h4 className="font-extrabold text-slate-900 text-xs uppercase">Application Requirements & Requests</h4>
-                    {app.requirements?.length === 0 ? (
-                      <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 text-xs italic">
-                        No open requests or comment threads for this application.
-                      </div>
-                    ) : (
-                      app.requirements?.map((req) => (
-                        <div key={req.id} className="p-4 border border-slate-200 rounded-2xl bg-white space-y-3 shadow-sm">
-                          <div className="flex items-center justify-between border-b pb-2">
-                            <span className="font-extrabold text-slate-900 text-xs">{req.title}</span>
-                            <span
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                                req.status === 'CUSTOMER_REPLIED'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : req.status === 'COMPLETED'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-amber-100 text-amber-800'
-                              }`}
-                            >
-                              {req.status}
-                            </span>
-                          </div>
-
-                          {req.description && <p className="text-slate-600 text-xs font-medium">{req.description}</p>}
-
-                          {req.customerReply && (
-                            <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-blue-900 space-y-1">
-                              <p className="font-extrabold text-[10px] text-blue-700 uppercase">Customer Reply:</p>
-                              <p className="text-xs font-medium">{req.customerReply}</p>
-                              {req.replyDocUrl && (
-                                <a
-                                  href={getFullFileUrl(req.replyDocUrl)}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-blue-700 font-bold underline text-[10px] inline-flex items-center gap-1 mt-1"
-                                >
-                                  <ExternalLink className="w-3 h-3" /> View Uploaded Reply Document
-                                </a>
-                              )}
-                            </div>
-                          )}
-
-                          {user?.role === 'CUSTOMER' && req.status !== 'COMPLETED' && (
-                            <div className="pt-2">
-                              {replyingRequestId === req.id ? (
-                                <div className="p-3 bg-slate-50 border rounded-xl space-y-2">
-                                  <textarea
-                                    value={customerReplyText}
-                                    onChange={(e) => setCustomerReplyText(e.target.value)}
-                                    placeholder="Type your reply or explanation..."
-                                    className="w-full p-2.5 border rounded-xl bg-white text-xs font-medium"
-                                    rows={2}
-                                  />
-                                  <input
-                                    type="text"
-                                    value={customerReplyDocUrl}
-                                    onChange={(e) => setCustomerReplyDocUrl(e.target.value)}
-                                    placeholder="Document URL (Optional)"
-                                    className="w-full p-2.5 border rounded-xl bg-white text-xs font-medium"
-                                  />
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => handleSubmitReply(req.id)}
-                                      disabled={submittingReply}
-                                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow"
-                                    >
-                                      Submit Reply
-                                    </button>
-                                    <button
-                                      onClick={() => setReplyingRequestId(null)}
-                                      className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => setReplyingRequestId(req.id)}
-                                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs shadow"
-                                >
-                                  Reply to this Request
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* TAB 6: TASKS & NOTES */}
-              {activeTab === 'TASKS_NOTES' && user?.role !== 'CUSTOMER' && (
-                <div className="space-y-4">
-                  <form onSubmit={handleAddTask} className="p-3 border rounded-2xl bg-slate-50 flex gap-2">
-                    <input
-                      type="text"
-                      required
-                      value={taskTitle}
-                      onChange={(e) => setTaskTitle(e.target.value)}
-                      placeholder="New internal task title..."
-                      className="flex-1 p-2.5 border rounded-xl bg-white text-xs font-medium"
-                    />
-                    <button type="submit" disabled={submittingTask} className="px-4 py-2 bg-blue-600 text-white font-bold rounded-xl text-xs shadow">
-                      Add Task
+            {/* TAB 6: TASKS & NOTES */}
+            {activeTab === 'TASKS_NOTES' && user?.role !== 'CUSTOMER' && (
+              <div className="space-y-4">
+                <form onSubmit={handleAddTask} className="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-sm flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={taskTitle}
+                    onChange={(e) => setTaskTitle(e.target.value)}
+                    placeholder="New internal task title..."
+                    className="flex-1 p-3 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70"
+                  />
+                  <button type="submit" disabled={submittingTask} className="px-5 py-2.5 bg-[#10233F] text-white font-extrabold rounded-xl text-xs cursor-pointer shadow-xs">
+                    Add Task
+                  </button>
+                </form>
+
+                <form onSubmit={handleAddNote} className="bg-white border border-slate-200/80 p-5 rounded-2xl shadow-sm space-y-3">
+                  <textarea
+                    required
+                    value={noteContent}
+                    onChange={(e) => setNoteContent(e.target.value)}
+                    placeholder="Type internal or customer note..."
+                    className="w-full p-3 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70"
+                    rows={2}
+                  />
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 font-bold text-slate-700 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={isCustomerVisible}
+                        onChange={(e) => setIsCustomerVisible(e.target.checked)}
+                        className="rounded border-slate-300 text-[#B8862E]"
+                      />
+                      Make note visible to customer
+                    </label>
+                    <button type="submit" disabled={submittingNote} className="px-5 py-2.5 bg-[#B8862E] hover:bg-[#A5761F] text-white font-extrabold rounded-xl text-xs cursor-pointer shadow-xs">
+                      Post Note
                     </button>
-                  </form>
-
-                  <form onSubmit={handleAddNote} className="p-3.5 border rounded-2xl bg-slate-50 space-y-2.5">
-                    <textarea
-                      required
-                      value={noteContent}
-                      onChange={(e) => setNoteContent(e.target.value)}
-                      placeholder="Type internal or customer note..."
-                      className="w-full p-2.5 border rounded-xl bg-white text-xs font-medium"
-                      rows={2}
-                    />
-                    <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-2 font-bold text-slate-700 text-xs">
-                        <input
-                          type="checkbox"
-                          checked={isCustomerVisible}
-                          onChange={(e) => setIsCustomerVisible(e.target.checked)}
-                          className="rounded border-slate-300 text-blue-600"
-                        />
-                        Make note visible to customer
-                      </label>
-                      <button type="submit" disabled={submittingNote} className="px-4 py-2 bg-blue-600 text-white font-bold rounded-xl text-xs shadow">
-                        Post Note
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
-              {/* TAB 7: APP HISTORY & AUDIT TRAIL */}
-              {activeTab === 'HISTORY' && (
-                <div className="space-y-4">
-                  <h4 className="font-extrabold text-slate-900 text-xs uppercase border-b pb-2 flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 text-blue-600" /> Application History & Audit Trail
-                  </h4>
-                  <div className="space-y-3">
-                    <div className="p-3.5 border rounded-2xl bg-blue-50/60 border-blue-200 flex items-start gap-3">
-                      <div className="p-2 bg-blue-600 text-white rounded-xl shrink-0">
-                        <Clock className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="font-extrabold text-slate-900 text-xs">Application Created & Submitted</p>
-                        <p className="text-[10px] text-slate-500">{new Date(app.createdAt).toLocaleString()}</p>
-                        <p className="text-slate-700 text-xs mt-1 font-medium">
-                          Initial category: <strong>{app.type}</strong> ({app.purpose || 'N/A'}) requested amount: ₹ {app.amount?.toLocaleString() || 'N/A'}.
-                        </p>
-                      </div>
-                    </div>
-
-                    {app.notes?.map((nt) => (
-                      <div key={nt.id} className="p-3.5 border rounded-2xl bg-white flex items-start gap-3 shadow-sm">
-                        <div className="p-2 bg-slate-100 text-slate-700 rounded-xl shrink-0">
-                          <MessageSquare className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p className="font-extrabold text-slate-900 text-xs">
-                              {formatFullName(nt.authorUser?.firstName, nt.authorUser?.lastName)} ({nt.authorUser?.role.replace(/_/g, ' ')})
-                            </p>
-                            <span className="text-[10px] text-slate-400 font-medium">{new Date(nt.createdAt).toLocaleString()}</span>
-                          </div>
-                          <p className="text-slate-700 text-xs mt-1 font-medium">{nt.content}</p>
-                        </div>
-                      </div>
-                    ))}
                   </div>
+                </form>
+              </div>
+            )}
+
+            {/* TAB 7: APP HISTORY */}
+            {activeTab === 'HISTORY' && (
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+                <h4 className="text-xs font-extrabold text-slate-900 uppercase border-b border-slate-100 pb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-[#B8862E]" /> Application History & Audit Trail
+                </h4>
+                <div className="space-y-3">
+                  <div className="p-4 border border-slate-200/80 rounded-xl bg-slate-50/70 flex items-start gap-3">
+                    <div className="p-2.5 bg-[#10233F] text-white rounded-xl shrink-0">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-slate-900 text-xs">Application Created & Submitted</div>
+                      <div className="text-[11px] text-slate-400 font-medium">{new Date(app.createdAt).toLocaleString()}</div>
+                      <div className="text-slate-600 text-xs mt-1 font-medium">
+                        Initial category: <strong>{app.type}</strong> ({app.purpose || 'N/A'}) requested amount: ₹ {app.amount?.toLocaleString() || 'N/A'}.
+                      </div>
+                    </div>
+                  </div>
+
+                  {app.notes?.map((nt) => (
+                    <div key={nt.id} className="p-4 border border-slate-200/80 rounded-xl bg-white flex items-start gap-3 shadow-xs">
+                      <div className="p-2.5 bg-slate-100 text-slate-700 rounded-xl shrink-0">
+                        <MessageSquare className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <div className="font-extrabold text-slate-900 text-xs">
+                            {formatFullName(nt.authorUser?.firstName, nt.authorUser?.lastName)} ({nt.authorUser?.role.replace(/_/g, ' ')})
+                          </div>
+                          <span className="text-[11px] text-slate-400 font-medium">{new Date(nt.createdAt).toLocaleString()}</span>
+                        </div>
+                        <div className="text-slate-600 text-xs mt-1 font-medium">{nt.content}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
           </div>
+
         </div>
       )}
 
-      {/* DOCUMENT PREVIEW MODAL OVERLAY */}
+      {/* DOCUMENT PREVIEW OVERLAY */}
       {previewDoc && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full p-6 space-y-4 border border-slate-200">
-            <div className="flex items-center justify-between border-b pb-3">
+        <div className="fixed inset-0 z-60 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-6 space-y-4 border border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-lg font-black text-slate-900">{previewDoc.title}</h3>
+                <h3 className="text-lg font-extrabold text-slate-900">{previewDoc.title}</h3>
                 <p className="text-xs text-slate-500 font-medium">{previewDoc.fileName} ({formatFileSize(previewDoc.fileSize)})</p>
               </div>
               <button
@@ -1054,18 +1140,18 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
               </button>
             </div>
 
-            <div className="min-h-[360px] max-h-[500px] overflow-auto bg-slate-900 rounded-2xl flex items-center justify-center p-4">
+            <div className="min-h-[360px] max-h-[500px] overflow-auto bg-slate-900 rounded-xl flex items-center justify-center p-4">
               {previewDoc.mimeType?.startsWith('image/') || previewDoc.fileUrl.match(/\.(jpg|jpeg|png|webp)$/i) ? (
                 <img
                   src={getFullFileUrl(previewDoc.fileUrl)}
                   alt={previewDoc.title}
-                  className="max-h-[460px] object-contain rounded-xl shadow-lg"
+                  className="max-h-[460px] object-contain rounded-lg shadow-lg"
                 />
               ) : (
                 <iframe
                   src={getFullFileUrl(previewDoc.fileUrl)}
                   title={previewDoc.title}
-                  className="w-full h-[460px] rounded-xl bg-white"
+                  className="w-full h-[460px] rounded-lg bg-white"
                 />
               )}
             </div>
@@ -1079,7 +1165,7 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
                 download={previewDoc.fileName}
                 target="_blank"
                 rel="noreferrer"
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-2"
+                className="px-6 py-2.5 bg-[#B8862E] hover:bg-[#A5761F] text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-2"
               >
                 <Download className="w-4 h-4" /> Download File
               </a>
@@ -1087,6 +1173,9 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
           </div>
         </div>
       )}
-    </Modal>
+
+    </div>
   );
+
+  return containerContent;
 };

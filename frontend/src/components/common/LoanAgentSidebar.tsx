@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -26,16 +26,39 @@ interface SidebarProps {
 export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({
-    customers: false,
-    applications: false,
-    documents: false,
-    tasks: false,
-  });
+  const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/loan-agent/customers')) {
+      setOpenSubMenus({ customers: true });
+    } else if (
+      location.pathname.startsWith('/loan-agent/applications') ||
+      location.pathname.startsWith('/loan-agent/create-application')
+    ) {
+      setOpenSubMenus({ applications: true });
+    } else if (location.pathname.startsWith('/loan-agent/documents')) {
+      setOpenSubMenus({ documents: true });
+    } else {
+      setOpenSubMenus({});
+    }
+  }, [location.pathname]);
 
   const toggleSubMenu = (key: string) => {
-    setOpenSubMenus((prev) => ({ ...prev, [key]: !prev[key] }));
+    setOpenSubMenus((prev) => (prev[key] ? {} : { [key]: true }));
+  };
+
+  const handleLogoClick = () => {
+    const targetDashboard = '/loan-agent/dashboard';
+    if (location.pathname === targetDashboard) {
+      window.location.reload();
+    } else {
+      navigate(targetDashboard);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      onClose();
+    }
   };
 
   if (!user) return null;
@@ -47,19 +70,19 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
         <div className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm lg:hidden" onClick={onClose} />
       )}
 
-      {/* Sidebar Container */}
+      {/* Sidebar Container: Light Mint Background */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-[#e8f7f2] text-slate-800 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-emerald-200/70 shadow-sm ${
+        className={`fixed top-0 left-0 z-50 h-full w-64 bg-[#e8f7f2] text-slate-800 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-emerald-200/80 shadow-sm ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header Logo & Loan Agent Desk Role Badge */}
-          <div className="p-5 flex flex-col items-center justify-center relative bg-[#e8f7f2]">
+          <div className="pt-4 pb-4 px-5 flex flex-col items-center justify-center relative bg-[#e8f7f2]">
             <button onClick={onClose} className="absolute right-3 top-3 text-slate-500 hover:text-slate-900 lg:hidden">
               <X className="h-5 w-5" />
             </button>
-            <GFSLogo size="lg" variant="dark" />
+            <GFSLogo size="lg" variant="card" onClick={handleLogoClick} />
             <div className="mt-3.5 px-4 py-1.5 rounded-full bg-white/90 text-emerald-900 border border-emerald-300/80 text-xs font-extrabold shadow-sm flex items-center gap-1.5">
               <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
               <span>Loan Agent Desk</span>

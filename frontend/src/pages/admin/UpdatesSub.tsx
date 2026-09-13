@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RefreshCw, Plus, ShieldCheck, Tag, Calendar, Eye, Send } from 'lucide-react';
 import { api } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
+import { SearchableSelect } from '../../components/common/SearchableSelect';
 
 export const UpdatesSub: React.FC = () => {
   const [data, setData] = useState<{ currentVersion: string; releaseNotes: any[] }>({
@@ -145,17 +146,20 @@ export const UpdatesSub: React.FC = () => {
             </div>
             <div>
               <label className="block font-bold text-slate-700 mb-1">Update Category</label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: 'NEW_FEATURE', label: 'NEW FEATURE' },
+                  { value: 'IMPROVEMENT', label: 'IMPROVEMENT' },
+                  { value: 'BUG_FIX', label: 'BUG FIX' },
+                  { value: 'SECURITY_UPDATE', label: 'SECURITY UPDATE' },
+                  { value: 'MAINTENANCE', label: 'MAINTENANCE' },
+                ]}
                 value={form.updateType}
-                onChange={(e) => setForm({ ...form, updateType: e.target.value })}
-                className="w-full p-2.5 border rounded-lg font-semibold bg-slate-50"
-              >
-                <option value="NEW_FEATURE">NEW FEATURE</option>
-                <option value="IMPROVEMENT">IMPROVEMENT</option>
-                <option value="BUG_FIX">BUG FIX</option>
-                <option value="SECURITY_UPDATE">SECURITY UPDATE</option>
-                <option value="MAINTENANCE">MAINTENANCE</option>
-              </select>
+                onChange={(val) => setForm({ ...form, updateType: val })}
+                placeholder="Select category..."
+                searchPlaceholder="Search category..."
+                className="w-full"
+              />
             </div>
           </div>
 
@@ -173,15 +177,18 @@ export const UpdatesSub: React.FC = () => {
 
           <div>
             <label className="block font-bold text-slate-700 mb-1">Role Visibility Access</label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: 'ALL_USERS', label: 'ALL PORTAL USERS (Super Admin, Agents, Customers)' },
+                { value: 'AGENTS_AND_CUSTOMERS', label: 'AGENTS & CUSTOMERS ONLY' },
+                { value: 'SUPER_ADMIN_ONLY', label: 'SUPER ADMIN ONLY (Internal Release)' },
+              ]}
               value={form.visibility}
-              onChange={(e) => setForm({ ...form, visibility: e.target.value })}
-              className="w-full p-2.5 border rounded-lg font-semibold bg-slate-50"
-            >
-              <option value="ALL_USERS">ALL PORTAL USERS (Super Admin, Agents, Customers)</option>
-              <option value="AGENTS_AND_CUSTOMERS">AGENTS & CUSTOMERS ONLY</option>
-              <option value="SUPER_ADMIN_ONLY">SUPER ADMIN ONLY (Internal Release)</option>
-            </select>
+              onChange={(val) => setForm({ ...form, visibility: val })}
+              placeholder="Select visibility..."
+              searchPlaceholder="Search visibility..."
+              className="w-full"
+            />
           </div>
 
           <div>

@@ -68,14 +68,14 @@ const seedDefaultsIfEmpty = async () => {
   const contactCount = await prisma.contactInfo.count();
   if (contactCount === 0) {
     const defaultContacts = [
-      { key: 'primary_phone', title: 'Primary Phone', draftValue: '+91 9876543210', publishedValue: '+91 9876543210', isActive: true, displayOrder: 1 },
-      { key: 'secondary_phone', title: 'Secondary Phone', draftValue: '+91 9123456789', publishedValue: '+91 9123456789', isActive: true, displayOrder: 2 },
-      { key: 'toll_free', title: 'Toll-Free Number', draftValue: '1800 123 4567', publishedValue: '1800 123 4567', isActive: true, displayOrder: 3 },
-      { key: 'whatsapp', title: 'WhatsApp Number', draftValue: '+91 9876543210', publishedValue: '+91 9876543210', isActive: true, displayOrder: 4 },
-      { key: 'email_general', title: 'General Enquiries Email', draftValue: 'info@greetwellfinancial.com', publishedValue: 'info@greetwellfinancial.com', isActive: true, displayOrder: 5 },
-      { key: 'email_support', title: 'Customer Support Email', draftValue: 'support@greetwellfinancial.com', publishedValue: 'support@greetwellfinancial.com', isActive: true, displayOrder: 6 },
-      { key: 'email_complaints', title: 'Complaints Email', draftValue: 'grievance@greetwellfinancial.com', publishedValue: 'grievance@greetwellfinancial.com', isActive: true, displayOrder: 7 },
-      { key: 'office_address', title: 'Corporate Headquarters', draftValue: 'Suite 405, Financial Hub, Bandra Kurla Complex, Mumbai, Maharashtra - 400051', publishedValue: 'Suite 405, Financial Hub, Bandra Kurla Complex, Mumbai, Maharashtra - 400051', isActive: true, displayOrder: 8 },
+      { key: 'primary_phone', title: 'Primary Phone', draftValue: '+91 91211 47777', publishedValue: '+91 91211 47777', isActive: true, displayOrder: 1 },
+      { key: 'secondary_phone', title: 'Secondary Phone', draftValue: '+91 91211 47777', publishedValue: '+91 91211 47777', isActive: true, displayOrder: 2 },
+      { key: 'toll_free', title: 'Toll-Free Number', draftValue: '+91 91211 47777', publishedValue: '+91 91211 47777', isActive: true, displayOrder: 3 },
+      { key: 'whatsapp', title: 'WhatsApp Number', draftValue: '+91 91211 47777', publishedValue: '+91 91211 47777', isActive: true, displayOrder: 4 },
+      { key: 'email_general', title: 'General Enquiries Email', draftValue: 'gfsgreetwell@gmail.com', publishedValue: 'gfsgreetwell@gmail.com', isActive: true, displayOrder: 5 },
+      { key: 'email_support', title: 'Customer Support Email', draftValue: 'gfsgreetwell@gmail.com', publishedValue: 'gfsgreetwell@gmail.com', isActive: true, displayOrder: 6 },
+      { key: 'email_complaints', title: 'Complaints Email', draftValue: 'gfsgreetwell@gmail.com', publishedValue: 'gfsgreetwell@gmail.com', isActive: true, displayOrder: 7 },
+      { key: 'office_address', title: 'Corporate Headquarters', draftValue: 'PNO 71, Hno 1-36/1/2/6/A/P-71, Road No 6, Jawahar Colony, Chandanagar, Near Yelamma Temple, 500050', publishedValue: 'PNO 71, Hno 1-36/1/2/6/A/P-71, Road No 6, Jawahar Colony, Chandanagar, Near Yelamma Temple, 500050', isActive: true, displayOrder: 8 },
       { key: 'business_hours', title: 'Business Operating Hours', draftValue: 'Mon - Sat: 9:30 AM - 6:30 PM (Sun Closed)', publishedValue: 'Mon - Sat: 9:30 AM - 6:30 PM (Sun Closed)', isActive: true, displayOrder: 9 }
     ];
 
@@ -87,12 +87,12 @@ const seedDefaultsIfEmpty = async () => {
   const socialCount = await prisma.socialMediaAcc.count();
   if (socialCount === 0) {
     const defaultSocials = [
-      { platform: 'Facebook', url: 'https://facebook.com/greetwellfinancial', draftUrl: 'https://facebook.com/greetwellfinancial', isActive: true, draftIsActive: true, displayOrder: 1, icon: 'Facebook' },
-      { platform: 'Instagram', url: 'https://instagram.com/greetwellfinancial', draftUrl: 'https://instagram.com/greetwellfinancial', isActive: true, draftIsActive: true, displayOrder: 2, icon: 'Instagram' },
+      { platform: 'Facebook', url: 'https://facebook.com/greetwellfs', draftUrl: 'https://facebook.com/greetwellfs', isActive: true, draftIsActive: true, displayOrder: 1, icon: 'Facebook' },
+      { platform: 'Instagram', url: 'https://instagram.com/greetwellfs', draftUrl: 'https://instagram.com/greetwellfs', isActive: true, draftIsActive: true, displayOrder: 2, icon: 'Instagram' },
       { platform: 'LinkedIn', url: 'https://linkedin.com/company/greetwellfinancial', draftUrl: 'https://linkedin.com/company/greetwellfinancial', isActive: true, draftIsActive: true, displayOrder: 3, icon: 'Linkedin' },
       { platform: 'X/Twitter', url: 'https://x.com/greetwellfin', draftUrl: 'https://x.com/greetwellfin', isActive: true, draftIsActive: true, displayOrder: 4, icon: 'Twitter' },
-      { platform: 'YouTube', url: 'https://youtube.com/@greetwellfinancial', draftUrl: 'https://youtube.com/@greetwellfinancial', isActive: true, draftIsActive: true, displayOrder: 5, icon: 'Youtube' },
-      { platform: 'WhatsApp', url: 'https://wa.me/919876543210', draftUrl: 'https://wa.me/919876543210', isActive: true, draftIsActive: true, displayOrder: 6, icon: 'MessageCircle' },
+      { platform: 'YouTube', url: 'https://youtube.com/@greetwellfs', draftUrl: 'https://youtube.com/@greetwellfs', isActive: true, draftIsActive: true, displayOrder: 5, icon: 'Youtube' },
+      { platform: 'WhatsApp', url: 'https://wa.me/919121147777', draftUrl: 'https://wa.me/919121147777', isActive: true, draftIsActive: true, displayOrder: 6, icon: 'MessageCircle' },
       { platform: 'Telegram', url: 'https://t.me/greetwellfinancial', draftUrl: 'https://t.me/greetwellfinancial', isActive: true, draftIsActive: true, displayOrder: 7, icon: 'Send' }
     ];
 
@@ -812,6 +812,11 @@ export const saveWebsiteDraft = async (req: Request, res: Response) => {
 
     // Process Contact Updates
     if (contacts && Array.isArray(contacts)) {
+      const incomingKeys = contacts.map((c: any) => c.key).filter(Boolean);
+      await prisma.contactInfo.deleteMany({
+        where: { key: { notIn: incomingKeys } }
+      });
+
       for (const item of contacts) {
         if (item.key) {
           const existing = await prisma.contactInfo.findUnique({ where: { key: item.key } });
@@ -844,6 +849,11 @@ export const saveWebsiteDraft = async (req: Request, res: Response) => {
 
     // Process Social Accounts
     if (socials && Array.isArray(socials)) {
+      const incomingIds = socials.map((s: any) => s.id).filter(Boolean);
+      await prisma.socialMediaAcc.deleteMany({
+        where: { id: { notIn: incomingIds } }
+      });
+
       for (const item of socials) {
         if (item.id) {
           const existing = await prisma.socialMediaAcc.findUnique({ where: { id: item.id } });

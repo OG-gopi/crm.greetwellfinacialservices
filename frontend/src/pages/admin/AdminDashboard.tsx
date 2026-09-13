@@ -42,6 +42,7 @@ import {
 } from 'recharts';
 import { api } from '../../services/api';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import { SearchableSelect } from '../../components/common/SearchableSelect';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -121,7 +122,7 @@ export const AdminDashboard: React.FC = () => {
       )}
 
       {/* 2. 12 Dashboard Summary Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
         {/* Card 1: Total Customers */}
         <Link to="/superadmin/customers" className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
           <div className="flex items-center justify-between">
@@ -461,16 +462,19 @@ export const AdminDashboard: React.FC = () => {
 
             <div className="flex items-center gap-2">
               {/* Type Filter */}
-              <select
+              <SearchableSelect
+                options={[
+                  { value: 'ALL', label: 'All Types' },
+                  { value: 'LOAN', label: 'Loans' },
+                  { value: 'INSURANCE', label: 'Insurance' },
+                  { value: 'INVESTMENT', label: 'Investments' },
+                ]}
                 value={appTypeFilter}
-                onChange={(e) => setAppTypeFilter(e.target.value)}
-                className="py-1 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700"
-              >
-                <option value="ALL">All Types</option>
-                <option value="LOAN">Loans</option>
-                <option value="INSURANCE">Insurance</option>
-                <option value="INVESTMENT">Investments</option>
-              </select>
+                onChange={setAppTypeFilter}
+                placeholder="All Types"
+                searchPlaceholder="Search type..."
+                className="w-36"
+              />
 
               <Link
                 to="/superadmin/applications/all"

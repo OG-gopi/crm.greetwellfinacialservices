@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { Search, Filter, Eye, UserCheck, Briefcase, PlusCircle, ArrowUpDown, ChevronLeft, ChevronRight, Clock, CheckCircle2, FileText, User as UserIcon, Shield } from 'lucide-react';
 import { api } from '../../services/api';
 import { Application, User } from '../../types';
@@ -7,10 +7,13 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { ApplicationDetailsModal } from './ApplicationDetailsModal';
 import { useAuth } from '../../context/AuthContext';
 import { LazyLoadTrigger } from '../../components/common/LazyLoadTrigger';
+import { SearchableSelect } from '../../components/common/SearchableSelect';
 
 export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedType }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { id: paramAppId } = useParams();
 
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,8 +29,9 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
   const [totalCount, setTotalCount] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const urlAppId = paramAppId || searchParams.get('appId') || searchParams.get('id');
+  const [selectedAppId, setSelectedAppId] = useState<string | null>(urlAppId);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(!!urlAppId);
 
   // Available Agents for Super Admin assignment
   const [availableAgents, setAvailableAgents] = useState<User[]>([]);
@@ -80,6 +84,13 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
       setLoadingMore(false);
     }
   };
+
+  useEffect(() => {
+    if (urlAppId) {
+      setSelectedAppId(urlAppId);
+      setIsModalOpen(true);
+    }
+  }, [urlAppId]);
 
   // Reset and fetch initial on filter change
   useEffect(() => {
@@ -222,6 +233,21 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
   const approvedCount = applications.filter((a) => ['APPROVED', 'COMPLETED', 'DISBURSED'].includes(a.status)).length;
   const overallTotal = totalCount || applications.length;
 
+  if (isModalOpen && selectedAppId) {
+    return (
+      <ApplicationDetailsModal
+        applicationId={selectedAppId}
+        isOpen={true}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedAppId(null);
+        }}
+        onStatusUpdated={fetchApplications}
+        isFullPage={true}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Top Title & Header Bar */}
@@ -333,54 +359,66 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
 
         <div className="flex flex-wrap gap-2 text-xs">
           {!forcedType && (
-            <select
+            <SearchableSelect
+              options={[
+                { value: '', label: 'All Categories' },
+                ...((user?.role === 'SUPER_ADMIN' || hasLoans) ? [{ value: 'LOAN', label: 'LOAN' }] : []),
+                ...((user?.role === 'SUPER_ADMIN' || hasInsurance) ? [{ value: 'INSURANCE', label: 'INSURANCE' }] : []),
+                ...((user?.role === 'SUPER_ADMIN' || hasInvestments) ? [{ value: 'INVESTMENT', label: 'INVESTMENT' }] : []),
+              ]}
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium"
-            >
-              <option value="">All Categories</option>
-              {(user?.role === 'SUPER_ADMIN' || hasLoans) && <option value="LOAN">LOAN</option>}
-              {(user?.role === 'SUPER_ADMIN' || hasInsurance) && <option value="INSURANCE">INSURANCE</option>}
-              {(user?.role === 'SUPER_ADMIN' || hasInvestments) && <option value="INVESTMENT">INVESTMENT</option>}
-            </select>
+              onChange={setTypeFilter}
+              placeholder="All Categories"
+              searchPlaceholder="Search category..."
+              className="w-36"
+            />
           )}
 
-          <select
+          <SearchableSelect
+            options={[
+              { value: '', label: 'All Statuses' },
+              { value: 'SUBMITTED', label: 'SUBMITTED' },
+              { value: 'ASSIGNED', label: 'ASSIGNED' },
+              { value: 'UNDER_REVIEW', label: 'UNDER REVIEW' },
+              { value: 'INFORMATION_REQUIRED', label: 'INFORMATION REQUIRED' },
+              { value: 'DOCUMENTS_REQUIRED', label: 'DOCUMENTS REQUIRED' },
+              { value: 'VERIFICATION', label: 'VERIFICATION' },
+              { value: 'APPROVED', label: 'APPROVED' },
+              { value: 'REJECTED', label: 'REJECTED' },
+              { value: 'COMPLETED', label: 'COMPLETED' },
+            ]}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium"
-          >
-            <option value="">All Statuses</option>
-            <option value="SUBMITTED">SUBMITTED</option>
-            <option value="ASSIGNED">ASSIGNED</option>
-            <option value="UNDER_REVIEW">UNDER REVIEW</option>
-            <option value="INFORMATION_REQUIRED">INFORMATION REQUIRED</option>
-            <option value="DOCUMENTS_REQUIRED">DOCUMENTS REQUIRED</option>
-            <option value="VERIFICATION">VERIFICATION</option>
-            <option value="APPROVED">APPROVED</option>
-            <option value="REJECTED">REJECTED</option>
-            <option value="COMPLETED">COMPLETED</option>
-          </select>
+            onChange={setStatusFilter}
+            placeholder="All Statuses"
+            searchPlaceholder="Search status..."
+            className="w-40"
+          />
 
           {user?.role === 'SUPER_ADMIN' && (
-            <select
+            <SearchableSelect
+              options={[
+                { value: '', label: 'All Assignments' },
+                { value: 'unassigned', label: 'Unassigned Only' },
+              ]}
               value={assignedFilter}
-              onChange={(e) => setAssignedFilter(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold"
-            >
-              <option value="">All Assignments</option>
-              <option value="unassigned">Unassigned Only</option>
-            </select>
+              onChange={setAssignedFilter}
+              placeholder="All Assignments"
+              searchPlaceholder="Search assignment..."
+              className="w-36"
+            />
           )}
 
-          <select
+          <SearchableSelect
+            options={[
+              { value: 'latest', label: 'Latest First' },
+              { value: 'oldest', label: 'Oldest First' },
+            ]}
             value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as 'latest' | 'oldest')}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium"
-          >
-            <option value="latest">Latest First</option>
-            <option value="oldest">Oldest First</option>
-          </select>
+            onChange={(val) => setSortOrder(val as 'latest' | 'oldest')}
+            placeholder="Sort Order"
+            searchPlaceholder="Search sort..."
+            className="w-32"
+          />
         </div>
       </div>
 
@@ -464,25 +502,27 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
                       </td>
                       <td className="py-3.5 px-4">
                         {user?.role === 'SUPER_ADMIN' ? (
-                          <select
+                          <SearchableSelect
+                            options={[
+                              { value: '', label: '-- Assign Agent --' },
+                              ...availableAgents
+                                .filter((ag) => {
+                                  if (app.type === 'LOAN') return ag.role === 'LOAN_AGENT';
+                                  if (app.type === 'INSURANCE') return ag.role === 'INSURANCE_AGENT';
+                                  if (app.type === 'INVESTMENT') return ag.role === 'INVESTMENT_AGENT';
+                                  return false;
+                                })
+                                .map((ag) => ({
+                                  value: ag.id,
+                                  label: `${ag.firstName} ${ag.lastName || ''} (${ag.role.replace('_', ' ')})`,
+                                })),
+                            ]}
                             value={app.assignedAgentId || ''}
-                            onChange={(e) => handleAssignAgent(app.id, e.target.value)}
-                            className="px-2 py-1 border rounded text-[11px] font-semibold bg-blue-50/50 text-slate-800 max-w-[160px]"
-                          >
-                            <option value="">-- Assign Agent --</option>
-                            {availableAgents
-                              .filter((ag) => {
-                                if (app.type === 'LOAN') return ag.role === 'LOAN_AGENT';
-                                if (app.type === 'INSURANCE') return ag.role === 'INSURANCE_AGENT';
-                                if (app.type === 'INVESTMENT') return ag.role === 'INVESTMENT_AGENT';
-                                return false;
-                              })
-                              .map((ag) => (
-                                <option key={ag.id} value={ag.id}>
-                                  {ag.firstName} {ag.lastName} ({ag.role.replace('_', ' ')})
-                                </option>
-                              ))}
-                          </select>
+                            onChange={(val) => handleAssignAgent(app.id, val)}
+                            placeholder="-- Assign Agent --"
+                            searchPlaceholder="Search agent..."
+                            className="w-44"
+                          />
                         ) : (
                           <span className="font-semibold text-slate-700">
                             {app.assignedAgent ? `${app.assignedAgent.firstName} ${app.assignedAgent.lastName}` : 'Unassigned'}

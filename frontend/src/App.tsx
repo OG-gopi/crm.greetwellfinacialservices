@@ -161,6 +161,8 @@ export const App: React.FC = () => {
               <Route path="/superadmin/applications/investments" element={<ApplicationsSub subPage="investments" />} />
               <Route path="/superadmin/applications/assignments" element={<ApplicationsSub subPage="all" />} />
               <Route path="/superadmin/applications/status" element={<ApplicationsSub subPage="all" />} />
+              <Route path="/superadmin/applications/:id" element={<ApplicationsSub subPage="all" />} />
+              <Route path="/superadmin/applications/view/:id" element={<ApplicationsSub subPage="all" />} />
               <Route path="/superadmin/create-application" element={<CreateApplication />} />
               <Route path="/superadmin/applications/create" element={<CreateApplication />} />
 
@@ -225,7 +227,8 @@ export const App: React.FC = () => {
               {/* 15. Settings */}
               <Route path="/superadmin/settings" element={<SystemSettings />} />
               <Route path="/superadmin/settings/profile" element={<CustomerProfile />} />
-              <Route path="/superadmin/settings/password" element={<SystemSettings />} />
+              <Route path="/superadmin/settings/account" element={<CustomerProfile />} />
+              <Route path="/superadmin/settings/password" element={<CustomerProfile />} />
               <Route path="/superadmin/settings/portal" element={<SystemSettings />} />
 
               {/* 16. Website & Portal Management */}
@@ -253,6 +256,7 @@ export const App: React.FC = () => {
               <Route path="/loan-agent/dashboard" element={<AgentDashboard />} />
               <Route path="/loan-agent/customers" element={<AgentCustomers />} />
               <Route path="/loan-agent/applications" element={<AgentApplications forcedType="LOAN" />} />
+              <Route path="/loan-agent/applications/:id" element={<AgentApplications forcedType="LOAN" />} />
               <Route path="/loan-agent/create-application" element={<CreateApplication />} />
               <Route path="/loan-agent/applications/create" element={<CreateApplication />} />
               <Route path="/loan-agent/documents" element={<CustomerDocuments />} />
@@ -267,6 +271,7 @@ export const App: React.FC = () => {
               <Route path="/insurance-agent/dashboard" element={<AgentDashboard />} />
               <Route path="/insurance-agent/customers" element={<AgentCustomers />} />
               <Route path="/insurance-agent/applications" element={<AgentApplications forcedType="INSURANCE" />} />
+              <Route path="/insurance-agent/applications/:id" element={<AgentApplications forcedType="INSURANCE" />} />
               <Route path="/insurance-agent/create-application" element={<CreateApplication />} />
               <Route path="/insurance-agent/applications/create" element={<CreateApplication />} />
               <Route path="/insurance-agent/documents" element={<CustomerDocuments />} />
@@ -281,6 +286,7 @@ export const App: React.FC = () => {
               <Route path="/investment-agent/dashboard" element={<AgentDashboard />} />
               <Route path="/investment-agent/customers" element={<AgentCustomers />} />
               <Route path="/investment-agent/applications" element={<AgentApplications forcedType="INVESTMENT" />} />
+              <Route path="/investment-agent/applications/:id" element={<AgentApplications forcedType="INVESTMENT" />} />
               <Route path="/investment-agent/create-application" element={<CreateApplication />} />
               <Route path="/investment-agent/applications/create" element={<CreateApplication />} />
               <Route path="/investment-agent/products" element={<ProductCMS />} />
@@ -295,6 +301,7 @@ export const App: React.FC = () => {
             <Route element={<ProtectedRoleRoute allowedRoles={['CUSTOMER']} />}>
               <Route path="/customer/dashboard" element={<CustomerDashboard />} />
               <Route path="/customer/applications" element={<AgentApplications />} />
+              <Route path="/customer/applications/:id" element={<AgentApplications />} />
               <Route path="/customer/create-application" element={<CreateApplication />} />
               <Route path="/customer/applications/create" element={<CreateApplication />} />
               <Route path="/customer/documents" element={<CustomerDocuments />} />
@@ -307,6 +314,9 @@ export const App: React.FC = () => {
             <Route element={<ProtectedRoleRoute allowedRoles={['SUPER_ADMIN', 'LOAN_AGENT', 'INSURANCE_AGENT', 'INVESTMENT_AGENT', 'CUSTOMER']} />}>
               <Route path="/create-application" element={<CreateApplication />} />
               <Route path="/profile" element={<CustomerProfile />} />
+              <Route path="/profile/settings" element={<CustomerProfile />} />
+              <Route path="/profile/account" element={<CustomerProfile />} />
+              <Route path="/profile/password" element={<CustomerProfile />} />
             </Route>
           </Route>
 

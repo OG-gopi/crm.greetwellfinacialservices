@@ -31,6 +31,7 @@ import { useNotifications } from '../../context/NotificationContext';
 import { api } from '../../services/api';
 import { NotificationItem } from '../../types';
 import { LazyLoadTrigger } from '../../components/common/LazyLoadTrigger';
+import { SearchableSelect } from '../../components/common/SearchableSelect';
 import { NotificationDetailsDrawer } from '../../components/common/NotificationDetailsDrawer';
 
 export const NotificationHistory: React.FC = () => {
@@ -445,27 +446,33 @@ export const NotificationHistory: React.FC = () => {
           </div>
 
           {/* Read Status Dropdown */}
-          <select
+          <SearchableSelect
+            options={[
+              { value: 'ALL', label: 'All Read Status' },
+              { value: 'UNREAD', label: 'Unread Only' },
+              { value: 'READ', label: 'Read Only' },
+            ]}
             value={readStatusFilter}
-            onChange={(e) => setReadStatusFilter(e.target.value)}
-            className="w-full md:w-44 px-3.5 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
-          >
-            <option value="ALL">All Read Status</option>
-            <option value="UNREAD">Unread Only</option>
-            <option value="READ">Read Only</option>
-          </select>
+            onChange={setReadStatusFilter}
+            placeholder="All Read Status"
+            searchPlaceholder="Search status..."
+            className="w-full md:w-44"
+          />
 
           {/* Action Status Dropdown */}
-          <select
+          <SearchableSelect
+            options={[
+              { value: 'ALL', label: 'All Actions' },
+              { value: 'ACTION_REQUIRED', label: 'Action Required' },
+              { value: 'ACTION_TAKEN', label: 'Action Taken' },
+              { value: 'NOT_REQUIRED', label: 'Not Required' },
+            ]}
             value={actionStatusFilter}
-            onChange={(e) => setActionStatusFilter(e.target.value)}
-            className="w-full md:w-48 px-3.5 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
-          >
-            <option value="ALL">All Actions</option>
-            <option value="ACTION_REQUIRED">Action Required</option>
-            <option value="ACTION_TAKEN">Action Taken</option>
-            <option value="NOT_REQUIRED">Not Required</option>
-          </select>
+            onChange={setActionStatusFilter}
+            placeholder="All Actions"
+            searchPlaceholder="Search action..."
+            className="w-full md:w-48"
+          />
 
           {/* Toggle More Filters */}
           <button
@@ -488,17 +495,20 @@ export const NotificationHistory: React.FC = () => {
               <label className="block text-[10px] font-extrabold uppercase text-slate-400 font-mono mb-1">
                 Notification Source
               </label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: 'ALL', label: 'All Notification Sources' },
+                  { value: 'SUPER_ADMIN', label: 'Super Admin' },
+                  { value: 'AGENT', label: 'Agents' },
+                  { value: 'CUSTOMER', label: 'Customers' },
+                  { value: 'SYSTEM', label: 'System Automated' },
+                ]}
                 value={selectedSource}
-                onChange={(e) => setSelectedSource(e.target.value)}
-                className="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none"
-              >
-                <option value="ALL">All Notification Sources</option>
-                <option value="SUPER_ADMIN">Super Admin</option>
-                <option value="AGENT">Agents</option>
-                <option value="CUSTOMER">Customers</option>
-                <option value="SYSTEM">System Automated</option>
-              </select>
+                onChange={setSelectedSource}
+                placeholder="All Notification Sources"
+                searchPlaceholder="Search source..."
+                className="w-full"
+              />
             </div>
 
             <div>

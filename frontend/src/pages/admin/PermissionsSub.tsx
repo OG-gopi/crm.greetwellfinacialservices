@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   ShieldCheck,
   Plus,
@@ -44,6 +45,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
+import { SearchableSelect } from '../../components/common/SearchableSelect';
 
 const ALL_ROLES = [
   { code: 'SUPER_ADMIN', label: 'Super Admin' },
@@ -95,6 +97,7 @@ const AVAILABLE_ICONS: Record<string, any> = {
 };
 
 export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'roles' }) => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'menu-items' | 'method-permissions' | 'roles'>(
     subPage === 'method-permissions' || subPage === 'methods'
       ? 'method-permissions'
@@ -112,6 +115,15 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
       setActiveTab('roles');
     }
   }, [subPage]);
+
+  // Sync search term from URL parameter if passed from Audit Logs inspector
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchVal = params.get('search');
+    if (searchVal) {
+      setSearchTerm(searchVal);
+    }
+  }, [location.search]);
 
   // Data States
   const [menus, setMenus] = useState<any[]>([]);
@@ -672,52 +684,43 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
           {/* Filters Group */}
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
             {activeTab === 'menu-items' && (
-              <div className="flex items-center gap-1.5 text-slate-600 font-semibold">
-                <Filter className="h-3.5 w-3.5 text-slate-400" />
-                <span>Parent:</span>
-                <select
-                  value={parentMenuFilter}
-                  onChange={(e) => setParentMenuFilter(e.target.value)}
-                  className="py-1.5 px-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs focus:ring-2 focus:ring-blue-600 outline-none"
-                >
-                  <option value="ALL">All Parent Menus</option>
-                  {topLevelParents.map((pm) => (
-                    <option key={pm.id} value={pm.id}>
-                      {pm.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SearchableSelect
+                options={[
+                  { value: 'ALL', label: 'All Parent Menus' },
+                  ...topLevelParents.map((pm) => ({ value: pm.id, label: pm.name })),
+                ]}
+                value={parentMenuFilter}
+                onChange={setParentMenuFilter}
+                placeholder="All Parent Menus"
+                searchPlaceholder="Search parent menu..."
+                className="w-44"
+              />
             )}
 
-            <div className="flex items-center gap-1.5 text-slate-600 font-semibold">
-              <span>Status:</span>
-              <select
-                value={statusFilter}
-                onChange={(e: any) => setStatusFilter(e.target.value)}
-                className="py-1.5 px-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs focus:ring-2 focus:ring-blue-600 outline-none"
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="ACTIVE">Active Only</option>
-                <option value="INACTIVE">Inactive Only</option>
-              </select>
-            </div>
+            <SearchableSelect
+              options={[
+                { value: 'ALL', label: 'All Statuses' },
+                { value: 'ACTIVE', label: 'Active Only' },
+                { value: 'INACTIVE', label: 'Inactive Only' },
+              ]}
+              value={statusFilter}
+              onChange={(val) => setStatusFilter(val as any)}
+              placeholder="All Statuses"
+              searchPlaceholder="Search status..."
+              className="w-36"
+            />
 
-            <div className="flex items-center gap-1.5 text-slate-600 font-semibold">
-              <span>Role:</span>
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className="py-1.5 px-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs focus:ring-2 focus:ring-blue-600 outline-none"
-              >
-                <option value="ALL">All Roles</option>
-                {ALL_ROLES.map((r) => (
-                  <option key={r.code} value={r.code}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SearchableSelect
+              options={[
+                { value: 'ALL', label: 'All Roles' },
+                ...ALL_ROLES.map((r) => ({ value: r.code, label: r.label })),
+              ]}
+              value={roleFilter}
+              onChange={setRoleFilter}
+              placeholder="All Roles"
+              searchPlaceholder="Search role..."
+              className="w-36"
+            />
           </div>
         </div>
       )}
@@ -737,7 +740,7 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
           </div>
 
           {/* Sticky Header Table Container */}
-          <div className="overflow-x-auto max-h-[620px] relative">
+          <div className="overflow-x-auto max-h-[600px] overflow-y-auto relative scrollbar-thin">
             <table className="w-full text-left font-medium border-collapse">
               {/* STICKY HEADER - Always visible on scroll */}
               <thead className="sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md shadow-sm border-b border-slate-200">
@@ -921,21 +924,23 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
             </span>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Sticky Header Table Container */}
+          <div className="overflow-x-auto max-h-[600px] overflow-y-auto relative scrollbar-thin">
             <table className="w-full text-left font-medium border-collapse">
-              <thead>
-                <tr className="bg-slate-100/70 border-y border-slate-200 text-slate-600 font-extrabold text-[11px] uppercase tracking-wider">
-                  <th className="py-3 px-4">Method Name</th>
-                  <th className="py-3 px-3">API Endpoint</th>
-                  <th className="py-3 px-2 text-center">HTTP Verb</th>
-                  <th className="py-3 px-3">Permission Type</th>
-                  <th className="py-3 px-2 text-center">Status</th>
-                  <th className="py-3 px-2 text-center">Superadmin</th>
-                  <th className="py-3 px-2 text-center">Loan Agent</th>
-                  <th className="py-3 px-2 text-center">Insurance Agent</th>
-                  <th className="py-3 px-2 text-center">Investment Agent</th>
-                  <th className="py-3 px-2 text-center">Customer</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+              {/* STICKY HEADER - Always visible on vertical scroll */}
+              <thead className="sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md shadow-sm border-b border-slate-200">
+                <tr className="text-slate-600 font-extrabold text-[11px] uppercase tracking-wider">
+                  <th className="py-3.5 px-4 bg-slate-100/95">Method Name</th>
+                  <th className="py-3.5 px-3 bg-slate-100/95">API Endpoint</th>
+                  <th className="py-3.5 px-2 text-center bg-slate-100/95">HTTP Verb</th>
+                  <th className="py-3.5 px-3 bg-slate-100/95">Permission Type</th>
+                  <th className="py-3.5 px-2 text-center bg-slate-100/95">Status</th>
+                  <th className="py-3.5 px-2 text-center bg-slate-100/95">Superadmin</th>
+                  <th className="py-3.5 px-2 text-center bg-slate-100/95">Loan Agent</th>
+                  <th className="py-3.5 px-2 text-center bg-slate-100/95">Insurance Agent</th>
+                  <th className="py-3.5 px-2 text-center bg-slate-100/95">Investment Agent</th>
+                  <th className="py-3.5 px-2 text-center bg-slate-100/95">Customer</th>
+                  <th className="py-3.5 px-4 text-right bg-slate-100/95">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
@@ -1275,20 +1280,19 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block font-bold text-slate-700 mb-1">Parent Menu (Optional)</label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: '', label: 'None (Top-Level Menu)' },
+                  ...menus
+                    .filter((m) => !editingMenu || m.id !== editingMenu.id)
+                    .map((m) => ({ value: m.id, label: `${m.name} (${m.url})` })),
+                ]}
                 value={menuForm.parentId}
-                onChange={(e) => setMenuForm({ ...menuForm, parentId: e.target.value })}
-                className="w-full p-2.5 border border-slate-300 rounded-xl text-slate-900 text-xs font-bold bg-slate-50 outline-none"
-              >
-                <option value="">None (Top-Level Menu)</option>
-                {menus
-                  .filter((m) => !editingMenu || m.id !== editingMenu.id)
-                  .map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name} ({m.url})
-                    </option>
-                  ))}
-              </select>
+                onChange={(val) => setMenuForm({ ...menuForm, parentId: val })}
+                placeholder="Select Parent Menu..."
+                searchPlaceholder="Search parent menu..."
+                className="w-full"
+              />
               {menuFormErrors.parentId && (
                 <p className="text-rose-600 text-[10px] mt-1 font-semibold">{menuFormErrors.parentId}</p>
               )}
@@ -1296,17 +1300,14 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
 
             <div>
               <label className="block font-bold text-slate-700 mb-1">Menu Icon</label>
-              <select
+              <SearchableSelect
+                options={Object.keys(AVAILABLE_ICONS).map((iconKey) => ({ value: iconKey, label: iconKey }))}
                 value={menuForm.icon}
-                onChange={(e) => setMenuForm({ ...menuForm, icon: e.target.value })}
-                className="w-full p-2.5 border border-slate-300 rounded-xl text-slate-900 text-xs font-bold bg-slate-50 outline-none"
-              >
-                {Object.keys(AVAILABLE_ICONS).map((iconKey) => (
-                  <option key={iconKey} value={iconKey}>
-                    {iconKey}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setMenuForm({ ...menuForm, icon: val })}
+                placeholder="Select icon..."
+                searchPlaceholder="Search icon..."
+                className="w-full"
+              />
             </div>
           </div>
 
@@ -1338,14 +1339,17 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
 
             <div>
               <label className="block font-bold text-slate-700 mb-1">Is Active</label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: 'true', label: 'Active (Visible if Permitted)' },
+                  { value: 'false', label: 'Inactive (Hidden & Blocked)' },
+                ]}
                 value={menuForm.isActive ? 'true' : 'false'}
-                onChange={(e) => setMenuForm({ ...menuForm, isActive: e.target.value === 'true' })}
-                className="w-full p-2.5 border border-slate-300 rounded-xl text-slate-900 text-xs font-bold bg-slate-50 outline-none"
-              >
-                <option value="true">Active (Visible if Permitted)</option>
-                <option value="false">Inactive (Hidden & Blocked)</option>
-              </select>
+                onChange={(val) => setMenuForm({ ...menuForm, isActive: val === 'true' })}
+                placeholder="Select active status..."
+                searchPlaceholder="Search status..."
+                className="w-full"
+              />
             </div>
           </div>
 
@@ -1439,32 +1443,32 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
 
             <div>
               <label className="block font-bold text-slate-700 mb-1">HTTP Verb Method</label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: 'GET', label: 'GET (Read / Query)' },
+                  { value: 'POST', label: 'POST (Create / Upload)' },
+                  { value: 'PUT', label: 'PUT (Update / Approve)' },
+                  { value: 'DELETE', label: 'DELETE (Remove)' },
+                ]}
                 value={methodForm.httpMethod}
-                onChange={(e) => setMethodForm({ ...methodForm, httpMethod: e.target.value })}
-                className="w-full p-2.5 border rounded-xl font-bold bg-slate-50 outline-none"
-              >
-                <option value="GET">GET (Read / Query)</option>
-                <option value="POST">POST (Create / Upload)</option>
-                <option value="PUT">PUT (Update / Approve)</option>
-                <option value="DELETE">DELETE (Remove)</option>
-              </select>
+                onChange={(val) => setMethodForm({ ...methodForm, httpMethod: val })}
+                placeholder="Select HTTP method..."
+                searchPlaceholder="Search method..."
+                className="w-full"
+              />
             </div>
           </div>
 
           <div>
             <label className="block font-bold text-slate-700 mb-1">Permission Type</label>
-            <select
+            <SearchableSelect
+              options={PERMISSION_TYPES.map((pt) => ({ value: pt, label: pt }))}
               value={methodForm.permissionType}
-              onChange={(e) => setMethodForm({ ...methodForm, permissionType: e.target.value })}
-              className="w-full p-2.5 border rounded-xl font-bold bg-slate-50 outline-none"
-            >
-              {PERMISSION_TYPES.map((pt) => (
-                <option key={pt} value={pt}>
-                  {pt}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setMethodForm({ ...methodForm, permissionType: val })}
+              placeholder="Select permission type..."
+              searchPlaceholder="Search permission type..."
+              className="w-full"
+            />
           </div>
 
           <div>

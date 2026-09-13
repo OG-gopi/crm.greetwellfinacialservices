@@ -80,10 +80,10 @@ export async function createMenu(req: AuthRequest, res: Response) {
     await createAuditLog({
       userId: req.user?.id,
       userRole: req.user?.role,
-      action: 'CREATE_MENU',
-      entityType: 'MENU',
+      action: 'ADD_MENU_PERMISSION',
+      entityType: 'MENU_PERMISSION',
       entityId: newMenu.id,
-      description: `Created menu '${newMenu.name}' (${newMenu.url}).`,
+      description: `Added new menu permission for '${newMenu.name}' (${newMenu.url}) with role access: ${Object.entries(rolesInput).map(([r, v]) => `${r}:${v ? 'ALLOWED' : 'DENIED'}`).join(', ')}.`,
       ipAddress: req.ip,
     });
 
@@ -164,10 +164,10 @@ export async function updateMenu(req: AuthRequest, res: Response) {
     await createAuditLog({
       userId: req.user?.id,
       userRole: req.user?.role,
-      action: 'UPDATE_MENU',
-      entityType: 'MENU',
+      action: 'UPDATE_MENU_PERMISSION',
+      entityType: 'MENU_PERMISSION',
       entityId: id,
-      description: `Updated menu '${updatedMenu.name}' details and permissions.`,
+      description: `Updated menu permission settings for '${updatedMenu.name}' (${updatedMenu.url}). Permissions updated across roles.`,
       ipAddress: req.ip,
     });
 
@@ -196,10 +196,10 @@ export async function deleteMenu(req: AuthRequest, res: Response) {
     await createAuditLog({
       userId: req.user?.id,
       userRole: req.user?.role,
-      action: 'DELETE_MENU',
-      entityType: 'MENU',
+      action: 'REMOVE_MENU_PERMISSION',
+      entityType: 'MENU_PERMISSION',
       entityId: id,
-      description: `Deleted menu '${existing.name}'.`,
+      description: `Removed menu permission and deleted menu '${existing.name}'.`,
       ipAddress: req.ip,
     });
 
@@ -229,10 +229,10 @@ export async function toggleMenuStatus(req: AuthRequest, res: Response) {
     await createAuditLog({
       userId: req.user?.id,
       userRole: req.user?.role,
-      action: isActive ? 'ACTIVATE_MENU' : 'DEACTIVATE_MENU',
-      entityType: 'MENU',
+      action: isActive ? 'ENABLE_MENU_PERMISSION' : 'DISABLE_MENU_PERMISSION',
+      entityType: 'MENU_PERMISSION',
       entityId: id,
-      description: `Set menu '${existing.name}' status to ${isActive ? 'ACTIVE' : 'INACTIVE'}.`,
+      description: `Changed active status of menu permission '${existing.name}' to ${isActive ? 'ENABLED (Active)' : 'DISABLED (Inactive)'}.`,
       ipAddress: req.ip,
     });
 
@@ -264,10 +264,10 @@ export async function updateRoleMenuPermissions(req: AuthRequest, res: Response)
     await createAuditLog({
       userId: req.user?.id,
       userRole: req.user?.role,
-      action: 'UPDATE_ROLE_MENU_PERMISSION',
-      entityType: 'ROLE_MENU_PERMISSION',
+      action: 'CHANGE_ROLE_MENU_PERMISSION',
+      entityType: 'MENU_PERMISSION',
       entityId: perm.id,
-      description: `Updated role menu permission for role '${role}' on menu '${menuId}' to canView=${canView}.`,
+      description: `Changed role menu permission for role '${role}' on menu '${menuId}': set view access to ${canView ? 'ALLOWED' : 'DENIED'}.`,
       ipAddress: req.ip,
     });
 

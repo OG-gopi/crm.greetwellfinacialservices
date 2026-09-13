@@ -8,6 +8,7 @@ export async function getAuditLogs(req: AuthRequest, res: Response) {
       role,
       action,
       entityType,
+      category,
       search,
       startDate,
       endDate,
@@ -19,7 +20,33 @@ export async function getAuditLogs(req: AuthRequest, res: Response) {
     const limitNum = parseInt(limit as string, 10);
     const skip = (pageNum - 1) * limitNum;
 
+    const allowedEntityTypes = [
+      'MENU',
+      'MENU_PERMISSION',
+      'ROLE_MENU_PERMISSION',
+      'METHOD_PERMISSION',
+      'ROLE_METHOD_PERMISSION',
+    ];
+
     const where: any = {};
+
+    if (category === 'MENU') {
+      where.OR = [
+        { entityType: { in: ['MENU', 'MENU_PERMISSION', 'ROLE_MENU_PERMISSION'] } },
+        { action: { contains: 'MENU' } },
+      ];
+    } else if (category === 'METHOD') {
+      where.OR = [
+        { entityType: { in: ['METHOD_PERMISSION', 'ROLE_METHOD_PERMISSION'] } },
+        { action: { contains: 'METHOD' } },
+      ];
+    } else {
+      where.OR = [
+        { entityType: { in: allowedEntityTypes } },
+        { action: { contains: 'MENU' } },
+        { action: { contains: 'METHOD' } },
+      ];
+    }
 
     if (role) where.userRole = role;
     if (action) where.action = action;
@@ -33,13 +60,17 @@ export async function getAuditLogs(req: AuthRequest, res: Response) {
 
     if (search) {
       const q = (search as string).toLowerCase();
-      where.OR = [
-        { description: { contains: q } },
-        { action: { contains: q } },
-        { userRole: { contains: q } },
-        { entityType: { contains: q } },
-        { entityId: { contains: q } },
-        { user: { email: { contains: q } } },
+      where.AND = [
+        {
+          OR: [
+            { description: { contains: q } },
+            { action: { contains: q } },
+            { userRole: { contains: q } },
+            { entityType: { contains: q } },
+            { entityId: { contains: q } },
+            { user: { email: { contains: q } } },
+          ],
+        },
       ];
     }
 
@@ -77,3 +108,4 @@ export async function getAuditLogs(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, message: err.message });
   }
 }
+

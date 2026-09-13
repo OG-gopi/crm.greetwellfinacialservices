@@ -6,6 +6,7 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { Modal } from '../../components/common/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { LazyLoadTrigger } from '../../components/common/LazyLoadTrigger';
+import { SearchableSelect } from '../../components/common/SearchableSelect';
 
 export const CustomerDocuments: React.FC = () => {
   const { user } = useAuth();
@@ -191,33 +192,32 @@ export const CustomerDocuments: React.FC = () => {
         <form onSubmit={handleUpload} className="space-y-4 text-xs">
           <div>
             <label className="block font-bold text-slate-700 mb-1">Target Application</label>
-            <select
+            <SearchableSelect
+              options={applications.map((app) => ({
+                value: app.id,
+                label: `${app.id} (${app.type} - ${app.purpose})`,
+              }))}
               value={selectedAppId}
-              onChange={(e) => setSelectedAppId(e.target.value)}
-              className="w-full p-2.5 border rounded-lg bg-slate-50 font-extrabold text-blue-700"
-            >
-              {applications.map((app) => (
-                <option key={app.id} value={app.id}>
-                  {app.id} ({app.type} - {app.purpose})
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedAppId}
+              placeholder="Select target application..."
+              searchPlaceholder="Search application..."
+              className="w-full"
+            />
           </div>
 
           <div>
             <label className="block font-bold text-slate-700 mb-1">Document Category</label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: '', label: '-- General Document --' },
+                ...docTypes.map((dt) => ({ value: dt.id, label: dt.name })),
+              ]}
               value={selectedDocTypeId}
-              onChange={(e) => setSelectedDocTypeId(e.target.value)}
-              className="w-full p-2.5 border rounded-lg bg-slate-50"
-            >
-              <option value="">-- General Document --</option>
-              {docTypes.map((dt) => (
-                <option key={dt.id} value={dt.id}>
-                  {dt.name}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedDocTypeId}
+              placeholder="Select document category..."
+              searchPlaceholder="Search category..."
+              className="w-full"
+            />
           </div>
 
           <div>

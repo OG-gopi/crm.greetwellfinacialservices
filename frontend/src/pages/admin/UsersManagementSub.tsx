@@ -4,6 +4,7 @@ import { VerificationCenter } from './VerificationCenter';
 import { api } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { UserPlus, Send } from 'lucide-react';
+import { SearchableSelect } from '../../components/common/SearchableSelect';
 
 export const UsersManagementSub: React.FC<{ subPage?: string }> = ({ subPage = 'all' }) => {
   const { showSuccess, showError } = useToast();
@@ -115,55 +116,57 @@ export const UsersManagementSub: React.FC<{ subPage?: string }> = ({ subPage = '
     };
 
     return (
-      <div className="max-w-2xl mx-auto bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6 text-xs">
+      <div className="max-w-2xl mx-auto bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm space-y-6 text-xs font-['Inter',sans-serif]">
         <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-          <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+          <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
             <UserPlus className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Create New Portal User</h2>
-            <p className="text-xs text-slate-500">Create Super Admin accounts or invite agents & customers to the portal</p>
+            <h2 className="text-lg font-extrabold text-slate-900">Create / Invite Portal User</h2>
+            <p className="text-xs text-slate-500 font-medium">Create Super Admin accounts or invite agents & customers to the portal</p>
           </div>
         </div>
 
         <form onSubmit={handleCreate} className="space-y-4">
           {/* Role Selection */}
           <div>
-            <label className="block font-bold text-slate-700 mb-1">User Role / Category</label>
-            <select
+            <label className="block font-bold text-slate-800 mb-1.5">User Role / Category</label>
+            <SearchableSelect
+              options={[
+                { value: 'SUPER_ADMIN', label: 'Super Admin Executive (Full Access)' },
+                { value: 'LOAN_AGENT', label: 'Loan Agent' },
+                { value: 'INSURANCE_AGENT', label: 'Insurance Agent' },
+                { value: 'INVESTMENT_AGENT', label: 'Investment Agent' },
+                { value: 'CUSTOMER', label: 'Customer / Borrower' },
+              ]}
               value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full p-2.5 border border-slate-200 rounded-lg font-bold bg-slate-50 text-slate-900 focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="SUPER_ADMIN">Super Admin Executive (Full Access)</option>
-              <option value="LOAN_AGENT">Loan Agent</option>
-              <option value="INSURANCE_AGENT">Insurance Agent</option>
-              <option value="INVESTMENT_AGENT">Investment Agent</option>
-              <option value="CUSTOMER">Customer / Borrower</option>
-            </select>
+              onChange={setRole}
+              placeholder="Select User Role"
+              className="w-full"
+            />
           </div>
 
           {/* First & Last Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">First Name *</label>
+              <label className="block font-bold text-slate-800 mb-1.5">First Name *</label>
               <input
                 type="text"
                 required
                 placeholder="Enter first name"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70 shadow-2xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Last Name</label>
+              <label className="block font-bold text-slate-800 mb-1.5">Last Name</label>
               <input
                 type="text"
                 placeholder="Enter last name"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70 shadow-2xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
               />
             </div>
           </div>
@@ -171,33 +174,33 @@ export const UsersManagementSub: React.FC<{ subPage?: string }> = ({ subPage = '
           {/* Email & Phone */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Email Address *</label>
+              <label className="block font-bold text-slate-800 mb-1.5">Email Address *</label>
               <input
                 type="email"
                 required
-                placeholder="e.g. admin@greetwell.com"
+                placeholder="e.g. user@greetwell.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70 shadow-2xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Mobile Phone Number *</label>
+              <label className="block font-bold text-slate-800 mb-1.5">Mobile Phone Number *</label>
               <input
                 type="tel"
                 required
                 placeholder="10-digit mobile number"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70 shadow-2xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
               />
             </div>
           </div>
 
           {/* Password & Confirm Password */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 space-y-2 sm:space-y-0">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">
+              <label className="block font-bold text-slate-800 mb-1.5">
                 Password <span className="text-slate-400 font-normal">(Leave blank to send Email Invitation)</span>
               </label>
               <input
@@ -205,11 +208,11 @@ export const UsersManagementSub: React.FC<{ subPage?: string }> = ({ subPage = '
                 placeholder="Min 6 characters (Optional)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                className="w-full p-3 border border-slate-200 rounded-xl text-xs font-medium bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none shadow-2xs"
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 mb-1">
+              <label className="block font-bold text-slate-800 mb-1.5">
                 Confirm Password
               </label>
               <input
@@ -217,30 +220,32 @@ export const UsersManagementSub: React.FC<{ subPage?: string }> = ({ subPage = '
                 placeholder="Re-enter password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                className="w-full p-3 border border-slate-200 rounded-xl text-xs font-medium bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none shadow-2xs"
               />
             </div>
           </div>
 
           {/* Account Status */}
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Initial Account Status</label>
-            <select
+            <label className="block font-bold text-slate-800 mb-1.5">Initial Account Status</label>
+            <SearchableSelect
+              options={[
+                { value: 'ACTIVE', label: 'Active (Can log in immediately)' },
+                { value: 'PENDING_VERIFICATION', label: 'Pending Verification' },
+                { value: 'INACTIVE', label: 'Inactive (Disabled)' },
+              ]}
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full p-2.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 font-semibold"
-            >
-              <option value="ACTIVE">Active (Can log in immediately)</option>
-              <option value="PENDING_VERIFICATION">Pending Verification</option>
-              <option value="INACTIVE">Inactive (Disabled)</option>
-            </select>
+              onChange={setStatus}
+              placeholder="Select Account Status"
+              className="w-full"
+            />
           </div>
 
           <div className="flex justify-end pt-4 border-t border-slate-100">
             <button
               type="submit"
               disabled={creating}
-              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-2"
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
             >
               <Send className="h-4 w-4" /> {creating ? 'Processing...' : (password ? 'Create Account Directly' : 'Send Invitation Email')}
             </button>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShieldCheck, CheckCircle2, UserPlus, ArrowRight, ArrowLeft, Mail, Phone, Calendar, GraduationCap, Briefcase, FileText, Lock, AlertCircle, Copy, Check, Upload } from 'lucide-react';
 import { api } from '../../services/api';
 import { Modal } from './Modal';
+import { SearchableSelect } from './SearchableSelect';
 
 interface InviteAgentModalProps {
   isOpen: boolean;
@@ -238,7 +239,7 @@ export const InviteAgentModal: React.FC<InviteAgentModalProps> = ({
               <label className="block font-semibold text-slate-700 mb-1">
                 Designated Agent Role <span className="text-rose-500">*</span>
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {[
                   { id: 'LOAN_AGENT', label: 'Loan Agent', desc: 'Loans Desk' },
                   { id: 'INSURANCE_AGENT', label: 'Insurance Agent', desc: 'Insurance Desk' },
@@ -261,7 +262,7 @@ export const InviteAgentModal: React.FC<InviteAgentModalProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
                   First Name <span className="text-rose-500">*</span>
@@ -295,7 +296,7 @@ export const InviteAgentModal: React.FC<InviteAgentModalProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
                   Date of Birth <span className="text-rose-500">*</span>
@@ -318,21 +319,18 @@ export const InviteAgentModal: React.FC<InviteAgentModalProps> = ({
                 <label className="block font-semibold text-slate-700 mb-1">
                   Highest Education <span className="text-rose-500">*</span>
                 </label>
-                <select
+                <SearchableSelect
+                  options={EDUCATION_OPTIONS.map((edu) => ({ value: edu, label: edu }))}
                   value={education}
-                  onChange={(e) => setEducation(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-[#0c5837]"
-                >
-                  {EDUCATION_OPTIONS.map((edu) => (
-                    <option key={edu} value={edu}>
-                      {edu}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setEducation}
+                  placeholder="Select education qualification..."
+                  searchPlaceholder="Search education..."
+                  className="w-full"
+                />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
                   Email Address <span className="text-rose-500">*</span>
@@ -432,7 +430,7 @@ export const InviteAgentModal: React.FC<InviteAgentModalProps> = ({
             {/* Conditional Fields if Yes */}
             {hasExperience ? (
               <div className="p-4 bg-emerald-50/50 border border-emerald-200/70 rounded-xl space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
                       Previous Company Name <span className="text-rose-500">*</span>

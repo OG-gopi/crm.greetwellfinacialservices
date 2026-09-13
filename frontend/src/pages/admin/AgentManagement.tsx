@@ -34,6 +34,7 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { InviteAgentModal } from '../../components/common/InviteAgentModal';
 import { Modal } from '../../components/common/Modal';
 import { LazyLoadTrigger } from '../../components/common/LazyLoadTrigger';
+import { SearchableSelect, SelectOption } from '../../components/common/SearchableSelect';
 
 export const AgentManagement: React.FC = () => {
   const [agents, setAgents] = useState<User[]>([]);
@@ -45,6 +46,8 @@ export const AgentManagement: React.FC = () => {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [selectedAgentDetails, setSelectedAgentDetails] = useState<User | null>(null);
   const [editingAgent, setEditingAgent] = useState<User | null>(null);
+  const [editRole, setEditRole] = useState<string>('LOAN_AGENT');
+  const [editStatus, setEditStatus] = useState<string>('ACTIVE');
   const [viewingDocsAgent, setViewingDocsAgent] = useState<User | null>(null);
 
   // Search and Filter State
@@ -272,27 +275,27 @@ export const AgentManagement: React.FC = () => {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <p className="text-[11px] font-semibold uppercase text-slate-400">Total Agents</p>
           <p className="text-2xl font-black text-slate-900 mt-1">{agents.length}</p>
           <p className="text-[10px] text-slate-500 mt-0.5">Active Portal Workforce</p>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <p className="text-[11px] font-semibold uppercase text-blue-600">Loan Agents</p>
           <p className="text-2xl font-black text-blue-900 mt-1">{loanAgentsCount}</p>
           <p className="text-[10px] text-slate-500 mt-0.5">Credit & Borrowing</p>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <p className="text-[11px] font-semibold uppercase text-emerald-600">Insurance Agents</p>
           <p className="text-2xl font-black text-emerald-900 mt-1">{insAgentsCount}</p>
           <p className="text-[10px] text-slate-500 mt-0.5">Coverage & Claims</p>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <p className="text-[11px] font-semibold uppercase text-purple-600">Investment Agents</p>
           <p className="text-2xl font-black text-purple-900 mt-1">{invesAgentsCount}</p>
           <p className="text-[10px] text-slate-500 mt-0.5">Wealth & Assets</p>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm col-span-2 md:col-span-1">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-2 md:col-span-1">
           <p className="text-[11px] font-semibold uppercase text-amber-600">Pending Invitations</p>
           <p className="text-2xl font-black text-amber-900 mt-1">{pendingInvitesCount}</p>
           <p className="text-[10px] text-slate-500 mt-0.5">Awaiting Activation</p>
@@ -359,68 +362,67 @@ export const AgentManagement: React.FC = () => {
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Filter by Role */}
-            <div className="flex items-center gap-1.5 bg-white border border-slate-300 px-3 py-1.5 rounded-xl">
-              <Filter className="h-3.5 w-3.5 text-slate-400" />
-              <span className="text-[11px] font-bold text-slate-500">Role:</span>
-              <select
-                value={roleFilter}
-                onChange={(e) => {
-                  setRoleFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer"
-              >
-                <option value="ALL">All Roles</option>
-                <option value="LOAN_AGENT">Loan Agent</option>
-                <option value="INSURANCE_AGENT">Insurance Agent</option>
-                <option value="INVESTMENT_AGENT">Investment Agent</option>
-              </select>
-            </div>
+            <SearchableSelect
+              options={[
+                { value: 'ALL', label: 'All Roles' },
+                { value: 'LOAN_AGENT', label: 'Loan Agent' },
+                { value: 'INSURANCE_AGENT', label: 'Insurance Agent' },
+                { value: 'INVESTMENT_AGENT', label: 'Investment Agent' },
+              ]}
+              value={roleFilter}
+              onChange={(val) => {
+                setRoleFilter(val);
+                setCurrentPage(1);
+              }}
+              placeholder="All Roles"
+              searchPlaceholder="Search role..."
+              className="w-44"
+            />
 
             {/* Account / Invitation Status Filter */}
             {activeTab === 'agents' ? (
-              <div className="flex items-center gap-1.5 bg-white border border-slate-300 px-3 py-1.5 rounded-xl">
-                <span className="text-[11px] font-bold text-slate-500">Status:</span>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => {
-                    setStatusFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer"
-                >
-                  <option value="ALL">All Statuses</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
-                  <option value="PENDING_VERIFICATION">Pending Verification</option>
-                  <option value="SUSPENDED">Suspended</option>
-                </select>
-              </div>
+              <SearchableSelect
+                options={[
+                  { value: 'ALL', label: 'All Statuses' },
+                  { value: 'ACTIVE', label: 'Active' },
+                  { value: 'INACTIVE', label: 'Inactive' },
+                  { value: 'PENDING_VERIFICATION', label: 'Pending Verification' },
+                  { value: 'SUSPENDED', label: 'Suspended' },
+                ]}
+                value={statusFilter}
+                onChange={(val) => {
+                  setStatusFilter(val);
+                  setCurrentPage(1);
+                }}
+                placeholder="All Statuses"
+                searchPlaceholder="Search status..."
+                className="w-44"
+              />
             ) : (
-              <div className="flex items-center gap-1.5 bg-white border border-slate-300 px-3 py-1.5 rounded-xl">
-                <span className="text-[11px] font-bold text-slate-500">Invite Status:</span>
-                <select
-                  value={invitationFilter}
-                  onChange={(e) => {
-                    setInvitationFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer"
-                >
-                  <option value="ALL">All Statuses</option>
-                  <option value="INVITATION_SENT">Sent</option>
-                  <option value="VERIFIED">Verified</option>
-                  <option value="EXPIRED">Expired</option>
-                  <option value="FAILED">Failed</option>
-                </select>
-              </div>
+              <SearchableSelect
+                options={[
+                  { value: 'ALL', label: 'All Statuses' },
+                  { value: 'INVITATION_SENT', label: 'Sent' },
+                  { value: 'VERIFIED', label: 'Verified' },
+                  { value: 'EXPIRED', label: 'Expired' },
+                  { value: 'FAILED', label: 'Failed' },
+                ]}
+                value={invitationFilter}
+                onChange={(val) => {
+                  setInvitationFilter(val);
+                  setCurrentPage(1);
+                }}
+                placeholder="All Statuses"
+                searchPlaceholder="Search status..."
+                className="w-44"
+              />
             )}
 
             {/* Reset Button */}
             {(searchTerm || roleFilter !== 'ALL' || statusFilter !== 'ALL' || invitationFilter !== 'ALL') && (
               <button
                 onClick={resetFilters}
-                className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all"
+                className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all"
               >
                 <RotateCcw className="h-3.5 w-3.5" /> Reset
               </button>
@@ -547,7 +549,11 @@ export const AgentManagement: React.FC = () => {
 
                         {/* Edit Agent */}
                         <button
-                          onClick={() => setEditingAgent(agent)}
+                          onClick={() => {
+                            setEditingAgent(agent);
+                            setEditRole(agent.role);
+                            setEditStatus(agent.status);
+                          }}
                           title="Edit Agent Details"
                           className="p-1.5 text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
                         >
@@ -851,9 +857,9 @@ export const AgentManagement: React.FC = () => {
                   firstName: formData.get('firstName') as string,
                   lastName: (formData.get('lastName') as string) || null, // Optional!
                   phone: formData.get('phone') as string,
-                  role: formData.get('role') as string,
+                  role: editRole,
                   education: formData.get('education') as string,
-                  status: formData.get('status') as string,
+                  status: editStatus,
                 };
 
                 const res = await api.put(`/users/${editingAgent.id}`, updatePayload);
@@ -914,15 +920,18 @@ export const AgentManagement: React.FC = () => {
                 <label className="block text-slate-700 font-bold mb-1">
                   Agent Role <span className="text-rose-500">*</span>
                 </label>
-                <select
-                  name="role"
-                  defaultValue={editingAgent.role}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-[#0c5837]"
-                >
-                  <option value="LOAN_AGENT">Loan Agent</option>
-                  <option value="INSURANCE_AGENT">Insurance Agent</option>
-                  <option value="INVESTMENT_AGENT">Investment Agent</option>
-                </select>
+                <SearchableSelect
+                  options={[
+                    { value: 'LOAN_AGENT', label: 'Loan Agent' },
+                    { value: 'INSURANCE_AGENT', label: 'Insurance Agent' },
+                    { value: 'INVESTMENT_AGENT', label: 'Investment Agent' },
+                  ]}
+                  value={editRole}
+                  onChange={setEditRole}
+                  placeholder="Select agent role..."
+                  searchPlaceholder="Search role..."
+                  className="w-full"
+                />
               </div>
             </div>
 
@@ -938,16 +947,19 @@ export const AgentManagement: React.FC = () => {
 
             <div>
               <label className="block text-slate-700 font-bold mb-1">Account Status</label>
-              <select
-                name="status"
-                defaultValue={editingAgent.status}
-                className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-[#0c5837]"
-              >
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="INACTIVE">INACTIVE</option>
-                <option value="PENDING_VERIFICATION">PENDING VERIFICATION</option>
-                <option value="SUSPENDED">SUSPENDED</option>
-              </select>
+              <SearchableSelect
+                options={[
+                  { value: 'ACTIVE', label: 'ACTIVE' },
+                  { value: 'INACTIVE', label: 'INACTIVE' },
+                  { value: 'PENDING_VERIFICATION', label: 'PENDING VERIFICATION' },
+                  { value: 'SUSPENDED', label: 'SUSPENDED' },
+                ]}
+                value={editStatus}
+                onChange={setEditStatus}
+                placeholder="Select status..."
+                searchPlaceholder="Search status..."
+                className="w-full"
+              />
             </div>
 
             <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">

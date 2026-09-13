@@ -283,7 +283,7 @@ export const InviteCustomerModal: React.FC<InviteCustomerModalProps> = ({
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
                   First Name <span className="text-rose-500">*</span>

@@ -88,7 +88,7 @@ export const VerificationCenter: React.FC = () => {
       {/* Verification Items List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Documents Section */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
           <h3 className="font-bold text-slate-900 text-sm flex items-center justify-between border-b pb-3">
             <span>Documents ({verificationData.documents?.length || 0})</span>
             <span className="text-[11px] text-slate-500 font-normal">Customer File Uploads</span>
@@ -147,7 +147,7 @@ export const VerificationCenter: React.FC = () => {
         </div>
 
         {/* Applications Verification Section */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
           <h3 className="font-bold text-slate-900 text-sm flex items-center justify-between border-b pb-3">
             <span>Applications ({verificationData.applications?.length || 0})</span>
             <span className="text-[11px] text-slate-500 font-normal">Workflow Validation</span>

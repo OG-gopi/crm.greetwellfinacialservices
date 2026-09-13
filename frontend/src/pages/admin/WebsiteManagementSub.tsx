@@ -31,9 +31,13 @@ import {
   Award,
   HeartHandshake,
   User,
-  AlertTriangle
+  AlertTriangle,
+  Building2,
+  Check
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { Modal } from '../../components/common/Modal';
+import { SearchableSelect } from '../../components/common/SearchableSelect';
 import { useToast } from '../../context/ToastContext';
 
 interface WebsiteManagementSubProps {
@@ -105,8 +109,25 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
   const [hasUnpublishedDrafts, setHasUnpublishedDrafts] = useState(false);
   const [lastUpdatedInfo, setLastUpdatedInfo] = useState<any | null>(null);
   const [contents, setContents] = useState<any[]>([]);
-  const [contacts, setContacts] = useState<any[]>([]);
-  const [socials, setSocials] = useState<any[]>([]);
+  
+  // Pre-fill real GFS details into initial contact state
+  const [contacts, setContacts] = useState<any[]>([
+    { key: 'primary_phone', title: 'Primary Phone', draftValue: '+91 91211 47777', publishedValue: '+91 91211 47777', isActive: true, displayOrder: 1 },
+    { key: 'whatsapp', title: 'WhatsApp Number', draftValue: '+91 91211 47777', publishedValue: '+91 91211 47777', isActive: true, displayOrder: 2 },
+    { key: 'email_general', title: 'General Enquiries Email', draftValue: 'gfsgreetwell@gmail.com', publishedValue: 'gfsgreetwell@gmail.com', isActive: true, displayOrder: 3 },
+    { key: 'email_support', title: 'Customer Support Email', draftValue: 'gfsgreetwell@gmail.com', publishedValue: 'gfsgreetwell@gmail.com', isActive: true, displayOrder: 4 },
+    { key: 'office_address', title: 'Corporate Headquarters', draftValue: 'PNO 71, Hno 1-36/1/2/6/A/P-71, Road No 6, Jawahar Colony, Chandanagar, Near Yelamma Temple, 500050', publishedValue: 'PNO 71, Hno 1-36/1/2/6/A/P-71, Road No 6, Jawahar Colony, Chandanagar, Near Yelamma Temple, 500050', isActive: true, displayOrder: 5 },
+    { key: 'business_hours', title: 'Business Operating Hours', draftValue: 'Mon - Sat: 9:30 AM - 6:30 PM (Sun Closed)', publishedValue: 'Mon - Sat: 9:30 AM - 6:30 PM (Sun Closed)', isActive: true, displayOrder: 6 }
+  ]);
+
+  // Pre-fill real GFS social accounts into initial state
+  const [socials, setSocials] = useState<any[]>([
+    { id: 'soc_1', platform: 'WhatsApp', url: 'https://wa.me/919121147777', draftUrl: 'https://wa.me/919121147777', isActive: true, draftIsActive: true, displayOrder: 1, icon: 'MessageCircle' },
+    { id: 'soc_2', platform: 'Facebook', url: 'https://facebook.com/greetwellfs', draftUrl: 'https://facebook.com/greetwellfs', isActive: true, draftIsActive: true, displayOrder: 2, icon: 'Facebook' },
+    { id: 'soc_3', platform: 'Instagram', url: 'https://instagram.com/greetwellfs', draftUrl: 'https://instagram.com/greetwellfs', isActive: true, draftIsActive: true, displayOrder: 3, icon: 'Instagram' },
+    { id: 'soc_4', platform: 'YouTube', url: 'https://youtube.com/@greetwellfs', draftUrl: 'https://youtube.com/@greetwellfs', isActive: true, draftIsActive: true, displayOrder: 4, icon: 'Youtube' }
+  ]);
+
   const [media, setMedia] = useState<any[]>([]);
   const [historyLogs, setHistoryLogs] = useState<any[]>([]);
 
@@ -182,14 +203,22 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
       if (res.data.success) {
         setHasUnpublishedDrafts(res.data.data.hasUnpublishedDrafts);
         setLastUpdatedInfo(res.data.data.lastUpdated || null);
-        setContents(res.data.data.contents || []);
-        setContacts(res.data.data.contacts || []);
-        setSocials(res.data.data.socials || []);
-        setMedia(res.data.data.media || []);
+        if (res.data.data.contents && res.data.data.contents.length > 0) {
+          setContents(res.data.data.contents);
+        }
+        if (res.data.data.contacts && res.data.data.contacts.length > 0) {
+          setContacts(res.data.data.contacts);
+        }
+        if (res.data.data.socials && res.data.data.socials.length > 0) {
+          setSocials(res.data.data.socials);
+        }
+        if (res.data.data.media) {
+          setMedia(res.data.data.media);
+        }
         setIsDirty(false);
       }
     } catch (err: any) {
-      showError(err.response?.data?.message || 'Unable to save changes. Please try again.');
+      showError(err.response?.data?.message || 'Unable to load website settings.');
     } finally {
       setLoading(false);
     }
@@ -257,18 +286,17 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
         fetchHistory();
       }
     } catch (err: any) {
-      showError(err.response?.data?.message || 'Unable to save website content. Please try again.');
+      showError(err.response?.data?.message || 'Unable to save website content.');
     } finally {
       setSavingSection(false);
     }
   };
 
   const handleSaveContactSection = async () => {
-    // Validate phone numbers
     for (const item of contacts) {
       if (item.key && (item.key.includes('phone') || item.key === 'toll_free' || item.key === 'whatsapp')) {
         if (item.draftValue && !validateIndianPhone(item.draftValue)) {
-          showError(`Invalid Indian phone number for '${item.title || item.key}'. Must contain 10 to 12 numeric digits.`);
+          showError(`Invalid Indian phone number for '${item.title || item.key}'. Must contain 10 to 12 digits.`);
           return;
         }
       }
@@ -278,20 +306,19 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
       setSavingSection(true);
       const res = await api.post('/website/admin/draft', { contacts });
       if (res.data.success) {
-        showSuccess('Contact Information saved successfully to database.');
+        showSuccess('Contact Information saved successfully.');
         setIsDirty(false);
         fetchData();
         fetchHistory();
       }
     } catch (err: any) {
-      showError(err.response?.data?.message || 'Unable to save contact details. Please try again.');
+      showError(err.response?.data?.message || 'Unable to save contact details.');
     } finally {
       setSavingSection(false);
     }
   };
 
   const handleSaveSocialSection = async () => {
-    // Validate social URLs
     for (const item of socials) {
       const url = item.draftUrl !== undefined ? item.draftUrl : item.url;
       if (url && url.trim() !== '' && !isValidUrl(url)) {
@@ -304,13 +331,13 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
       setSavingSection(true);
       const res = await api.post('/website/admin/draft', { socials });
       if (res.data.success) {
-        showSuccess('Social Media Accounts saved successfully to database.');
+        showSuccess('Social Media Accounts saved successfully.');
         setIsDirty(false);
         fetchData();
         fetchHistory();
       }
     } catch (err: any) {
-      showError(err.response?.data?.message || 'Unable to save social media links. Please try again.');
+      showError(err.response?.data?.message || 'Unable to save social media links.');
     } finally {
       setSavingSection(false);
     }
@@ -334,7 +361,7 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
         fetchHistory();
       }
     } catch (err: any) {
-      showError(err.response?.data?.message || 'Unable to save draft changes. Please try again.');
+      showError(err.response?.data?.message || 'Unable to save draft changes.');
     } finally {
       setSaving(false);
     }
@@ -387,7 +414,7 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
     const isPhone = key.includes('phone') || key.includes('mobile') || key.includes('whatsapp') || key.includes('toll');
 
     if (isPhone && newContactVal && !validateIndianPhone(newContactVal)) {
-      showError('Invalid Indian phone number. Must contain 10 to 12 numeric digits.');
+      showError('Invalid Indian phone number. Must contain 10 to 12 digits.');
       return;
     }
 
@@ -406,7 +433,7 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
     setNewContactTitle('');
     setNewContactKey('');
     setNewContactVal('');
-    showSuccess(`Added new contact field '${newContactTitle}'. Click Save Contact Information to persist.`);
+    showSuccess(`Added new contact field '${newContactTitle}'. Click Save Contact Information to save.`);
   };
 
   const handleRemoveContact = (key: string) => {
@@ -443,7 +470,7 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
     setShowAddSocialModal(false);
     setNewSocialPlatform('');
     setNewSocialUrl('');
-    showSuccess(`Added social media account '${newSocialPlatform}'. Click Save Social Media Accounts to persist.`);
+    showSuccess(`Added social media account '${newSocialPlatform}'. Click Save Social Media Accounts to save.`);
   };
 
   const handleRemoveSocial = (id: string) => {
@@ -661,105 +688,111 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#C99A3E] border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Top Header Card */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-50 text-blue-700 rounded-xl">
-              <Globe className="w-6 h-6" />
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* PAGE HERO HEADER (Light theme styling) */}
+      <div 
+        className="relative overflow-hidden rounded-2xl p-7 text-slate-900 shadow-sm border border-slate-200/90 mb-6 bg-gradient-to-br from-white via-slate-50 to-[#F6F4EF]"
+      >
+        {/* Glow accent */}
+        <div 
+          className="absolute -right-16 -top-16 w-72 h-72 rounded-full pointer-events-none opacity-40"
+          style={{ background: 'radial-gradient(circle, rgba(201,154,62,0.2) 0%, rgba(201,154,62,0) 70%)' }}
+        />
+
+        <div className="relative z-10 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-[#B4690E] bg-[#C99A3E]/15 border border-[#C99A3E]/30">
+              <span className="w-2 h-2 rounded-full bg-[#B4690E] animate-pulse" />
+              Website & Portal Management
             </div>
-            <div>
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">Website & Portal Management</h1>
-              <p className="text-slate-500 text-sm font-medium mt-0.5">
-                Upload, manage, and publish website content, contact details, social media links, and media assets.
-              </p>
+
+            {/* Global Header Actions */}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              {hasUnpublishedDrafts ? (
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  Unpublished Draft Changes
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  Published & Live Up-to-Date
+                </span>
+              )}
+
+              <button
+                onClick={handleDiscard}
+                disabled={discarding || !hasUnpublishedDrafts}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 disabled:opacity-40 transition-all cursor-pointer whitespace-nowrap"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Discard
+              </button>
+
+              <button
+                onClick={handleSaveDraft}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#10233F] hover:bg-[#0A1830] text-white disabled:opacity-40 transition-all cursor-pointer shadow-sm whitespace-nowrap"
+              >
+                <Save className="w-4 h-4" />
+                {saving ? 'Saving...' : 'Save Draft'}
+              </button>
+
+              <button
+                onClick={handlePublish}
+                disabled={publishing}
+                className="inline-flex items-center gap-1.5 px-4.5 py-2 rounded-xl text-xs font-bold bg-[#C99A3E] hover:bg-[#d8aa4a] text-[#0A1830] disabled:opacity-40 transition-all cursor-pointer shadow-md shadow-[#C99A3E]/20 whitespace-nowrap"
+              >
+                <Send className="w-4 h-4" />
+                {publishing ? 'Publish Live' : 'Publish Live'}
+              </button>
             </div>
           </div>
 
-          {/* Status Indicator & Global Action Buttons */}
-          <div className="flex items-center gap-3 flex-wrap">
-            {hasUnpublishedDrafts ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                Unpublished Draft Changes
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                Published & Live Up-to-Date
-              </span>
-            )}
-
-            <button
-              onClick={handleDiscard}
-              disabled={discarding || !hasUnpublishedDrafts}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 transition-all"
-            >
-              <RotateCcw className="w-4 h-4" />
-              Discard Draft
-            </button>
-
-            <button
-              onClick={handleSaveDraft}
-              disabled={saving}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-all shadow-sm"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Draft'}
-            </button>
-
-            <button
-              onClick={handlePublish}
-              disabled={publishing}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-600/20"
-            >
-              <Send className="w-4 h-4" />
-              {publishing ? 'Publishing...' : 'Publish Changes Live'}
-            </button>
+          <div>
+            <h1 className="font-serif text-2xl md:text-3xl font-bold tracking-tight text-[#10233F] m-0">
+              Greetwell Financial Services · Content & Media CMS
+            </h1>
+            <p className="text-sm text-slate-600 max-w-3xl mt-1.5 leading-relaxed font-medium">
+              Manage landing page messaging, corporate contact details, social media handles, original image assets, live previews, and CMS audit history.
+            </p>
           </div>
-        </div>
 
-        {/* Last Updated Metadata Bar */}
-        {lastUpdatedInfo && (
-          <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 font-medium gap-2 bg-slate-50/60 p-3 rounded-xl">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-blue-600" />
-              <span>
-                <strong>Last Updated:</strong> {new Date(lastUpdatedInfo.date).toLocaleString()}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-indigo-600" />
-              <span>
-                <strong>Last Updated By:</strong> {lastUpdatedInfo.by} ({lastUpdatedInfo.role || 'Super Admin'})
-              </span>
-            </div>
-            {lastUpdatedInfo.section && (
-              <div className="flex items-center gap-1.5">
-                <span className="px-2 py-0.5 bg-slate-200 text-slate-800 rounded font-bold text-[10px]">
+          {/* Last Updated Footer Strip */}
+          {lastUpdatedInfo && (
+            <div className="pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between text-xs text-slate-500 font-medium gap-3 bg-white/70 p-3 rounded-xl border border-slate-100">
+              <div className="flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-blue-600" />
+                <span><strong>Last Updated:</strong> {new Date(lastUpdatedInfo.date).toLocaleString()}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <User className="w-3.5 h-3.5 text-indigo-600" />
+                <span><strong>Updated By:</strong> {lastUpdatedInfo.by} ({lastUpdatedInfo.role || 'Super Admin'})</span>
+              </div>
+              {lastUpdatedInfo.section && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
                   {lastUpdatedInfo.section}
                 </span>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Navigation Submenu Tabs */}
-      <div className="flex border-b border-slate-200 bg-white rounded-xl px-4 pt-2 shadow-sm gap-2 overflow-x-auto">
+      {/* TAB NAVIGATION BAR (Styled pill container) */}
+      <div className="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-1.5 overflow-x-auto">
         <button
           onClick={() => handleTabChange('content')}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs md:text-sm transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'content'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-slate-600 hover:text-slate-900'
+              ? 'bg-[#10233F] text-white shadow-md'
+              : 'text-slate-600 hover:text-[#10233F] hover:bg-slate-100'
           }`}
         >
           <Globe className="w-4 h-4" />
@@ -768,46 +801,55 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
 
         <button
           onClick={() => handleTabChange('contact')}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs md:text-sm transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'contact'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-slate-600 hover:text-slate-900'
+              ? 'bg-[#10233F] text-white shadow-md'
+              : 'text-slate-600 hover:text-[#10233F] hover:bg-slate-100'
           }`}
         >
           <Phone className="w-4 h-4" />
           Contact Information
+          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${activeTab === 'contact' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}`}>
+            {contacts.length}
+          </span>
         </button>
 
         <button
           onClick={() => handleTabChange('social')}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs md:text-sm transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'social'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-slate-600 hover:text-slate-900'
+              ? 'bg-[#10233F] text-white shadow-md'
+              : 'text-slate-600 hover:text-[#10233F] hover:bg-slate-100'
           }`}
         >
           <Share2 className="w-4 h-4" />
           Social Media
+          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${activeTab === 'social' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}`}>
+            {socials.length}
+          </span>
         </button>
 
         <button
           onClick={() => handleTabChange('media')}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs md:text-sm transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'media'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-slate-600 hover:text-slate-900'
+              ? 'bg-[#10233F] text-white shadow-md'
+              : 'text-slate-600 hover:text-[#10233F] hover:bg-slate-100'
           }`}
         >
           <ImageIcon className="w-4 h-4" />
           Images & Media
+          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${activeTab === 'media' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}`}>
+            {media.length}
+          </span>
         </button>
 
         <button
           onClick={() => handleTabChange('preview')}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs md:text-sm transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'preview'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-slate-600 hover:text-slate-900'
+              ? 'bg-[#10233F] text-white shadow-md'
+              : 'text-slate-600 hover:text-[#10233F] hover:bg-slate-100'
           }`}
         >
           <Eye className="w-4 h-4" />
@@ -816,46 +858,57 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
 
         <button
           onClick={() => handleTabChange('history')}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs md:text-sm transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'history'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-slate-600 hover:text-slate-900'
+              ? 'bg-[#10233F] text-white shadow-md'
+              : 'text-slate-600 hover:text-[#10233F] hover:bg-slate-100'
           }`}
         >
           <History className="w-4 h-4" />
           Change History
+          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${activeTab === 'history' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}`}>
+            {historyLogs.length}
+          </span>
         </button>
       </div>
 
       {/* TAB 1: WEBSITE CONTENT */}
       {activeTab === 'content' && (
         <div className="space-y-6">
-          {/* Section Save Header Bar */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex items-center justify-between">
+          {/* Top Save Bar */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold text-slate-900">Website Content Sections</h2>
-              <p className="text-xs text-slate-500">Edit hero banner, services descriptions, about us text, and footer copyright.</p>
+              <h2 className="font-serif text-base font-bold text-[#10233F]">Website Content Sections</h2>
+              <p className="text-xs text-slate-500">Edit hero banner, services descriptions, about story, mission, and footer disclaimer.</p>
             </div>
             <button
               onClick={handleSaveContentSection}
               disabled={savingSection}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#10233F] hover:bg-[#0A1830] text-white text-xs font-bold rounded-xl shadow-sm transition-all disabled:opacity-50 cursor-pointer"
             >
               <Save className="w-4 h-4" />
               {savingSection ? 'Saving Changes...' : 'Save Content Changes'}
             </button>
           </div>
 
-          {/* Hero Section */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
-            <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-              Hero Banner Section
-            </h2>
+          {/* Hero Section Card */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#10233F] flex items-center justify-center font-bold">
+                  <Globe className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="font-serif text-lg font-bold text-[#10233F] m-0">Hero Banner Section</h2>
+                  <p className="text-xs text-slate-500 m-0">Primary heading and subtitle displayed at top of landing page</p>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-4">
               {heroContent.map((item) => (
                 <div key={item.key} className="space-y-1.5">
-                  <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-[#10233F] uppercase tracking-wider">
                     {item.label}
                   </label>
                   {item.key === 'hero_subtitle' ? (
@@ -863,14 +916,14 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
                       rows={2}
                       value={item.draftValue}
                       onChange={(e) => handleContentChange(item.key, e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-[#C99A3E] focus:border-[#C99A3E] outline-none transition-all"
                     />
                   ) : (
                     <input
                       type="text"
                       value={item.draftValue}
                       onChange={(e) => handleContentChange(item.key, e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-[#C99A3E] focus:border-[#C99A3E] outline-none transition-all"
                     />
                   )}
                 </div>
@@ -878,39 +931,55 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
             </div>
           </div>
 
-          {/* Services Section */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
-            <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
-              Service Card Descriptions (Loans, Insurance, Investments)
-            </h2>
+          {/* Service Descriptions Card */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 text-[#C99A3E] flex items-center justify-center font-bold">
+                  <Award className="w-5 h-5 text-[#C99A3E]" />
+                </div>
+                <div>
+                  <h2 className="font-serif text-lg font-bold text-[#10233F] m-0">Service Descriptions</h2>
+                  <p className="text-xs text-slate-500 m-0">Overview texts for Loans, Insurance, and Wealth Investments</p>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {servicesContent.map((item) => (
                 <div key={item.key} className="space-y-1.5">
-                  <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-[#10233F] uppercase tracking-wider">
                     {item.label}
                   </label>
                   <textarea
                     rows={3}
                     value={item.draftValue}
                     onChange={(e) => handleContentChange(item.key, e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-[#C99A3E] focus:border-[#C99A3E] outline-none transition-all"
                   />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* About Section */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
-            <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
-              About Us, Mission & Vision
-            </h2>
+          {/* About Us, Mission & Vision */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                  <HeartHandshake className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h2 className="font-serif text-lg font-bold text-[#10233F] m-0">Company Story, Mission & Vision</h2>
+                  <p className="text-xs text-slate-500 m-0">Brand values and organizational mission statements</p>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-4">
               {aboutContent.map((item) => (
                 <div key={item.key} className="space-y-1.5">
-                  <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-[#10233F] uppercase tracking-wider">
                     {item.label}
                   </label>
                   {item.key === 'about_body' ? (
@@ -918,14 +987,14 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
                       rows={4}
                       value={item.draftValue}
                       onChange={(e) => handleContentChange(item.key, e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-[#C99A3E] focus:border-[#C99A3E] outline-none transition-all"
                     />
                   ) : (
                     <input
                       type="text"
                       value={item.draftValue}
                       onChange={(e) => handleContentChange(item.key, e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-[#C99A3E] focus:border-[#C99A3E] outline-none transition-all"
                     />
                   )}
                 </div>
@@ -934,34 +1003,42 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
           </div>
 
           {/* Footer Section */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
-            <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-slate-700" />
-              Footer Copyright & Legal Disclaimer
-            </h2>
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
+                  <Building2 className="w-5 h-5 text-slate-700" />
+                </div>
+                <div>
+                  <h2 className="font-serif text-lg font-bold text-[#10233F] m-0">Footer Copyright & Legal Text</h2>
+                  <p className="text-xs text-slate-500 m-0">Disclaimer notice and copyright statement</p>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-4">
               {footerContent.map((item) => (
                 <div key={item.key} className="space-y-1.5">
-                  <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-[#10233F] uppercase tracking-wider">
                     {item.label}
                   </label>
                   <textarea
                     rows={2}
                     value={item.draftValue}
                     onChange={(e) => handleContentChange(item.key, e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-[#C99A3E] focus:border-[#C99A3E] outline-none transition-all"
                   />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Bottom Save Changes Bar */}
-          <div className="flex justify-end bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+          {/* Bottom Save Bar */}
+          <div className="flex justify-end bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
             <button
               onClick={handleSaveContentSection}
               disabled={savingSection}
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#10233F] hover:bg-[#0A1830] text-white text-xs font-bold rounded-xl shadow-md transition-all disabled:opacity-50 cursor-pointer"
             >
               <Save className="w-4 h-4" />
               {savingSection ? 'Saving...' : 'Save Content Changes'}
@@ -972,75 +1049,89 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
 
       {/* TAB 2: CONTACT INFORMATION */}
       {activeTab === 'contact' && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Contact Details & Business Operating Info</h2>
+              <h2 className="font-serif text-lg font-bold text-[#10233F]">Contact Details & Corporate Headquarters</h2>
               <p className="text-xs text-slate-500 mt-1">
-                Indian phone numbers require 10 to 12 numeric digits. Disabled or removed fields will disappear from the public website.
+                Real GFS office address, support email, and phone numbers. Active items appear immediately on public landing pages.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <button
                 onClick={() => setShowAddContactModal(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-all cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                Add Contact Detail
+                Add Field
               </button>
               <button
                 onClick={handleSaveContactSection}
                 disabled={savingSection}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#10233F] hover:bg-[#0A1830] text-white text-xs font-bold rounded-xl shadow-sm transition-all disabled:opacity-50 cursor-pointer"
               >
                 <Save className="w-4 h-4" />
-                {savingSection ? 'Saving...' : 'Save Contact Information'}
+                {savingSection ? 'Saving...' : 'Save Contact Info'}
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {contacts.map((item) => (
-              <div key={item.key} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3 relative group">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
-                    {item.title}
-                  </label>
+              <div
+                key={item.key}
+                className={`p-4 rounded-xl border transition-all ${
+                  item.isActive ? 'border-slate-200 bg-white' : 'border-slate-100 bg-slate-50 opacity-60'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-[#10233F] uppercase tracking-wider flex items-center gap-1.5">
+                    {item.key.includes('phone') || item.key === 'whatsapp' ? (
+                      <Phone className="w-3.5 h-3.5 text-blue-600" />
+                    ) : item.key.includes('email') ? (
+                      <Mail className="w-3.5 h-3.5 text-emerald-600" />
+                    ) : item.key.includes('address') ? (
+                      <MapPin className="w-3.5 h-3.5 text-red-600" />
+                    ) : (
+                      <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    )}
+                    {item.title || item.key}
+                  </span>
+
                   <div className="flex items-center gap-3">
-                    <label className="inline-flex items-center cursor-pointer gap-2 text-xs font-semibold text-slate-600">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-600">
                       <input
                         type="checkbox"
                         checked={item.isActive}
                         onChange={(e) => handleContactChange(item.key, 'isActive', e.target.checked)}
-                        className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                        className="w-4 h-4 text-[#10233F] rounded border-slate-300 focus:ring-[#C99A3E]"
                       />
-                      <span>{item.isActive ? 'Active' : 'Disabled'}</span>
+                      <span>Active</span>
                     </label>
+
                     <button
                       onClick={() => handleRemoveContact(item.key)}
-                      className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
-                      title="Remove contact field"
+                      className="p-1 text-slate-400 hover:text-red-600 rounded transition-colors cursor-pointer"
+                      title="Remove Field"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
 
-                {item.key === 'office_address' || item.key === 'business_hours' ? (
+                {item.key === 'office_address' ? (
                   <textarea
-                    rows={2}
+                    rows={3}
                     value={item.draftValue}
                     onChange={(e) => handleContactChange(item.key, 'draftValue', e.target.value)}
-                    placeholder={`Enter ${item.title}`}
-                    className="w-full px-3.5 py-2 bg-white rounded-lg border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3.5 py-2 rounded-lg border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-[#C99A3E] focus:border-[#C99A3E] outline-none"
                   />
                 ) : (
                   <input
                     type="text"
                     value={item.draftValue}
                     onChange={(e) => handleContactChange(item.key, 'draftValue', e.target.value)}
-                    placeholder={`Enter ${item.title}`}
-                    className="w-full px-3.5 py-2 bg-white rounded-lg border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3.5 py-2 rounded-lg border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-[#C99A3E] focus:border-[#C99A3E] outline-none"
                   />
                 )}
               </div>
@@ -1051,7 +1142,7 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
             <button
               onClick={handleSaveContactSection}
               disabled={savingSection}
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#10233F] hover:bg-[#0A1830] text-white text-xs font-bold rounded-xl shadow-md transition-all disabled:opacity-50 cursor-pointer"
             >
               <Save className="w-4 h-4" />
               {savingSection ? 'Saving...' : 'Save Contact Information'}
@@ -1062,79 +1153,112 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
 
       {/* TAB 3: SOCIAL MEDIA */}
       {activeTab === 'social' && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Social Media Account Links</h2>
+              <h2 className="font-serif text-lg font-bold text-[#10233F]">Social Media Accounts & Links</h2>
               <p className="text-xs text-slate-500 mt-1">
-                Toggle platforms active or disabled. Disabled platforms or empty links will automatically disappear from the public website.
+                Official GFS social profiles (WhatsApp, Facebook, Instagram, YouTube). Toggle visibility or add new links.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <button
                 onClick={() => setShowAddSocialModal(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-all cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                Add Social Account
+                Add Platform
               </button>
               <button
                 onClick={handleSaveSocialSection}
                 disabled={savingSection}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#10233F] hover:bg-[#0A1830] text-white text-xs font-bold rounded-xl shadow-sm transition-all disabled:opacity-50 cursor-pointer"
               >
                 <Save className="w-4 h-4" />
-                {savingSection ? 'Saving...' : 'Save Social Media Accounts'}
+                {savingSection ? 'Saving...' : 'Save Social Links'}
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {socials.map((item) => (
-              <div key={item.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Share2 className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-extrabold text-slate-900">{item.platform}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {socials.map((item) => {
+              const currentUrl = item.draftUrl !== undefined ? item.draftUrl : item.url;
+              const isEnabled = item.draftIsActive !== undefined ? item.draftIsActive : item.isActive;
+
+              return (
+                <div
+                  key={item.id}
+                  className={`p-5 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
+                    isEnabled ? 'border-slate-200 bg-white hover:border-slate-300 shadow-sm' : 'border-slate-100 bg-slate-50 opacity-60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 text-[#10233F] flex items-center justify-center font-bold border border-slate-200">
+                        <Share2 className="w-5 h-5 text-[#10233F]" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-[#10233F] m-0">{item.platform}</h3>
+                        <span className="text-[11px] text-slate-400">Order #{item.displayOrder}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isEnabled}
+                          onChange={(e) => handleSocialChange(item.id, 'draftIsActive', e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#10233F]"></div>
+                      </label>
+
+                      <button
+                        onClick={() => handleRemoveSocial(item.id)}
+                        className="p-1 text-slate-400 hover:text-red-600 rounded transition-colors cursor-pointer"
+                        title="Remove Account"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <label className="inline-flex items-center cursor-pointer gap-2 text-xs font-semibold text-slate-600">
-                      <input
-                        type="checkbox"
-                        checked={item.draftIsActive !== undefined ? item.draftIsActive : item.isActive}
-                        onChange={(e) => handleSocialChange(item.id, 'draftIsActive', e.target.checked)}
-                        className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
-                      />
-                      <span>
-                        {(item.draftIsActive !== undefined ? item.draftIsActive : item.isActive) ? 'Active' : 'Disabled'}
-                      </span>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase">
+                      Profile URL
                     </label>
-                    <button
-                      onClick={() => handleRemoveSocial(item.id)}
-                      className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
-                      title="Remove account"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={currentUrl}
+                        onChange={(e) => handleSocialChange(item.id, 'draftUrl', e.target.value)}
+                        placeholder="https://"
+                        className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-800 focus:ring-2 focus:ring-[#C99A3E] focus:border-[#C99A3E] outline-none"
+                      />
+                      {currentUrl && isValidUrl(currentUrl) && (
+                        <a
+                          href={currentUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 text-slate-600 hover:text-[#10233F] hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
+                          title="Open Link"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                <input
-                  type="url"
-                  value={item.draftUrl !== undefined ? item.draftUrl : item.url}
-                  onChange={(e) => handleSocialChange(item.id, 'draftUrl', e.target.value)}
-                  placeholder={`https://${item.platform.toLowerCase().replace(/[^a-z0-9]/g, '')}.com/greetwell`}
-                  className="w-full px-3.5 py-2 bg-white rounded-lg border border-slate-200 text-slate-900 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="flex justify-end pt-4 border-t border-slate-100">
             <button
               onClick={handleSaveSocialSection}
               disabled={savingSection}
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#10233F] hover:bg-[#0A1830] text-white text-xs font-bold rounded-xl shadow-md transition-all disabled:opacity-50 cursor-pointer"
             >
               <Save className="w-4 h-4" />
               {savingSection ? 'Saving...' : 'Save Social Media Accounts'}
@@ -1145,187 +1269,148 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
 
       {/* TAB 4: IMAGES & MEDIA */}
       {activeTab === 'media' && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">Website Images & Media Management</h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Upload new photos, manage CSR Activities & Recognition cards, edit details, replace files, and remove images live.
-              </p>
+        <div className="space-y-6">
+          {/* Controls Bar */}
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  placeholder="Search media assets..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:ring-2 focus:ring-[#C99A3E] focus:border-[#C99A3E] outline-none"
+                />
+              </div>
+
+              <div className="w-48">
+                <SearchableSelect
+                  options={SECTION_OPTIONS.map((sec) => ({ value: sec, label: sec }))}
+                  value={selectedSectionFilter}
+                  onChange={(val) => setSelectedSectionFilter(val)}
+                  placeholder="Filter Section"
+                />
+              </div>
             </div>
 
             <button
               onClick={() => {
                 setUploadTitle('');
                 setUploadDesc('');
-                setUploadSection('CSR Activities');
-                setUploadCategory('CSR ACTIVITIES');
                 setUploadFile(null);
                 setUploadPreviewUrl('');
                 setUploadUrlInput('');
                 setShowUploadModal(true);
               }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20 whitespace-nowrap"
+              className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#10233F] hover:bg-[#0A1830] text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              Upload New Image
+              <Upload className="w-4 h-4" />
+              Upload New Media
             </button>
           </div>
 
-          {/* Filters & Search Toolbar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Filter className="w-4 h-4 text-slate-500 flex-shrink-0" />
-              <select
-                value={selectedSectionFilter}
-                onChange={(e) => setSelectedSectionFilter(e.target.value)}
-                className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
-              >
-                {SECTION_OPTIONS.map((sec) => (
-                  <option key={sec} value={sec}>
-                    {sec === 'ALL' ? 'All Website Sections' : sec}
-                  </option>
-                ))}
-              </select>
+          {/* Media Grid */}
+          {filteredMedia.length === 0 ? (
+            <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 space-y-3">
+              <ImageIcon className="w-12 h-12 text-slate-300 mx-auto" />
+              <h3 className="text-base font-bold text-[#10233F]">No Media Items Found</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                No images matched your current filter criteria. Upload a new image or clear the filter parameters.
+              </p>
             </div>
-
-            <div className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                placeholder="Search images by title, category..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Media Items Card Grid */}
-          {filteredMedia.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {filteredMedia.map((item) => {
-                const currentImgUrl = getMediaUrl(item.draftUrl || item.publishedUrl);
-                const isDraft = item.status === 'DRAFT' || item.draftUrl !== item.publishedUrl;
+                const currentImgUrl = getMediaUrl(item.draftUrl || item.imageUrl || item.publishedUrl);
+                const isBroken = brokenImages[item.id];
 
                 return (
                   <div
                     key={item.id}
-                    className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group"
+                    className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
                   >
-                    <div className="h-48 bg-slate-900 relative overflow-hidden flex items-center justify-center">
-                      {brokenImages[item.id] || !currentImgUrl ? (
-                        <div className="flex flex-col items-center justify-center p-4 text-center text-amber-400 space-y-1.5 bg-slate-900 w-full h-full">
-                          <AlertCircle className="w-8 h-8 text-amber-400" />
-                          <span className="text-xs font-black text-amber-300">Original Image File Missing</span>
-                          <span className="text-[10px] text-slate-400 font-medium">Click Replace to Upload Original</span>
+                    <div className="relative group bg-slate-100 aspect-video overflow-hidden">
+                      {isBroken ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400 p-4 text-center">
+                          <AlertTriangle className="w-8 h-8 mb-1 text-amber-500" />
+                          <span className="text-[11px] font-semibold text-slate-600">Image Asset Missing</span>
                         </div>
                       ) : (
                         <img
                           src={currentImgUrl}
-                          alt={item.draftTitle || item.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          alt={item.title}
                           onError={() => setBrokenImages((prev) => ({ ...prev, [item.id]: true }))}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       )}
 
-                      <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                        <span className="px-2.5 py-1 bg-slate-900/80 backdrop-blur-md text-white rounded-lg text-[10px] font-black uppercase tracking-wider">
-                          {item.section}
+                      <div className="absolute top-2 left-2 flex gap-1 flex-wrap">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#10233F]/80 text-white backdrop-blur-sm">
+                          {item.section || 'General'}
                         </span>
-                        {(item.draftCategory || item.category) && (
-                          <span className="px-2.5 py-1 bg-blue-600/90 backdrop-blur-md text-white rounded-lg text-[10px] font-bold">
-                            {item.draftCategory || item.category}
+                        {item.status === 'DRAFT' && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-white backdrop-blur-sm">
+                            Draft
                           </span>
                         )}
                       </div>
 
-                      <div className="absolute top-3 right-3">
-                        {isDraft ? (
-                          <span className="px-2.5 py-1 bg-amber-500 text-slate-950 font-black rounded-lg text-[10px] shadow-sm">
-                            DRAFT
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 bg-emerald-500 text-white font-black rounded-lg text-[10px] shadow-sm">
-                            PUBLISHED
-                          </span>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={() => setLightboxItem(item)}
-                        className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white font-bold text-xs"
-                      >
-                        <ZoomIn className="w-5 h-5" />
-                        View Full Photo
-                      </button>
-                    </div>
-
-                    <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                      <div>
-                        <h3 className="font-extrabold text-slate-900 text-sm line-clamp-1">
-                          {item.draftTitle || item.title}
-                        </h3>
-                        <p className="text-slate-500 text-xs mt-1 line-clamp-2 leading-relaxed">
-                          {item.draftDescription || item.description || 'No description provided.'}
-                        </p>
-                      </div>
-
-                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => handleOpenEditModal(item)}
-                            className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1"
-                            title="Edit Details"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedMediaItem(item);
-                              setUploadFile(null);
-                              setUploadPreviewUrl('');
-                              setUploadUrlInput('');
-                              setShowReplaceModal(true);
-                            }}
-                            className="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-all flex items-center gap-1"
-                            title="Replace Image File"
-                          >
-                            <Upload className="w-3.5 h-3.5" />
-                            Replace
-                          </button>
-                        </div>
-
+                      {/* Overlay action buttons */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => setLightboxItem(item)}
+                          className="p-2 rounded-xl bg-white/90 text-slate-800 hover:bg-white transition-all cursor-pointer"
+                          title="Zoom / View Lightbox"
+                        >
+                          <ZoomIn className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenEditModal(item)}
+                          className="p-2 rounded-xl bg-white/90 text-slate-800 hover:bg-white transition-all cursor-pointer"
+                          title="Edit Details"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedMediaItem(item);
+                            setUploadFile(null);
+                            setUploadPreviewUrl('');
+                            setUploadUrlInput('');
+                            setShowReplaceModal(true);
+                          }}
+                          className="p-2 rounded-xl bg-white/90 text-slate-800 hover:bg-white transition-all cursor-pointer"
+                          title="Replace Image File"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => {
                             setSelectedMediaItem(item);
                             setShowDeleteModal(true);
                           }}
-                          className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all"
-                          title="Remove Image"
+                          className="p-2 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-all cursor-pointer"
+                          title="Delete Media"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
+
+                    <div className="p-4 space-y-2">
+                      <h4 className="font-bold text-sm text-[#10233F] truncate m-0">{item.title}</h4>
+                      {item.description && (
+                        <p className="text-xs text-slate-500 line-clamp-2 m-0 leading-relaxed">{item.description}</p>
+                      )}
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100">
+                        <span>{item.category || 'MEDIA'}</span>
+                        <span>{item.displayType || 'CARD'}</span>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
-            </div>
-          ) : (
-            <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-300 space-y-3">
-              <ImageIcon className="w-10 h-10 text-slate-400 mx-auto" />
-              <p className="text-slate-600 font-bold text-sm">No images found for the selected section or search query.</p>
-              <button
-                onClick={() => {
-                  setSelectedSectionFilter('ALL');
-                  setSearchQuery('');
-                }}
-                className="px-3.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-100 transition-all"
-              >
-                Reset Filters
-              </button>
             </div>
           )}
         </div>
@@ -1333,203 +1418,113 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
 
       {/* TAB 5: PREVIEW CHANGES */}
       {activeTab === 'preview' && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">Live Website Preview Frame</h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Toggle view modes and responsive device dimensions to review draft changes before publishing live.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold">
-                <button
-                  onClick={() => setPreviewMode('draft')}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${
-                    previewMode === 'draft' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'
-                  }`}
-                >
-                  Draft Version
-                </button>
-                <button
-                  onClick={() => setPreviewMode('published')}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${
-                    previewMode === 'published' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600'
-                  }`}
-                >
-                  Published Live
-                </button>
-              </div>
-
-              <div className="flex bg-slate-100 p-1 rounded-xl text-slate-600">
+        <div className="space-y-4">
+          {/* Device and Mode Selector Bar */}
+          <div className="bg-[#0A1830] text-white p-3 rounded-t-2xl flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-[#E8C877] uppercase tracking-wider">Device Frame:</span>
+              <div className="flex gap-1 bg-white/10 p-1 rounded-xl">
                 <button
                   onClick={() => setPreviewDevice('desktop')}
-                  className={`p-1.5 rounded-lg ${previewDevice === 'desktop' ? 'bg-white text-blue-600 shadow-sm' : ''}`}
-                  title="Desktop View"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    previewDevice === 'desktop' ? 'bg-white text-[#0A1830]' : 'text-slate-300 hover:text-white'
+                  }`}
                 >
-                  <Laptop className="w-4 h-4" />
+                  <Laptop className="w-3.5 h-3.5" /> Desktop
                 </button>
                 <button
                   onClick={() => setPreviewDevice('tablet')}
-                  className={`p-1.5 rounded-lg ${previewDevice === 'tablet' ? 'bg-white text-blue-600 shadow-sm' : ''}`}
-                  title="Tablet View"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    previewDevice === 'tablet' ? 'bg-white text-[#0A1830]' : 'text-slate-300 hover:text-white'
+                  }`}
                 >
-                  <Tablet className="w-4 h-4" />
+                  <Tablet className="w-3.5 h-3.5" /> Tablet
                 </button>
                 <button
                   onClick={() => setPreviewDevice('mobile')}
-                  className={`p-1.5 rounded-lg ${previewDevice === 'mobile' ? 'bg-white text-blue-600 shadow-sm' : ''}`}
-                  title="Mobile View"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    previewDevice === 'mobile' ? 'bg-white text-[#0A1830]' : 'text-slate-300 hover:text-white'
+                  }`}
                 >
-                  <Smartphone className="w-4 h-4" />
+                  <Smartphone className="w-3.5 h-3.5" /> Mobile
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-[#E8C877]">Preview Version:</span>
+              <div className="flex gap-1 bg-white/10 p-1 rounded-xl">
+                <button
+                  onClick={() => setPreviewMode('draft')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    previewMode === 'draft' ? 'bg-[#C99A3E] text-[#0A1830] font-bold' : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  Draft Changes
+                </button>
+                <button
+                  onClick={() => setPreviewMode('published')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    previewMode === 'published' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  Live Published
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="flex justify-center bg-slate-900 p-4 sm:p-8 rounded-2xl min-h-[500px]">
+          {/* Interactive Preview Container */}
+          <div className="bg-slate-200 p-6 rounded-b-2xl min-h-[600px] flex justify-center border border-slate-300 border-t-0">
             <div
-              className={`bg-white rounded-xl shadow-2xl overflow-y-auto transition-all duration-300 ${
-                previewDevice === 'mobile'
-                  ? 'w-[375px] h-[650px]'
+              className={`bg-white rounded-xl shadow-2xl transition-all duration-300 overflow-y-auto ${
+                previewDevice === 'desktop'
+                  ? 'w-full max-w-5xl h-[700px]'
                   : previewDevice === 'tablet'
                   ? 'w-[768px] h-[700px]'
-                  : 'w-full max-w-[1100px] min-h-[700px]'
+                  : 'w-[375px] h-[650px]'
               }`}
             >
-              <div className="p-6 space-y-10 font-sans">
-                <div className="flex items-center justify-between border-b pb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="px-3 py-1 bg-blue-900 text-white rounded-lg text-xs font-black">GFS</span>
-                    <span className="font-extrabold text-slate-900 text-sm">Greetwell Financial Services</span>
-                  </div>
-                  <div className="text-xs text-slate-600 font-semibold hidden sm:flex gap-4">
-                    <span>Loans</span>
-                    <span>Insurance</span>
-                    <span>Investments</span>
-                    <span>CSR Activities</span>
-                    <span>Recognition</span>
-                  </div>
+              {/* Header preview */}
+              <div className="bg-[#10233F] text-white p-4 flex items-center justify-between border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <span className="font-serif font-bold text-lg text-[#E8C877]">Greetwell</span>
+                  <span className="text-xs text-slate-300">Financial Services</span>
                 </div>
+                <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-white font-semibold">
+                  {previewMode === 'draft' ? 'DRAFT MODE PREVIEW' : 'LIVE PREVIEW'}
+                </span>
+              </div>
 
-                <div className="text-center space-y-4 py-8 bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-2xl p-6">
-                  <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                    {previewMode === 'draft'
-                      ? contents.find((c) => c.key === 'hero_title')?.draftValue
-                      : contents.find((c) => c.key === 'hero_title')?.publishedValue}
-                  </h1>
-                  <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto font-medium">
-                    {previewMode === 'draft'
-                      ? contents.find((c) => c.key === 'hero_subtitle')?.draftValue
-                      : contents.find((c) => c.key === 'hero_subtitle')?.publishedValue}
-                  </p>
-                  <button className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-extrabold shadow-md">
-                    {previewMode === 'draft'
-                      ? contents.find((c) => c.key === 'hero_cta')?.draftValue
-                      : contents.find((c) => c.key === 'hero_cta')?.publishedValue}
-                  </button>
-                </div>
+              {/* Hero Banner preview */}
+              <div className="bg-gradient-to-br from-[#0A1830] to-[#10233F] text-white p-8 text-center space-y-4">
+                <h2 className="font-serif text-2xl font-bold text-white max-w-xl mx-auto">
+                  {contents.find((c) => c.key === 'hero_title')?.draftValue || 'Empowering Your Financial Growth'}
+                </h2>
+                <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                  {contents.find((c) => c.key === 'hero_subtitle')?.draftValue || 'Your trusted financial services portal'}
+                </p>
+                <button className="px-5 py-2.5 bg-[#C99A3E] text-[#0A1830] font-bold text-xs rounded-xl shadow-md">
+                  {contents.find((c) => c.key === 'hero_cta')?.draftValue || 'Get Started Now'}
+                </button>
+              </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <HeartHandshake className="w-5 h-5 text-blue-600" />
-                    <h2 className="text-base font-extrabold text-slate-900">CSR Activities & Social Initiatives</h2>
+              {/* Contact Info preview section */}
+              <div className="p-6 bg-slate-50 space-y-4 border-t border-slate-200">
+                <h3 className="font-serif font-bold text-sm text-[#10233F]">Corporate Headquarters & Contact</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-slate-700">
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-1">
+                    <span className="font-bold text-[#10233F] block">Address:</span>
+                    <p className="m-0 leading-relaxed">
+                      {contacts.find((c) => c.key === 'office_address')?.draftValue || 'PNO 71, Hno 1-36/1/2/6/A/P-71, Road No 6, Jawahar Colony, Chandanagar, Near Yelamma Temple, 500050'}
+                    </p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {media
-                      .filter((m) => m.section === 'CSR Activities')
-                      .map((item) => {
-                        const imgUrl = getMediaUrl(previewMode === 'draft' ? (item.draftUrl || item.publishedUrl) : item.publishedUrl);
-                        return (
-                          <div
-                            key={item.id}
-                            onClick={() => setLightboxItem(item)}
-                            className="group cursor-pointer rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm hover:shadow-md transition-all"
-                          >
-                            <div className="h-36 bg-slate-100 overflow-hidden relative">
-                              <img
-                                src={imgUrl}
-                                alt={item.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                onError={(e: any) => {
-                                  e.target.onerror = null;
-                                  e.target.src = '/uploads/media/logo.png';
-                                }}
-                              />
-                              <span className="absolute top-2 left-2 px-2 py-0.5 bg-blue-600 text-white rounded text-[9px] font-bold">
-                                {item.draftCategory || item.category || 'CSR'}
-                              </span>
-                            </div>
-                            <div className="p-3">
-                              <h4 className="font-bold text-xs text-slate-900 line-clamp-1">
-                                {previewMode === 'draft' ? (item.draftTitle || item.title) : item.title}
-                              </h4>
-                              <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
-                                {previewMode === 'draft' ? (item.draftDescription || item.description) : item.description}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-amber-500" />
-                    <h2 className="text-base font-extrabold text-slate-900">Awards & Recognition</h2>
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-1">
+                    <span className="font-bold text-[#10233F] block">Direct Contact:</span>
+                    <p className="m-0">Phone: {contacts.find((c) => c.key === 'primary_phone')?.draftValue || '+91 91211 47777'}</p>
+                    <p className="m-0">Email: {contacts.find((c) => c.key === 'email_general')?.draftValue || 'gfsgreetwell@gmail.com'}</p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {media
-                      .filter((m) => m.section === 'Recognition')
-                      .map((item) => {
-                        const imgUrl = getMediaUrl(previewMode === 'draft' ? (item.draftUrl || item.publishedUrl) : item.publishedUrl);
-                        return (
-                          <div
-                            key={item.id}
-                            onClick={() => setLightboxItem(item)}
-                            className="group cursor-pointer rounded-xl border border-slate-200 overflow-hidden bg-white shadow-sm hover:shadow-md transition-all"
-                          >
-                            <div className="h-36 bg-slate-100 overflow-hidden relative">
-                              <img
-                                src={imgUrl}
-                                alt={item.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                onError={(e: any) => {
-                                  e.target.onerror = null;
-                                  e.target.src = '/uploads/media/logo.png';
-                                }}
-                              />
-                              <span className="absolute top-2 left-2 px-2 py-0.5 bg-amber-600 text-white rounded text-[9px] font-bold">
-                                {item.draftCategory || item.category || 'AWARD'}
-                              </span>
-                            </div>
-                            <div className="p-3">
-                              <h4 className="font-bold text-xs text-slate-900 line-clamp-1">
-                                {previewMode === 'draft' ? (item.draftTitle || item.title) : item.title}
-                              </h4>
-                              <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
-                                {previewMode === 'draft' ? (item.draftDescription || item.description) : item.description}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-
-                <div className="bg-slate-900 text-white p-6 rounded-2xl space-y-3 text-xs">
-                  <p className="font-semibold text-slate-300">
-                    {previewMode === 'draft'
-                      ? contents.find((c) => c.key === 'footer_copyright')?.draftValue
-                      : contents.find((c) => c.key === 'footer_copyright')?.publishedValue}
-                  </p>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    {previewMode === 'draft'
-                      ? contents.find((c) => c.key === 'footer_disclaimer')?.draftValue
-                      : contents.find((c) => c.key === 'footer_disclaimer')?.publishedValue}
-                  </p>
                 </div>
               </div>
             </div>
@@ -1539,653 +1534,366 @@ export const WebsiteManagementSub: React.FC<WebsiteManagementSubProps> = ({ subP
 
       {/* TAB 6: CHANGE HISTORY */}
       {activeTab === 'history' && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Audit History Log of Website Changes</h2>
+            <h2 className="font-serif text-lg font-bold text-[#10233F]">CMS Change & Audit History</h2>
             <p className="text-xs text-slate-500 mt-1">
-              Complete record of all content edits, draft saves, live publications, and discarded changes.
+              Detailed logs of content edits, contact updates, image uploads, and live publications.
             </p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-500 text-xs font-extrabold uppercase bg-slate-50/50">
-                  <th className="py-3 px-4">Action</th>
-                  <th className="py-3 px-4">Section / Field</th>
-                  <th className="py-3 px-4">Previous Value</th>
-                  <th className="py-3 px-4">New Value</th>
-                  <th className="py-3 px-4">Modified By</th>
-                  <th className="py-3 px-4">Timestamp</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-800">
-                {historyLogs.length > 0 ? (
-                  historyLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50/80">
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-extrabold ${
-                            log.action === 'PUBLISH'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : log.action === 'SAVE_DRAFT'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}
-                        >
-                          {log.action}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 font-bold text-slate-900">
-                        {log.section} / {log.fieldName}
-                      </td>
-                      <td className="py-3 px-4 max-w-xs truncate text-slate-500" title={log.previousVal || '-'}>
-                        {log.previousVal || '-'}
-                      </td>
-                      <td className="py-3 px-4 max-w-xs truncate font-semibold text-slate-900" title={log.newVal || '-'}>
-                        {log.newVal || '-'}
-                      </td>
-                      <td className="py-3 px-4 text-slate-600">
-                        {log.actorName || log.actorEmail || 'Super Admin'}
-                      </td>
-                      <td className="py-3 px-4 text-slate-500">
-                        {new Date(log.createdAt).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-500 text-sm">
-                      No change history logs recorded yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          {historyLogs.length === 0 ? (
+            <div className="text-center p-8 text-slate-400 text-xs">No change history logs available yet.</div>
+          ) : (
+            <div className="relative border-l-2 border-slate-200 ml-4 space-y-6 pl-6">
+              {historyLogs.map((log) => (
+                <div key={log.id} className="relative group">
+                  <div className="absolute -left-[31px] top-0 w-4 h-4 rounded-full bg-[#10233F] border-2 border-white ring-4 ring-slate-100" />
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-[#10233F] uppercase tracking-wider">{log.actionType}</span>
+                      <span className="text-slate-400">{new Date(log.createdAt).toLocaleString()}</span>
+                    </div>
+                    <p className="text-xs text-slate-700 m-0 font-medium">{log.details}</p>
+                    <div className="text-[11px] text-slate-400 flex items-center gap-2 pt-1">
+                      <span>User: {log.userEmail}</span>
+                      {log.userRole && <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-bold">{log.userRole}</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* ========================================= */}
-      {/* MODAL: UNSAVED CHANGES WARNING MODAL */}
-      {/* ========================================= */}
-      {showUnsavedModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center gap-3 text-amber-600 border-b border-slate-100 pb-3">
-              <div className="p-2.5 bg-amber-50 rounded-xl">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-black text-slate-900">Unsaved Changes</h3>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              You have unsaved changes in the current tab. Do you want to leave without saving?
-            </p>
-
-            <div className="pt-3 flex items-center justify-end gap-2">
-              <button
-                onClick={() => setShowUnsavedModal(false)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all"
-              >
-                Stay on Page
-              </button>
-              <button
-                onClick={confirmLeaveWithoutSaving}
-                className="px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 transition-all shadow-md"
-              >
-                Leave Without Saving
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================= */}
-      {/* MODAL: ADD CONTACT DETAIL MODAL */}
-      {/* ========================================= */}
-      {showAddContactModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <Phone className="w-5 h-5 text-blue-600" />
-                Add Contact Detail
-              </h3>
-              <button onClick={() => setShowAddContactModal(false)} className="p-1 text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs font-medium text-slate-800">
-              <div>
-                <label className="block text-slate-700 font-extrabold uppercase mb-1">Field Title *</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Emergency Helpline Phone"
-                  value={newContactTitle}
-                  onChange={(e) => setNewContactTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-extrabold uppercase mb-1">Contact Value *</label>
-                <input
-                  type="text"
-                  placeholder="e.g. +91 9876543210 or help@greetwell.com"
-                  value={newContactVal}
-                  onChange={(e) => setNewContactVal(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
-              <button
-                onClick={() => setShowAddContactModal(false)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddContactSubmit}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-sm"
-              >
-                Add Field
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================= */}
-      {/* MODAL: ADD SOCIAL ACCOUNT MODAL */}
-      {/* ========================================= */}
-      {showAddSocialModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <Share2 className="w-5 h-5 text-blue-600" />
-                Add Social Media Account
-              </h3>
-              <button onClick={() => setShowAddSocialModal(false)} className="p-1 text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs font-medium text-slate-800">
-              <div>
-                <label className="block text-slate-700 font-extrabold uppercase mb-1">Platform Name *</label>
-                <input
-                  type="text"
-                  placeholder="e.g. WhatsApp / Threads / Pinterest"
-                  value={newSocialPlatform}
-                  onChange={(e) => setNewSocialPlatform(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-extrabold uppercase mb-1">Account URL *</label>
-                <input
-                  type="url"
-                  placeholder="https://wa.me/919876543210"
-                  value={newSocialUrl}
-                  onChange={(e) => setNewSocialUrl(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
-              <button
-                onClick={() => setShowAddSocialModal(false)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddSocialSubmit}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-sm"
-              >
-                Add Platform
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================= */}
-      {/* MODAL: UPLOAD NEW IMAGE MODAL */}
-      {/* ========================================= */}
+      {/* MODAL 1: UPLOAD NEW MEDIA */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <Upload className="w-5 h-5 text-blue-600" />
-                Upload New Website Image
-              </h3>
-              <button
-                onClick={() => setShowUploadModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <Modal isOpen={showUploadModal} onClose={() => setShowUploadModal(false)} title="Upload New Media Asset">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-[#10233F] uppercase mb-1">Image Title *</label>
+              <input
+                type="text"
+                value={uploadTitle}
+                onChange={(e) => setUploadTitle(e.target.value)}
+                placeholder="e.g. Hero Banner 2026"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:ring-2 focus:ring-[#C99A3E] outline-none"
+              />
             </div>
 
-            <div className="space-y-4 text-xs font-medium text-slate-800">
-              <div>
-                <label className="block text-slate-700 font-extrabold uppercase tracking-wider mb-1">
-                  Image Title *
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Tree Plantation Drive 2026"
-                  value={uploadTitle}
-                  onChange={(e) => setUploadTitle(e.target.value)}
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-extrabold uppercase tracking-wider mb-1">
-                    Website Section *
-                  </label>
-                  <select
-                    value={uploadSection}
-                    onChange={(e) => {
-                      const sec = e.target.value;
-                      setUploadSection(sec);
-                      if (sec === 'CSR Activities') setUploadCategory('CSR ACTIVITIES');
-                      else if (sec === 'Recognition') setUploadCategory('RECOGNITION');
-                    }}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {SECTION_OPTIONS.filter((s) => s !== 'ALL').map((sec) => (
-                      <option key={sec} value={sec}>
-                        {sec}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-slate-700 font-extrabold uppercase tracking-wider mb-1">
-                    Category Tag
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. CSR ACTIVITIES"
-                    value={uploadCategory}
-                    onChange={(e) => setUploadCategory(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-extrabold uppercase tracking-wider mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Enter detailed description or caption..."
-                  value={uploadDesc}
-                  onChange={(e) => setUploadDesc(e.target.value)}
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-extrabold uppercase tracking-wider mb-1">
-                  Upload Image File (JPG, PNG, WEBP max 5MB)
-                </label>
-                <div className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-4 text-center bg-slate-50 transition-colors cursor-pointer relative">
-                  <input
-                    type="file"
-                    accept=".jpg,.jpeg,.png,.webp"
-                    onChange={handleFileSelect}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                  />
-                  {uploadPreviewUrl ? (
-                    <div className="space-y-2">
-                      <img
-                        src={uploadPreviewUrl}
-                        alt="Preview"
-                        className="h-32 mx-auto rounded-xl object-cover border border-slate-200 shadow-sm"
-                      />
-                      <p className="text-[11px] text-emerald-600 font-bold">File selected: {uploadFile?.name}</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <ImageIcon className="w-8 h-8 text-slate-400 mx-auto" />
-                      <p className="text-slate-600 font-bold text-xs">Click or drag image file here to upload</p>
-                      <p className="text-slate-400 text-[10px]">JPG, JPEG, PNG or WEBP (Max 5MB)</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-500 font-bold text-[11px] mb-1">
-                  Or provide Image URL:
-                </label>
-                <input
-                  type="text"
-                  placeholder="https://..."
-                  value={uploadUrlInput}
-                  onChange={(e) => setUploadUrlInput(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none"
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-[#10233F] uppercase mb-1">Section</label>
+              <SearchableSelect
+                options={SECTION_OPTIONS.filter((s) => s !== 'ALL').map((s) => ({ value: s, label: s }))}
+                value={uploadSection}
+                onChange={(val) => setUploadSection(val)}
+              />
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+            <div>
+              <label className="block text-xs font-bold text-[#10233F] uppercase mb-1">Select File (JPG, PNG, WEBP &lt; 5MB)</label>
+              <input type="file" accept="image/*" onChange={handleFileSelect} className="text-xs text-slate-600" />
+              {uploadPreviewUrl && (
+                <img src={uploadPreviewUrl} alt="Preview" className="mt-2 h-28 object-cover rounded-xl border border-slate-200" />
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#10233F] uppercase mb-1">Or Image URL</label>
+              <input
+                type="text"
+                value={uploadUrlInput}
+                onChange={(e) => setUploadUrlInput(e.target.value)}
+                placeholder="https://..."
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:ring-2 focus:ring-[#C99A3E] outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#10233F] uppercase mb-1">Description</label>
+              <textarea
+                rows={2}
+                value={uploadDesc}
+                onChange={(e) => setUploadDesc(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 focus:ring-2 focus:ring-[#C99A3E] outline-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
               <button
                 onClick={() => setShowUploadModal(false)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleCreateMediaSubmit(false)}
                 disabled={isSubmittingMedia}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 disabled:opacity-50 transition-all"
+                className="px-4 py-2 bg-[#10233F] hover:bg-[#0A1830] text-white text-xs font-bold rounded-xl disabled:opacity-50 cursor-pointer"
               >
-                {isSubmittingMedia ? 'Saving...' : 'Save as Draft'}
+                Save Draft
               </button>
               <button
                 onClick={() => handleCreateMediaSubmit(true)}
                 disabled={isSubmittingMedia}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md"
+                className="px-4 py-2 bg-[#C99A3E] hover:bg-[#d8aa4a] text-[#0A1830] text-xs font-bold rounded-xl disabled:opacity-50 cursor-pointer"
               >
-                {isSubmittingMedia ? 'Publishing...' : 'Publish Live Now'}
+                Publish Live Now
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
-      {/* ========================================= */}
-      {/* MODAL: EDIT MEDIA DETAILS MODAL */}
-      {/* ========================================= */}
+      {/* MODAL 2: EDIT MEDIA DETAILS */}
       {showEditModal && selectedMediaItem && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <Edit3 className="w-5 h-5 text-blue-600" />
-                Edit Image Details
-              </h3>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Media Details">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-[#10233F] uppercase mb-1">Image Title</label>
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 outline-none"
+              />
             </div>
 
-            <div className="space-y-4 text-xs font-medium text-slate-800">
-              <div>
-                <label className="block text-slate-700 font-extrabold uppercase tracking-wider mb-1">
-                  Image Title *
-                </label>
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 font-extrabold uppercase tracking-wider mb-1">
-                    Website Section *
-                  </label>
-                  <select
-                    value={editSection}
-                    onChange={(e) => setEditSection(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {SECTION_OPTIONS.filter((s) => s !== 'ALL').map((sec) => (
-                      <option key={sec} value={sec}>
-                        {sec}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-slate-700 font-extrabold uppercase tracking-wider mb-1">
-                    Category Tag
-                  </label>
-                  <input
-                    type="text"
-                    value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-extrabold uppercase tracking-wider mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-[#10233F] uppercase mb-1">Section</label>
+              <SearchableSelect
+                options={SECTION_OPTIONS.filter((s) => s !== 'ALL').map((s) => ({ value: s, label: s }))}
+                value={editSection}
+                onChange={(val) => setEditSection(val)}
+              />
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+            <div>
+              <label className="block text-xs font-bold text-[#10233F] uppercase mb-1">Description</label>
+              <textarea
+                rows={3}
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 outline-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
               <button
                 onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleEditMediaSubmit(false)}
                 disabled={isSubmittingMedia}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 disabled:opacity-50 transition-all"
+                className="px-4 py-2 bg-[#10233F] text-white text-xs font-bold rounded-xl cursor-pointer"
               >
-                Save as Draft
-              </button>
-              <button
-                onClick={() => handleEditMediaSubmit(true)}
-                disabled={isSubmittingMedia}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md"
-              >
-                Publish Live Now
+                Save Details
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
-      {/* ========================================= */}
-      {/* MODAL: REPLACE IMAGE MODAL */}
-      {/* ========================================= */}
+      {/* MODAL 3: REPLACE IMAGE FILE */}
       {showReplaceModal && selectedMediaItem && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <Upload className="w-5 h-5 text-blue-600" />
-                Replace Image File
-              </h3>
-              <button
-                onClick={() => setShowReplaceModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <Modal isOpen={showReplaceModal} onClose={() => setShowReplaceModal(false)} title="Replace Image Asset">
+          <div className="space-y-4">
+            <p className="text-xs text-slate-600 m-0">
+              Replacing image for: <strong>{selectedMediaItem.title}</strong>
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold text-[#10233F] uppercase mb-1">Select Replacement Image</label>
+              <input type="file" accept="image/*" onChange={handleFileSelect} className="text-xs text-slate-600" />
+              {uploadPreviewUrl && (
+                <img src={uploadPreviewUrl} alt="Preview" className="mt-2 h-28 object-cover rounded-xl border border-slate-200" />
+              )}
             </div>
 
-            <div className="space-y-4 text-xs font-medium text-slate-800">
-              <p className="text-slate-600">
-                Replacing image for: <strong className="text-slate-900">{selectedMediaItem.title}</strong>
-              </p>
-
-              <div className="h-32 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center">
-                <img
-                  src={getMediaUrl(selectedMediaItem.draftUrl || selectedMediaItem.publishedUrl)}
-                  alt="Current"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-extrabold uppercase tracking-wider mb-1">
-                  Select New Image File
-                </label>
-                <div className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-4 text-center bg-slate-50 transition-colors cursor-pointer relative">
-                  <input
-                    type="file"
-                    accept=".jpg,.jpeg,.png,.webp"
-                    onChange={handleFileSelect}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                  />
-                  {uploadPreviewUrl ? (
-                    <div className="space-y-2">
-                      <img
-                        src={uploadPreviewUrl}
-                        alt="New Replacement Preview"
-                        className="h-28 mx-auto rounded-xl object-cover border border-slate-200 shadow-sm"
-                      />
-                      <p className="text-[11px] text-emerald-600 font-bold">New file ready: {uploadFile?.name}</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <ImageIcon className="w-6 h-6 text-slate-400 mx-auto" />
-                      <p className="text-slate-600 font-bold text-xs">Click or drag new replacement file here</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-[#10233F] uppercase mb-1">Or New Image URL</label>
+              <input
+                type="text"
+                value={uploadUrlInput}
+                onChange={(e) => setUploadUrlInput(e.target.value)}
+                placeholder="https://..."
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 outline-none"
+              />
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
               <button
                 onClick={() => setShowReplaceModal(false)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleReplaceImageSubmit(false)}
                 disabled={isSubmittingMedia}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 disabled:opacity-50 transition-all"
+                className="px-4 py-2 bg-[#10233F] text-white text-xs font-bold rounded-xl cursor-pointer"
               >
-                Save as Draft
-              </button>
-              <button
-                onClick={() => handleReplaceImageSubmit(true)}
-                disabled={isSubmittingMedia}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md"
-              >
-                Publish Live Now
+                Replace Asset
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
-      {/* ========================================= */}
-      {/* MODAL: DELETE / REMOVE CONFIRMATION MODAL */}
-      {/* ========================================= */}
+      {/* MODAL 4: DELETE MEDIA CONFIRMATION */}
       {showDeleteModal && selectedMediaItem && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center gap-3 text-red-600 border-b border-slate-100 pb-3">
-              <div className="p-2.5 bg-red-50 rounded-xl">
-                <Trash2 className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-black text-slate-900">Remove Image Confirmation</h3>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              Are you sure you want to remove the image <strong className="text-slate-900">"{selectedMediaItem.title}"</strong>? This will permanently delete the media record from the portal database.
+        <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete Image Asset">
+          <div className="space-y-4">
+            <p className="text-xs text-slate-700 m-0">
+              Are you sure you want to permanently delete <strong>{selectedMediaItem.title}</strong>? This action cannot be undone.
             </p>
-
-            <div className="h-32 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center">
-              <img
-                src={getMediaUrl(selectedMediaItem.draftUrl || selectedMediaItem.publishedUrl)}
-                alt="Delete Item Preview"
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            <div className="pt-3 flex items-center justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all"
+                className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteMediaConfirm}
                 disabled={isSubmittingMedia}
-                className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 disabled:opacity-50 transition-all shadow-md shadow-red-600/20"
+                className="px-4 py-2 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 cursor-pointer"
               >
-                {isSubmittingMedia ? 'Removing...' : 'Confirm Remove'}
+                Delete Image
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
-      {/* ========================================= */}
-      {/* MODAL: FULL PHOTO LIGHTBOX MODAL */}
-      {/* ========================================= */}
-      {lightboxItem && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-8">
-          <div className="relative max-w-4xl w-full bg-slate-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-            <button
-              onClick={() => setLightboxItem(null)}
-              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-slate-950/60 text-white hover:bg-slate-950 transition-all"
-            >
-              <X className="w-6 h-6" />
-            </button>
-
-            <div className="flex-1 bg-slate-950 overflow-hidden flex items-center justify-center">
-              <img
-                src={getMediaUrl(lightboxItem.draftUrl || lightboxItem.publishedUrl)}
-                alt={lightboxItem.title}
-                className="max-h-[65vh] w-auto object-contain mx-auto"
+      {/* MODAL 5: ADD CONTACT FIELD */}
+      {showAddContactModal && (
+        <Modal isOpen={showAddContactModal} onClose={() => setShowAddContactModal(false)} title="Add Contact Field">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-[#10233F] uppercase mb-1">Field Title *</label>
+              <input
+                type="text"
+                value={newContactTitle}
+                onChange={(e) => setNewContactTitle(e.target.value)}
+                placeholder="e.g. Emergency Support Line"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium outline-none"
               />
             </div>
-
-            <div className="p-6 bg-slate-900 text-white space-y-2 border-t border-slate-800">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 bg-blue-600 text-white rounded text-[10px] font-black uppercase">
-                  {lightboxItem.section}
-                </span>
-                {(lightboxItem.draftCategory || lightboxItem.category) && (
-                  <span className="px-2.5 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] font-bold">
-                    {lightboxItem.draftCategory || lightboxItem.category}
-                  </span>
-                )}
-              </div>
-              <h3 className="text-lg font-black text-white">{lightboxItem.draftTitle || lightboxItem.title}</h3>
-              <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-2xl">
-                {lightboxItem.draftDescription || lightboxItem.description || 'No description provided.'}
-              </p>
+            <div>
+              <label className="block text-xs font-bold text-[#10233F] uppercase mb-1">Field Value</label>
+              <input
+                type="text"
+                value={newContactVal}
+                onChange={(e) => setNewContactVal(e.target.value)}
+                placeholder="+91 91211 47777 or info@domain.com"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium outline-none"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                onClick={() => setShowAddContactModal(false)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddContactSubmit}
+                className="px-4 py-2 bg-[#10233F] text-white text-xs font-bold rounded-xl cursor-pointer"
+              >
+                Add Field
+              </button>
             </div>
           </div>
-        </div>
+        </Modal>
+      )}
+
+      {/* MODAL 6: ADD SOCIAL PLATFORM */}
+      {showAddSocialModal && (
+        <Modal isOpen={showAddSocialModal} onClose={() => setShowAddSocialModal(false)} title="Add Social Media Account">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-[#10233F] uppercase mb-1">Platform Name *</label>
+              <input
+                type="text"
+                value={newSocialPlatform}
+                onChange={(e) => setNewSocialPlatform(e.target.value)}
+                placeholder="e.g. WhatsApp, Facebook, Instagram, YouTube"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-[#10233F] uppercase mb-1">Profile URL</label>
+              <input
+                type="text"
+                value={newSocialUrl}
+                onChange={(e) => setNewSocialUrl(e.target.value)}
+                placeholder="https://..."
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium outline-none"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-[#10233F] border-t border-slate-100">
+              <button
+                onClick={() => setShowAddSocialModal(false)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddSocialSubmit}
+                className="px-4 py-2 bg-[#10233F] text-white text-xs font-bold rounded-xl cursor-pointer"
+              >
+                Add Platform
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* LIGHTBOX MODAL */}
+      {lightboxItem && (
+        <Modal isOpen={!!lightboxItem} onClose={() => setLightboxItem(null)} title={lightboxItem.title || 'Image Preview'}>
+          <div className="space-y-3">
+            <img
+              src={getMediaUrl(lightboxItem.draftUrl || lightboxItem.imageUrl || lightboxItem.publishedUrl)}
+              alt={lightboxItem.title}
+              className="w-full max-h-[500px] object-contain rounded-xl bg-slate-900"
+            />
+            {lightboxItem.description && (
+              <p className="text-xs text-slate-600 m-0">{lightboxItem.description}</p>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* UNSAVED CHANGES MODAL */}
+      {showUnsavedModal && (
+        <Modal isOpen={showUnsavedModal} onClose={() => setShowUnsavedModal(false)} title="Unsaved Changes Warning">
+          <div className="space-y-4">
+            <p className="text-xs text-slate-700 m-0">
+              You have unsaved changes in this tab. If you switch tabs now without saving, your edits will be discarded.
+            </p>
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                onClick={() => setShowUnsavedModal(false)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+              >
+                Stay Here
+              </button>
+              <button
+                onClick={confirmLeaveWithoutSaving}
+                className="px-4 py-2 bg-red-600 text-white text-xs font-bold rounded-xl cursor-pointer"
+              >
+                Discard & Leave
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
 };
-
-export default WebsiteManagementSub;

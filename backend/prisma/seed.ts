@@ -399,6 +399,66 @@ async function main() {
     ],
   });
 
+  // 7. Seed Permission Audit Logs
+  await prisma.auditLog.createMany({
+    data: [
+      {
+        userId: superAdminPrimary.id,
+        userRole: 'SUPER_ADMIN',
+        action: 'ADD_MENU_PERMISSION',
+        entityType: 'MENU_PERMISSION',
+        entityId: 'menu-users-parent',
+        description: "Added new menu permission for 'Users Management' (/superadmin/users) with role access: SUPER_ADMIN:ALLOWED, LOAN_AGENT:DENIED, CUSTOMER:DENIED.",
+        ipAddress: '127.0.0.1',
+      },
+      {
+        userId: superAdminPrimary.id,
+        userRole: 'SUPER_ADMIN',
+        action: 'CHANGE_ROLE_MENU_PERMISSION',
+        entityType: 'MENU_PERMISSION',
+        entityId: 'menu-applications',
+        description: "Changed role menu permission for role 'LOAN_AGENT' on menu 'Loan Applications': set view access to ALLOWED.",
+        ipAddress: '127.0.0.1',
+      },
+      {
+        userId: superAdminPrimary.id,
+        userRole: 'SUPER_ADMIN',
+        action: 'ADD_METHOD_PERMISSION',
+        entityType: 'METHOD_PERMISSION',
+        entityId: 'method-create-app',
+        description: "Added method permission 'Create Application' [POST /api/applications] with initial permissions: SUPER_ADMIN:ALLOWED, LOAN_AGENT:ALLOWED, CUSTOMER:ALLOWED.",
+        ipAddress: '127.0.0.1',
+      },
+      {
+        userId: superAdminPrimary.id,
+        userRole: 'SUPER_ADMIN',
+        action: 'UPDATE_METHOD_PERMISSION',
+        entityType: 'METHOD_PERMISSION',
+        entityId: 'method-delete-user',
+        description: "Updated method permission 'Delete User' [DELETE /api/users/:id] definition: restricted access strictly to SUPER_ADMIN.",
+        ipAddress: '127.0.0.1',
+      },
+      {
+        userId: superAdminPrimary.id,
+        userRole: 'SUPER_ADMIN',
+        action: 'ENABLE_MENU_PERMISSION',
+        entityType: 'MENU_PERMISSION',
+        entityId: 'menu-reports',
+        description: "Changed active status of menu permission 'Reports & Analytics' to ENABLED (Active).",
+        ipAddress: '127.0.0.1',
+      },
+      {
+        userId: superAdminPrimary.id,
+        userRole: 'SUPER_ADMIN',
+        action: 'REMOVE_METHOD_PERMISSION',
+        entityType: 'METHOD_PERMISSION',
+        entityId: 'method-deprecated-export',
+        description: "Removed deprecated method permission 'Legacy Export Data' [GET /api/v1/export].",
+        ipAddress: '127.0.0.1',
+      },
+    ],
+  });
+
   console.log('🏁 Database seeding completed successfully!');
 }
 

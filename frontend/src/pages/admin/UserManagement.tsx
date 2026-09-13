@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Edit, Power, RefreshCw, Trash2, Send, MailCheck, ShieldCheck, Users, Mail } from 'lucide-react';
+import { Search, Filter, Edit, Power, RefreshCw, Trash2, Send, MailCheck, ShieldCheck, Users, Mail, UserCheck, Shield } from 'lucide-react';
 import { api } from '../../services/api';
 import { User } from '../../types';
-import { StatusBadge } from '../../components/common/StatusBadge';
 import { Modal } from '../../components/common/Modal';
 import { useToast } from '../../context/ToastContext';
 import { LazyLoadTrigger } from '../../components/common/LazyLoadTrigger';
+import { SearchableSelect, SelectOption } from '../../components/common/SearchableSelect';
 
 interface InvitationItem {
   id: string;
@@ -123,24 +123,24 @@ export const UserManagement: React.FC = () => {
     }
   };
 
-  const handleToggleStatus = async (user: User) => {
-    const newStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+  const handleToggleStatus = async (targetUser: User) => {
+    const newStatus = targetUser.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     try {
-      await api.put(`/users/${user.id}/status`, { status: newStatus });
-      showSuccess(`Account for ${user.email} marked as ${newStatus}.`);
+      await api.put(`/users/${targetUser.id}/status`, { status: newStatus });
+      showSuccess(`Account for ${targetUser.email} marked as ${newStatus}.`);
       fetchUsers();
     } catch (err: any) {
       showError(err.response?.data?.message || 'Failed to update user status.');
     }
   };
 
-  const handleOpenEdit = (user: User) => {
-    setSelectedUser(user);
+  const handleOpenEdit = (targetUser: User) => {
+    setSelectedUser(targetUser);
     setEditForm({
-      firstName: user.firstName,
-      lastName: user.lastName || '',
-      phone: user.phone || '',
-      role: user.role,
+      firstName: targetUser.firstName,
+      lastName: targetUser.lastName || '',
+      phone: targetUser.phone || '',
+      role: targetUser.role,
     });
     setIsEditModalOpen(true);
   };
@@ -198,172 +198,196 @@ export const UserManagement: React.FC = () => {
     const q = search.toLowerCase();
     const matchSearch =
       !search ||
-      inv.email.toLowerCase().includes(q) ||
+      (inv.email && inv.email.toLowerCase().includes(q)) ||
       (inv.firstName && inv.firstName.toLowerCase().includes(q)) ||
-      (inv.lastName && inv.lastName.toLowerCase().includes(q));
-
+      (inv.lastName && inv.lastName.toLowerCase().includes(q)) ||
+      (inv.phone && inv.phone.toLowerCase().includes(q));
     const matchRole = !roleFilter || inv.role === roleFilter;
     const matchStatus = !statusFilter || inv.status === statusFilter;
-
     return matchSearch && matchRole && matchStatus;
   });
 
+  const roleOptions: SelectOption[] = [
+    { value: '', label: 'All Roles' },
+    { value: 'SUPER_ADMIN', label: 'Super Admin' },
+    { value: 'LOAN_AGENT', label: 'Loan Agent' },
+    { value: 'INSURANCE_AGENT', label: 'Insurance Agent' },
+    { value: 'INVESTMENT_AGENT', label: 'Investment Agent' },
+    { value: 'CUSTOMER', label: 'Customer' },
+  ];
+
+  const statusOptions: SelectOption[] =
+    viewTab === 'USERS'
+      ? [
+          { value: '', label: 'All Statuses' },
+          { value: 'ACTIVE', label: 'Active' },
+          { value: 'INACTIVE', label: 'Inactive' },
+          { value: 'PENDING_VERIFICATION', label: 'Pending Verification' },
+        ]
+      : [
+          { value: '', label: 'All Statuses' },
+          { value: 'INVITATION_SENT', label: 'Invitation Sent' },
+          { value: 'PENDING', label: 'Pending' },
+          { value: 'EXPIRED', label: 'Expired' },
+          { value: 'FAILED', label: 'Failed Delivery' },
+        ];
+
   return (
-    <div className="space-y-6">
-      {/* Top Header & Tab Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+    <div className="space-y-6 font-['Inter',sans-serif]">
+      
+      {/* PAGE TITLE & VIEW SWITCHER TAB HEADER */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">User Management</h2>
-          <p className="text-xs text-slate-500">View active users, search roles, monitor invitations, and manage permissions</p>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">User Management</h2>
+          <p className="text-xs text-slate-500 font-medium">
+            View active users, search roles, monitor invitations, and manage permissions
+          </p>
         </div>
 
-        {/* View Tab Switcher */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+        {/* View Tab Switcher Buttons */}
+        <div className="flex items-center bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80 shadow-2xs">
           <button
             onClick={() => setViewTab('USERS')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
               viewTab === 'USERS'
-                ? 'bg-white text-blue-600 shadow-sm border border-slate-200'
+                ? 'bg-white text-blue-700 shadow-sm border border-slate-200/80'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Users className="w-3.5 h-3.5" />
-            Active Users ({users.length})
+            <Users className="w-4 h-4 text-blue-600" />
+            <span>Active Users ({users.length})</span>
           </button>
           <button
             onClick={() => setViewTab('INVITATIONS')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
               viewTab === 'INVITATIONS'
-                ? 'bg-white text-blue-600 shadow-sm border border-slate-200'
+                ? 'bg-white text-blue-700 shadow-sm border border-slate-200/80'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Mail className="w-3.5 h-3.5" />
-            Pending Invitations ({invitations.length})
+            <Mail className="w-4 h-4 text-blue-600" />
+            <span>Pending Invitations ({invitations.length})</span>
           </button>
         </div>
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-3 items-center justify-between">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+      {/* SEARCH BAR & SEARCHABLE DROPDOWNS FILTER CARD */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <div className="relative w-full sm:flex-1">
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search by name, email, or phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-medium text-slate-800 shadow-2xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none"
           />
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <select
+        <div className="flex flex-wrap sm:flex-nowrap gap-3 w-full sm:w-auto">
+          <SearchableSelect
+            options={roleOptions}
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 font-semibold"
-          >
-            <option value="">All Roles</option>
-            <option value="SUPER_ADMIN">Super Admin</option>
-            <option value="LOAN_AGENT">Loan Agent</option>
-            <option value="INSURANCE_AGENT">Insurance Agent</option>
-            <option value="INVESTMENT_AGENT">Investment Agent</option>
-            <option value="CUSTOMER">Customer</option>
-          </select>
+            onChange={setRoleFilter}
+            placeholder="All Roles"
+            searchPlaceholder="Search roles..."
+            className="w-full sm:w-44"
+          />
 
-          <select
+          <SearchableSelect
+            options={statusOptions}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 font-semibold"
-          >
-            <option value="">All Statuses</option>
-            {viewTab === 'USERS' ? (
-              <>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-                <option value="PENDING_VERIFICATION">Pending Verification</option>
-              </>
-            ) : (
-              <>
-                <option value="INVITATION_SENT">Invitation Sent</option>
-                <option value="PENDING">Pending</option>
-                <option value="EXPIRED">Expired</option>
-                <option value="FAILED">Failed Delivery</option>
-              </>
-            )}
-          </select>
+            onChange={setStatusFilter}
+            placeholder="All Statuses"
+            searchPlaceholder="Search status..."
+            className="w-full sm:w-44"
+          />
         </div>
       </div>
 
-      {/* Main Content Table */}
+      {/* USER TABLE DATA CARD */}
       {viewTab === 'USERS' ? (
-        /* Users Data Table */
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden text-xs">
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden text-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
-                  <th className="py-3 px-4">User</th>
-                  <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4">Phone</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Joined Date</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-400 font-extrabold uppercase text-[11px] tracking-wider">
+                  <th className="py-4 px-5">USER</th>
+                  <th className="py-4 px-5">ROLE</th>
+                  <th className="py-4 px-5">PHONE</th>
+                  <th className="py-4 px-5">STATUS</th>
+                  <th className="py-4 px-5">JOINED DATE</th>
+                  <th className="py-4 px-5 text-right">ACTIONS</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
+              <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
                 {loadingUsers ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-500">
+                    <td colSpan={6} className="py-12 text-center text-slate-400 font-semibold">
                       Loading users list...
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-500">
-                      No users matching criteria.
+                    <td colSpan={6} className="py-12 text-center text-slate-400 font-semibold">
+                      No users matching your search criteria.
                     </td>
                   </tr>
                 ) : (
-                  users.map((user) => (
-                    <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3 px-4">
-                        <p className="font-bold text-slate-900">{user.firstName} {user.lastName}</p>
-                        <p className="text-[11px] text-slate-500">{user.email}</p>
+                  users.map((u) => (
+                    <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-4 px-5">
+                        <p className="font-bold text-slate-900 text-xs sm:text-sm">{u.firstName} {u.lastName}</p>
+                        <p className="text-[11px] text-slate-500 font-normal mt-0.5">{u.email}</p>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${
-                          user.role === 'SUPER_ADMIN'
-                            ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                            : 'bg-blue-50 text-blue-700 border border-blue-200'
-                        }`}>
-                          {user.role.replace(/_/g, ' ')}
+                      <td className="py-4 px-5">
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider ${
+                            u.role === 'SUPER_ADMIN'
+                              ? 'bg-purple-100/90 text-purple-700 border border-purple-200/80'
+                              : 'bg-blue-100/90 text-blue-700 border border-blue-200/80'
+                          }`}
+                        >
+                          {u.role.replace(/_/g, ' ')}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-slate-600">{user.phone || 'N/A'}</td>
-                      <td className="py-3 px-4">
-                        <StatusBadge status={user.status} />
+                      <td className="py-4 px-5 text-slate-600 font-semibold">{u.phone || 'N/A'}</td>
+                      <td className="py-4 px-5">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            u.status === 'ACTIVE'
+                              ? 'bg-emerald-100/90 text-emerald-700 border border-emerald-200/80'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              u.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-slate-400'
+                            }`}
+                          />
+                          {u.status}
+                        </span>
                       </td>
-                      <td className="py-3 px-4 text-slate-500">
-                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                      <td className="py-4 px-5 text-slate-500 font-medium">
+                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}
                       </td>
-                      <td className="py-3 px-4 text-right space-x-2">
+                      <td className="py-4 px-5 text-right space-x-2">
                         <button
-                          onClick={() => handleOpenEdit(user)}
-                          className="px-2.5 py-1 text-slate-700 hover:bg-slate-100 rounded-md border border-slate-200 text-xs font-semibold"
+                          onClick={() => handleOpenEdit(u)}
+                          className="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold shadow-2xs transition-all cursor-pointer"
                           title="Edit User"
                         >
                           Edit
                         </button>
                         <button
-                          onClick={() => handleToggleStatus(user)}
-                          className={`px-2.5 py-1 rounded-md text-xs font-semibold ${
-                            user.status === 'ACTIVE'
-                              ? 'text-rose-600 border border-rose-200 hover:bg-rose-50'
-                              : 'text-emerald-600 border border-emerald-200 hover:bg-emerald-50'
+                          onClick={() => handleToggleStatus(u)}
+                          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+                            u.status === 'ACTIVE'
+                              ? 'bg-white hover:bg-rose-50 text-rose-600 border border-rose-200'
+                              : 'bg-white hover:bg-emerald-50 text-emerald-600 border border-emerald-200'
                           }`}
                         >
-                          {user.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                          {u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                         </button>
                       </td>
                     </tr>
@@ -381,88 +405,88 @@ export const UserManagement: React.FC = () => {
           />
         </div>
       ) : (
-        /* Pending Invitations Table */
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden text-xs">
+        /* PENDING INVITATIONS TABLE */
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden text-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
-                  <th className="py-3 px-4">Invited Person</th>
-                  <th className="py-3 px-4">Designated Role</th>
-                  <th className="py-3 px-4">Invitation Status</th>
-                  <th className="py-3 px-4">Sent Date</th>
-                  <th className="py-3 px-4">Expiry Date</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-400 font-extrabold uppercase text-[11px] tracking-wider">
+                  <th className="py-4 px-5">INVITED PERSON</th>
+                  <th className="py-4 px-5">ROLE</th>
+                  <th className="py-4 px-5">STATUS</th>
+                  <th className="py-4 px-5">SENT DATE</th>
+                  <th className="py-4 px-5">EXPIRY DATE</th>
+                  <th className="py-4 px-5 text-right">ACTIONS</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
+              <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
                 {loadingInvitations ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-500">
+                    <td colSpan={6} className="py-12 text-center text-slate-400 font-semibold">
                       Loading pending invitations...
                     </td>
                   </tr>
                 ) : filteredInvitations.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-500">
-                      No pending invitations matching criteria.
+                    <td colSpan={6} className="py-12 text-center text-slate-400 font-semibold">
+                      No pending invitations matching your criteria.
                     </td>
                   </tr>
                 ) : (
                   filteredInvitations.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3 px-4">
-                        <p className="font-bold text-slate-900">
+                    <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-4 px-5">
+                        <p className="font-bold text-slate-900 text-xs sm:text-sm">
                           {inv.firstName ? `${inv.firstName} ${inv.lastName || ''}` : 'Invited User'}
                         </p>
-                        <p className="text-[11px] text-slate-500">{inv.email}</p>
+                        <p className="text-[11px] text-slate-500 font-normal mt-0.5">{inv.email}</p>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${
-                          inv.role === 'SUPER_ADMIN'
-                            ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                            : 'bg-blue-50 text-blue-700 border border-blue-200'
-                        }`}>
+                      <td className="py-4 px-5">
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider ${
+                            inv.role === 'SUPER_ADMIN'
+                              ? 'bg-purple-100/90 text-purple-700 border border-purple-200/80'
+                              : 'bg-blue-100/90 text-blue-700 border border-blue-200/80'
+                          }`}
+                        >
                           {inv.role.replace(/_/g, ' ')}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                          inv.status === 'INVITATION_SENT' || inv.status === 'PENDING'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                            : inv.status === 'FAILED'
-                            ? 'bg-red-50 text-red-700 border border-red-200'
-                            : 'bg-slate-100 text-slate-600 border border-slate-200'
-                        }`}>
+                      <td className="py-4 px-5">
+                        <span
+                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            inv.status === 'INVITATION_SENT' || inv.status === 'PENDING'
+                              ? 'bg-amber-100/90 text-amber-800 border border-amber-200/80'
+                              : inv.status === 'FAILED'
+                              ? 'bg-rose-100/90 text-rose-800 border border-rose-200/80'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200/80'
+                          }`}
+                        >
                           {inv.status.replace(/_/g, ' ')}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-slate-500">
+                      <td className="py-4 px-5 text-slate-500 font-medium">
                         {inv.createdAt ? new Date(inv.createdAt).toLocaleDateString() : 'N/A'}
                       </td>
-                      <td className="py-3 px-4 text-slate-500">
+                      <td className="py-4 px-5 text-slate-500 font-medium">
                         {inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString() : 'N/A'}
                       </td>
-                      <td className="py-3 px-4 text-right space-x-2">
+                      <td className="py-4 px-5 text-right space-x-2">
                         <button
                           onClick={() => handleResendInvitation(inv)}
                           disabled={resendingId === inv.id}
-                          className="px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md border border-blue-200 text-xs font-semibold inline-flex items-center gap-1"
-                          title="Resend Email Invitation"
+                          className="px-3.5 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg border border-blue-200 text-xs font-bold inline-flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
                         >
-                          <RefreshCw className={`w-3 h-3 ${resendingId === inv.id ? 'animate-spin' : ''}`} />
-                          {resendingId === inv.id ? 'Sending...' : 'Resend'}
+                          <Send className="w-3.5 h-3.5" />
+                          <span>{resendingId === inv.id ? 'Resending...' : 'Resend Email'}</span>
                         </button>
-
                         <button
                           onClick={() => {
                             setSelectedInvitation(inv);
                             setIsCancelModalOpen(true);
                           }}
-                          className="px-2.5 py-1 text-rose-700 hover:bg-rose-50 rounded-md border border-rose-200 text-xs font-semibold inline-flex items-center gap-1"
-                          title="Cancel Pending Invitation"
+                          className="px-3.5 py-1.5 bg-white text-rose-600 hover:bg-rose-50 rounded-lg border border-rose-200 text-xs font-bold transition-all cursor-pointer shadow-2xs"
                         >
-                          <Trash2 className="w-3 h-3" />
                           Cancel
                         </button>
                       </td>
@@ -475,91 +499,89 @@ export const UserManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Edit User Modal */}
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit User Details">
-        <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
-          <div className="grid grid-cols-2 gap-3">
+      {/* EDIT USER MODAL */}
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit User Information">
+        <form onSubmit={handleSaveEdit} className="space-y-4 text-xs font-['Inter',sans-serif]">
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">User Role</label>
+            <SearchableSelect
+              options={[
+                { value: 'SUPER_ADMIN', label: 'Super Admin' },
+                { value: 'LOAN_AGENT', label: 'Loan Agent' },
+                { value: 'INSURANCE_AGENT', label: 'Insurance Agent' },
+                { value: 'INVESTMENT_AGENT', label: 'Investment Agent' },
+                { value: 'CUSTOMER', label: 'Customer' },
+              ]}
+              value={editForm.role}
+              onChange={(val) => setEditForm({ ...editForm, role: val })}
+              placeholder="Select Role"
+              className="w-full"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">First Name</label>
+              <label className="block font-bold text-slate-700 mb-1">First Name</label>
               <input
                 type="text"
                 required
                 value={editForm.firstName}
                 onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full p-2.5 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Last Name (Optional)</label>
+              <label className="block font-bold text-slate-700 mb-1">Last Name</label>
               <input
                 type="text"
                 value={editForm.lastName}
                 onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full p-2.5 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Phone Number</label>
+            <label className="block font-bold text-slate-700 mb-1">Phone Number</label>
             <input
               type="text"
               value={editForm.phone}
               onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full p-2.5 border border-slate-200 rounded-xl text-xs font-medium bg-slate-50/70"
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Role Assignment</label>
-            <select
-              value={editForm.role}
-              onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg font-semibold"
-            >
-              <option value="SUPER_ADMIN">SUPER ADMIN</option>
-              <option value="LOAN_AGENT">LOAN AGENT</option>
-              <option value="INSURANCE_AGENT">INSURANCE AGENT</option>
-              <option value="INVESTMENT_AGENT">INVESTMENT AGENT</option>
-              <option value="CUSTOMER">CUSTOMER</option>
-            </select>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={() => setIsEditModalOpen(false)}
-              className="px-4 py-2 border text-xs font-semibold rounded-lg hover:bg-slate-50"
+              className="px-4 py-2 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white font-semibold text-xs rounded-lg hover:bg-blue-500"
+              className="px-5 py-2 bg-blue-600 text-white font-extrabold rounded-xl hover:bg-blue-700 shadow-sm cursor-pointer"
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? 'Saving Changes...' : 'Save Changes'}
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Cancel Invitation Confirmation Modal */}
-      <Modal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} title="Cancel Invitation">
-        <div className="space-y-4 text-xs">
-          <p className="text-slate-600">
-            Are you sure you want to cancel the pending invitation for{' '}
-            <strong className="text-slate-900">{selectedInvitation?.email}</strong> ({selectedInvitation?.role.replace(/_/g, ' ')})?
+      {/* CANCEL INVITATION CONFIRMATION MODAL */}
+      <Modal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} title="Cancel Pending Invitation">
+        <div className="space-y-4 text-xs font-['Inter',sans-serif]">
+          <p className="text-slate-600 font-medium">
+            Are you sure you want to cancel the invitation sent to{' '}
+            <strong className="text-slate-900">{selectedInvitation?.email}</strong>? The invitation link will no longer be valid.
           </p>
-          <p className="text-slate-500 text-[11px]">
-            Once canceled, the invitation link sent to this email address will become invalid.
-          </p>
-
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={() => setIsCancelModalOpen(false)}
-              className="px-4 py-2 border font-semibold rounded-lg hover:bg-slate-50"
+              className="px-4 py-2 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50"
             >
               Back
             </button>
@@ -567,13 +589,14 @@ export const UserManagement: React.FC = () => {
               type="button"
               onClick={handleConfirmCancelInvitation}
               disabled={canceling}
-              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-lg"
+              className="px-5 py-2 bg-rose-600 text-white font-extrabold rounded-xl hover:bg-rose-700 shadow-sm cursor-pointer"
             >
-              {canceling ? 'Canceling...' : 'Confirm Cancellation'}
+              {canceling ? 'Canceling...' : 'Confirm Cancel'}
             </button>
           </div>
         </div>
       </Modal>
+
     </div>
   );
 };

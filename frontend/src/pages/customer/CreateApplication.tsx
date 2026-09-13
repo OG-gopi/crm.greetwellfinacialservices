@@ -25,6 +25,7 @@ import {
 import { api } from '../../services/api';
 import { ApplicationType } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { SearchableSelect } from '../../components/common/SearchableSelect';
 
 export const CreateApplication: React.FC = () => {
   const navigate = useNavigate();
@@ -418,7 +419,7 @@ export const CreateApplication: React.FC = () => {
           <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">Step 1: Select Application Category</h3>
 
           {/* Category Tabs */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {[
               { type: 'LOAN', title: 'Loans Desk', icon: DollarSign, color: 'border-emerald-500 bg-emerald-50/50 text-emerald-800' },
               { type: 'INSURANCE', title: 'Insurance Desk', icon: Shield, color: 'border-purple-500 bg-purple-50/50 text-purple-800' },
@@ -695,18 +696,21 @@ export const CreateApplication: React.FC = () => {
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Country of Study <span className="text-rose-500">*</span></label>
-                  <select
+                  <SearchableSelect
+                    options={[
+                      { value: 'India', label: 'India' },
+                      { value: 'United States', label: 'United States' },
+                      { value: 'United Kingdom', label: 'United Kingdom' },
+                      { value: 'Canada', label: 'Canada' },
+                      { value: 'Australia', label: 'Australia' },
+                      { value: 'Germany', label: 'Germany' },
+                    ]}
                     value={formData.educationCountry}
-                    onChange={(e) => setFormData({ ...formData, educationCountry: e.target.value })}
-                    className="w-full p-2.5 border rounded-lg bg-white font-medium"
-                  >
-                    <option value="India">India</option>
-                    <option value="United States">United States</option>
-                    <option value="United Kingdom">United Kingdom</option>
-                    <option value="Canada">Canada</option>
-                    <option value="Australia">Australia</option>
-                    <option value="Germany">Germany</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, educationCountry: val })}
+                    placeholder="Select country..."
+                    searchPlaceholder="Search country..."
+                    className="w-full"
+                  />
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Tuition Fee Amount ($ / ₹) <span className="text-rose-500">*</span></label>
@@ -818,16 +822,19 @@ export const CreateApplication: React.FC = () => {
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Nominee Relationship <span className="text-rose-500">*</span></label>
-                  <select
+                  <SearchableSelect
+                    options={[
+                      { value: 'Spouse', label: 'Spouse' },
+                      { value: 'Parent', label: 'Parent' },
+                      { value: 'Child', label: 'Child' },
+                      { value: 'Sibling', label: 'Sibling' },
+                    ]}
                     value={formData.nomineeRelation}
-                    onChange={(e) => setFormData({ ...formData, nomineeRelation: e.target.value })}
-                    className="w-full p-2.5 border rounded-lg bg-white"
-                  >
-                    <option value="Spouse">Spouse</option>
-                    <option value="Parent">Parent</option>
-                    <option value="Child">Child</option>
-                    <option value="Sibling">Sibling</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, nomineeRelation: val })}
+                    placeholder="Select relationship..."
+                    searchPlaceholder="Search relationship..."
+                    className="w-full"
+                  />
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Coverage Sum Insured ($ / ₹) <span className="text-rose-500">*</span></label>
@@ -845,14 +852,17 @@ export const CreateApplication: React.FC = () => {
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Tobacco / Smoker Status <span className="text-rose-500">*</span></label>
-                  <select
+                  <SearchableSelect
+                    options={[
+                      { value: 'Non-Smoker', label: 'Non-Smoker / Non-Tobacco' },
+                      { value: 'Smoker', label: 'Smoker / Tobacco User' },
+                    ]}
                     value={formData.smokerStatus}
-                    onChange={(e) => setFormData({ ...formData, smokerStatus: e.target.value })}
-                    className="w-full p-2.5 border rounded-lg bg-white"
-                  >
-                    <option value="Non-Smoker">Non-Smoker / Non-Tobacco</option>
-                    <option value="Smoker">Smoker / Tobacco User</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, smokerStatus: val })}
+                    placeholder="Select smoker status..."
+                    searchPlaceholder="Search status..."
+                    className="w-full"
+                  />
                 </div>
               </div>
             )}

@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Link } from 'react-router-dom';
+import { SearchableSelect } from '../../components/common/SearchableSelect';
 
 export const CustomerDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -313,16 +314,19 @@ export const CustomerDashboard: React.FC = () => {
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Tenure (Months)</label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: '12', label: '12 Months (1 Year)' },
+                    { value: '24', label: '24 Months (2 Years)' },
+                    { value: '36', label: '36 Months (3 Years)' },
+                    { value: '60', label: '60 Months (5 Years)' },
+                  ]}
                   value={calcTerm}
-                  onChange={(e) => setCalcTerm(e.target.value)}
-                  className="w-full p-2.5 border rounded-xl font-bold bg-slate-50"
-                >
-                  <option value="12">12 Months (1 Year)</option>
-                  <option value="24">24 Months (2 Years)</option>
-                  <option value="36">36 Months (3 Years)</option>
-                  <option value="60">60 Months (5 Years)</option>
-                </select>
+                  onChange={setCalcTerm}
+                  placeholder="Select tenure..."
+                  searchPlaceholder="Search tenure..."
+                  className="w-full"
+                />
               </div>
 
               <div className="p-4 rounded-xl bg-slate-900 text-white text-center space-y-1">

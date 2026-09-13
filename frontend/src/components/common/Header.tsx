@@ -99,7 +99,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   };
 
   return (
-    <header className="sticky top-0 z-30 h-[76px] w-full items-center bg-white px-4 sm:px-6 border-b border-slate-200/80 shadow-xs font-sans flex justify-between">
+    <header className="sticky top-0 z-30 h-[96px] w-full items-center bg-white px-4 sm:px-6 border-b border-[#E4E0D6] shadow-xs font-sans flex justify-between">
       {/* Left side: Portal Name & Icon Badge */}
       <div className="flex items-center">
         <button
@@ -147,70 +147,80 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         <div className="relative" ref={profileRef}>
           <button
             onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className="flex items-center space-x-2.5 rounded-xl p-1.5 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
+            className="flex items-center space-x-2.5 rounded-xl p-1.5 hover:bg-[#F7F5F0] transition-colors cursor-pointer border border-transparent hover:border-[#E4E0D6]"
           >
             {/* Circular Avatar */}
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#091526] font-black text-white text-xs shadow-sm ring-2 ring-blue-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#10233F] font-bold text-[#E8C877] text-xs shadow-sm ring-2 ring-[#C99A3E]/30">
               {getInitials()}
             </div>
             {/* Profile Name & Role */}
             <div className="text-left hidden sm:block">
-              <span className="text-xs font-black text-slate-900 block leading-none">
+              <span className="text-xs font-extrabold text-[#1C2430] block leading-none">
                 {user.firstName} {user.lastName}
               </span>
-              <span className="text-[9px] text-slate-400 font-extrabold uppercase font-mono block mt-1 tracking-wider">
+              <span className="text-[9.5px] text-[#94998F] font-extrabold uppercase font-mono block mt-1 tracking-wider">
                 {user.role.replace(/_/g, ' ')}
               </span>
             </div>
-            <ChevronDown className="h-4 w-4 text-slate-400 shrink-0" />
+            <ChevronDown className={`h-4 w-4 text-[#94998F] shrink-0 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
           </button>
 
-          {/* Profile Dropdown Menu */}
+          {/* Profile Dropdown Menu matching HTML Design */}
           {showProfileMenu && (
-            <div className="absolute right-0 mt-2 w-60 rounded-2xl bg-white py-2 shadow-2xl ring-1 ring-black/5 z-50 border border-slate-200 text-xs space-y-1 animate-fade-in">
-              <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex flex-col items-start">
-                <GFSLogo size="sm" variant="card" className="mb-2" />
-                <p className="text-[10px] text-slate-400 uppercase font-extrabold">Logged In Account</p>
-                <p className="font-black text-blue-900 truncate">{user.firstName} {user.lastName}</p>
-                <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
+            <div className="absolute right-0 mt-2 w-[290px] rounded-xl bg-white shadow-2xl z-50 border border-[#E4E0D6] overflow-hidden animate-fade-in">
+              {/* Dropdown Header */}
+              <div className="p-6 text-center border-b border-[#E4E0D6] bg-gradient-to-b from-[#FBFAF6] to-white">
+                {/* Circular GFS Emblem */}
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1E3A5F] to-[#0A1830] border-2 border-[#C99A3E] shadow-sm flex flex-col items-center justify-center mx-auto mb-3">
+                  <span className="font-serif text-base font-bold text-[#E8C877] leading-none">GFS</span>
+                  <span className="text-[3.5px] tracking-widest text-white/50 uppercase mt-1">LOAN · INSURANCE · INVESTMENT</span>
+                </div>
+                <p className="text-[10.5px] text-[#94998F] font-extrabold tracking-wider uppercase mb-1">LOGGED IN ACCOUNT</p>
+                <p className="text-sm font-bold text-[#10233F] truncate">{user.firstName} {user.lastName}</p>
+                <p className="text-xs text-[#94998F] truncate mt-0.5">{user.email}</p>
               </div>
 
-              {/* My Profile */}
-              <Link
-                to={user.role === 'SUPER_ADMIN' ? '/superadmin/settings/profile' : '/profile'}
-                onClick={() => setShowProfileMenu(false)}
-                className="flex items-center px-4 py-2.5 text-slate-700 hover:bg-slate-50 font-bold transition-colors"
-              >
-                <User className="mr-2.5 h-4 w-4 text-blue-600" /> My Profile
-              </Link>
+              {/* Dropdown Menu Links */}
+              <div className="p-2 text-xs space-y-0.5 font-semibold text-[#1C2430]">
+                {/* My Profile */}
+                <Link
+                  to={user.role === 'SUPER_ADMIN' ? '/superadmin/settings/profile' : '/profile'}
+                  onClick={() => setShowProfileMenu(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#F7F5F0] transition-colors"
+                >
+                  <User className="w-4 h-4 text-[#2A5599] shrink-0" />
+                  <span>My profile</span>
+                </Link>
 
-              {/* Account Settings & Change Password (Super Admin Only) */}
-              {user.role === 'SUPER_ADMIN' && (
-                <>
-                  <Link
-                    to="/superadmin/settings/portal"
-                    onClick={() => setShowProfileMenu(false)}
-                    className="flex items-center px-4 py-2.5 text-slate-700 hover:bg-slate-50 font-bold transition-colors"
-                  >
-                    <Sliders className="mr-2.5 h-4 w-4 text-slate-600" /> Account Settings
-                  </Link>
+                {/* Account Settings */}
+                <Link
+                  to={user.role === 'SUPER_ADMIN' ? '/superadmin/settings/account' : '/profile/settings'}
+                  onClick={() => setShowProfileMenu(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#F7F5F0] transition-colors"
+                >
+                  <Sliders className="w-4 h-4 text-[#2A5599] shrink-0" />
+                  <span>Account settings</span>
+                </Link>
 
-                  <Link
-                    to="/superadmin/settings/password"
-                    onClick={() => setShowProfileMenu(false)}
-                    className="flex items-center px-4 py-2.5 text-slate-700 hover:bg-slate-50 font-bold transition-colors"
-                  >
-                    <Key className="mr-2.5 h-4 w-4 text-amber-600" /> Change Password
-                  </Link>
-                </>
-              )}
+                {/* Change Password */}
+                <Link
+                  to={user.role === 'SUPER_ADMIN' ? '/superadmin/settings/password' : '/profile/password'}
+                  onClick={() => setShowProfileMenu(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#F7F5F0] transition-colors"
+                >
+                  <Key className="w-4 h-4 text-[#C99A3E] shrink-0" />
+                  <span>Change password</span>
+                </Link>
 
-              <div className="border-t border-slate-100 pt-1">
+                <div className="my-1.5 border-t border-[#E4E0D6]" />
+
+                {/* Logout */}
                 <button
                   onClick={logout}
-                  className="w-full flex items-center px-4 py-2.5 text-rose-600 hover:bg-rose-50 font-extrabold text-left cursor-pointer transition-colors"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#B23A3A] hover:bg-[#FBEBEB] font-extrabold text-left cursor-pointer transition-colors"
                 >
-                  <LogOut className="mr-2.5 h-4 w-4" /> Logout
+                  <LogOut className="w-4 h-4 text-[#B23A3A] shrink-0" />
+                  <span>Logout</span>
                 </button>
               </div>
             </div>

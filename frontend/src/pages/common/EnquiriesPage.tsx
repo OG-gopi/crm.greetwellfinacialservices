@@ -24,6 +24,7 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { Modal } from '../../components/common/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { LazyLoadTrigger } from '../../components/common/LazyLoadTrigger';
+import { SearchableSelect } from '../../components/common/SearchableSelect';
 
 export const EnquiriesPage: React.FC = () => {
   const { user } = useAuth();
@@ -423,49 +424,59 @@ export const EnquiriesPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <select
+          <SearchableSelect
+            options={[
+              { value: '', label: 'All Categories' },
+              ...availableCategories.map((cat) => ({ value: cat, label: cat })),
+            ]}
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium"
-          >
-            <option value="">All Categories</option>
-            {availableCategories.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
+            onChange={setCategoryFilter}
+            placeholder="All Categories"
+            searchPlaceholder="Search category..."
+            className="w-40"
+          />
 
-          <select
+          <SearchableSelect
+            options={[
+              { value: '', label: 'All Statuses' },
+              { value: 'OPEN', label: 'OPEN' },
+              { value: 'IN_PROGRESS', label: 'IN PROGRESS' },
+              { value: 'AWAITING_INFORMATION', label: 'AWAITING INFORMATION' },
+              { value: 'RESOLVED', label: 'RESOLVED' },
+              { value: 'CLOSED', label: 'CLOSED' },
+            ]}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium"
-          >
-            <option value="">All Statuses</option>
-            <option value="OPEN">OPEN</option>
-            <option value="IN_PROGRESS">IN PROGRESS</option>
-            <option value="AWAITING_INFORMATION">AWAITING INFORMATION</option>
-            <option value="RESOLVED">RESOLVED</option>
-            <option value="CLOSED">CLOSED</option>
-          </select>
+            onChange={setStatusFilter}
+            placeholder="All Statuses"
+            searchPlaceholder="Search status..."
+            className="w-40"
+          />
 
-          <select
+          <SearchableSelect
+            options={[
+              { value: '', label: 'All Priorities' },
+              { value: 'LOW', label: 'LOW' },
+              { value: 'MEDIUM', label: 'MEDIUM' },
+              { value: 'HIGH', label: 'HIGH' },
+            ]}
             value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium"
-          >
-            <option value="">All Priorities</option>
-            <option value="LOW">LOW</option>
-            <option value="MEDIUM">MEDIUM</option>
-            <option value="HIGH">HIGH</option>
-          </select>
+            onChange={setPriorityFilter}
+            placeholder="All Priorities"
+            searchPlaceholder="Search priority..."
+            className="w-36"
+          />
 
-          <select
+          <SearchableSelect
+            options={[
+              { value: 'latest', label: 'Latest First' },
+              { value: 'oldest', label: 'Oldest First' },
+            ]}
             value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as 'latest' | 'oldest')}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium"
-          >
-            <option value="latest">Latest First</option>
-            <option value="oldest">Oldest First</option>
-          </select>
+            onChange={(val) => setSortOrder(val as 'latest' | 'oldest')}
+            placeholder="Sort Order"
+            searchPlaceholder="Search sort..."
+            className="w-32"
+          />
         </div>
       </div>
 
@@ -571,31 +582,32 @@ export const EnquiriesPage: React.FC = () => {
         <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
           <div>
             <label className="block font-extrabold text-slate-800 mb-1">Enquiry Category: *</label>
-            <select
+            <SearchableSelect
+              options={availableCategories.map((cat) => ({ value: cat, label: cat }))}
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full p-2.5 border rounded-lg bg-slate-50 font-bold text-xs"
-            >
-              {availableCategories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+              onChange={setCategory}
+              placeholder="Select category..."
+              searchPlaceholder="Search category..."
+              className="w-full"
+            />
           </div>
 
           <div>
             <label className="block font-extrabold text-slate-800 mb-1">Related Application (Optional):</label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: '', label: '-- None / General Enquiry --' },
+                ...userApplications.map((app) => ({
+                  value: app.id,
+                  label: `${app.id} (${app.type} - ${app.status})`,
+                })),
+              ]}
               value={relatedAppId}
-              onChange={(e) => setRelatedAppId(e.target.value)}
-              className="w-full p-2.5 border rounded-lg bg-slate-50 text-xs font-semibold"
-            >
-              <option value="">-- None / General Enquiry --</option>
-              {userApplications.map((app) => (
-                <option key={app.id} value={app.id}>
-                  {app.id} ({app.type} - {app.status})
-                </option>
-              ))}
-            </select>
+              onChange={setRelatedAppId}
+              placeholder="Select related application..."
+              searchPlaceholder="Search application..."
+              className="w-full"
+            />
           </div>
 
           <div>
@@ -625,15 +637,18 @@ export const EnquiriesPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block font-extrabold text-slate-800 mb-1">Priority Level:</label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: 'LOW', label: 'LOW' },
+                  { value: 'MEDIUM', label: 'MEDIUM' },
+                  { value: 'HIGH', label: 'HIGH' },
+                ]}
                 value={priority}
-                onChange={(e) => setPriority(e.target.value as any)}
-                className="w-full p-2.5 border rounded-lg bg-slate-50 font-bold text-xs"
-              >
-                <option value="LOW">LOW</option>
-                <option value="MEDIUM">MEDIUM</option>
-                <option value="HIGH">HIGH</option>
-              </select>
+                onChange={(val) => setPriority(val as any)}
+                placeholder="Select priority..."
+                searchPlaceholder="Search priority..."
+                className="w-full"
+              />
             </div>
 
             <div>
@@ -834,46 +849,54 @@ export const EnquiriesPage: React.FC = () => {
 
                     <div>
                       <label className="block font-bold text-slate-700 mb-1">Ticket Status:</label>
-                      <select
+                      <SearchableSelect
+                        options={[
+                          { value: 'OPEN', label: 'OPEN' },
+                          { value: 'IN_PROGRESS', label: 'IN PROGRESS' },
+                          { value: 'AWAITING_INFORMATION', label: 'AWAITING INFORMATION' },
+                          { value: 'RESOLVED', label: 'RESOLVED' },
+                          { value: 'CLOSED', label: 'CLOSED' },
+                        ]}
                         value={newStatus}
-                        onChange={(e) => setNewStatus(e.target.value)}
-                        className="w-full p-2 border rounded-lg bg-white font-bold"
-                      >
-                        <option value="OPEN">OPEN</option>
-                        <option value="IN_PROGRESS">IN PROGRESS</option>
-                        <option value="AWAITING_INFORMATION">AWAITING INFORMATION</option>
-                        <option value="RESOLVED">RESOLVED</option>
-                        <option value="CLOSED">CLOSED</option>
-                      </select>
+                        onChange={setNewStatus}
+                        placeholder="Select status..."
+                        searchPlaceholder="Search status..."
+                        className="w-full"
+                      />
                     </div>
 
                     <div>
                       <label className="block font-bold text-slate-700 mb-1">Priority:</label>
-                      <select
+                      <SearchableSelect
+                        options={[
+                          { value: 'LOW', label: 'LOW' },
+                          { value: 'MEDIUM', label: 'MEDIUM' },
+                          { value: 'HIGH', label: 'HIGH' },
+                        ]}
                         value={newPriority}
-                        onChange={(e) => setNewPriority(e.target.value)}
-                        className="w-full p-2 border rounded-lg bg-white font-bold"
-                      >
-                        <option value="LOW">LOW</option>
-                        <option value="MEDIUM">MEDIUM</option>
-                        <option value="HIGH">HIGH</option>
-                      </select>
+                        onChange={setNewPriority}
+                        placeholder="Select priority..."
+                        searchPlaceholder="Search priority..."
+                        className="w-full"
+                      />
                     </div>
 
                     <div>
                       <label className="block font-bold text-slate-700 mb-1">Assign Handling Agent:</label>
-                      <select
+                      <SearchableSelect
+                        options={[
+                          { value: '', label: '-- Unassigned --' },
+                          ...availableAgents.map((ag) => ({
+                            value: ag.id,
+                            label: `${ag.firstName} ${ag.lastName || ''} (${ag.role.replace('_', ' ')})`,
+                          })),
+                        ]}
                         value={assignedAgentId}
-                        onChange={(e) => setAssignedAgentId(e.target.value)}
-                        className="w-full p-2 border rounded-lg bg-white font-semibold"
-                      >
-                        <option value="">-- Unassigned --</option>
-                        {availableAgents.map((ag) => (
-                          <option key={ag.id} value={ag.id}>
-                            {ag.firstName} {ag.lastName} ({ag.role.replace('_', ' ')})
-                          </option>
-                        ))}
-                      </select>
+                        onChange={setAssignedAgentId}
+                        placeholder="Select agent..."
+                        searchPlaceholder="Search agent..."
+                        className="w-full"
+                      />
                     </div>
 
                     <div>
