@@ -135,6 +135,7 @@ export const App: React.FC = () => {
               <Route path="/superadmin/dashboard" element={<AdminDashboard />} />
 
               {/* 2. Users Management */}
+              <Route path="/superadmin/users-parent" element={<UsersManagementSub subPage="all" />} />
               <Route path="/superadmin/users" element={<UsersManagementSub subPage="all" />} />
               <Route path="/superadmin/users/create" element={<UsersManagementSub subPage="create" />} />
               <Route path="/superadmin/users/verification" element={<UsersManagementSub subPage="verification" />} />
@@ -152,7 +153,9 @@ export const App: React.FC = () => {
               <Route path="/superadmin/customers/verification" element={<CustomersSub subPage="verification" />} />
 
               {/* 5. Applications */}
+              <Route path="/superadmin/applications-parent" element={<ApplicationsSub subPage="all" />} />
               <Route path="/superadmin/applications" element={<ApplicationsSub subPage="all" />} />
+              <Route path="/superadmin/applications/all" element={<ApplicationsSub subPage="all" />} />
               <Route path="/superadmin/applications/loans" element={<ApplicationsSub subPage="loans" />} />
               <Route path="/superadmin/applications/insurance" element={<ApplicationsSub subPage="insurance" />} />
               <Route path="/superadmin/applications/investments" element={<ApplicationsSub subPage="investments" />} />
@@ -168,6 +171,7 @@ export const App: React.FC = () => {
               <Route path="/superadmin/documents/categories" element={<DocumentsSub subPage="all" />} />
 
               {/* 7. Products & Services */}
+              <Route path="/superadmin/products-parent" element={<ProductsSub subPage="catalog" />} />
               <Route path="/superadmin/products" element={<ProductsSub subPage="catalog" />} />
               <Route path="/superadmin/products/catalog" element={<ProductsSub subPage="catalog" />} />
               <Route path="/superadmin/products/loans" element={<ProductsSub subPage="catalog" />} />
@@ -176,6 +180,7 @@ export const App: React.FC = () => {
               <Route path="/superadmin/products/categories" element={<ProductsSub subPage="catalog" />} />
 
               {/* 8. Roles & Permissions */}
+              <Route path="/superadmin/permissions-parent" element={<PermissionsSub subPage="menu-items" />} />
               <Route path="/superadmin/permissions" element={<PermissionsSub subPage="menu-items" />} />
               <Route path="/superadmin/permissions/menu-items" element={<PermissionsSub subPage="menu-items" />} />
               <Route path="/superadmin/permissions/method-permissions" element={<PermissionsSub subPage="method-permissions" />} />
@@ -185,6 +190,7 @@ export const App: React.FC = () => {
               <Route path="/superadmin/permissions/groups" element={<PermissionsSub subPage="roles" />} />
 
               {/* 9. System Management */}
+              <Route path="/superadmin/system-parent" element={<SystemSub subPage="configurations" />} />
               <Route path="/superadmin/system/configurations" element={<SystemSub subPage="configurations" />} />
               <Route path="/superadmin/system/email-templates" element={<SystemSub subPage="email-templates" />} />
               <Route path="/superadmin/system/fields" element={<SystemSub subPage="configurations" />} />
@@ -192,6 +198,7 @@ export const App: React.FC = () => {
               <Route path="/superadmin/system/backup" element={<SystemSub subPage="backup" />} />
 
               {/* 10. Updates & Versions */}
+              <Route path="/superadmin/updates" element={<UpdatesSub />} />
               <Route path="/superadmin/updates/release-notes" element={<UpdatesSub />} />
               <Route path="/superadmin/updates/manage" element={<UpdatesSub />} />
 
@@ -205,6 +212,7 @@ export const App: React.FC = () => {
               <Route path="/superadmin/enquiries/status" element={<EnquiriesSub subPage="all" />} />
 
               {/* 13. Reports */}
+              <Route path="/superadmin/reports" element={<ReportsSub subPage="applications" />} />
               <Route path="/superadmin/reports/applications" element={<ReportsSub subPage="applications" />} />
               <Route path="/superadmin/reports/users" element={<ReportsSub subPage="users" />} />
               <Route path="/superadmin/reports/agents" element={<ReportsSub subPage="agents" />} />
@@ -215,6 +223,7 @@ export const App: React.FC = () => {
               <Route path="/superadmin/audit-logs/search" element={<AuditLogs />} />
 
               {/* 15. Settings */}
+              <Route path="/superadmin/settings" element={<SystemSettings />} />
               <Route path="/superadmin/settings/profile" element={<CustomerProfile />} />
               <Route path="/superadmin/settings/password" element={<SystemSettings />} />
               <Route path="/superadmin/settings/portal" element={<SystemSettings />} />
@@ -232,11 +241,11 @@ export const App: React.FC = () => {
               <Route path="/admin/dashboard" element={<Navigate to="/superadmin/dashboard" replace />} />
               <Route path="/admin/users" element={<Navigate to="/superadmin/users" replace />} />
               <Route path="/admin/agents" element={<Navigate to="/superadmin/agents" replace />} />
-              <Route path="/admin/applications" element={<Navigate to="/superadmin/applications" replace />} />
+              <Route path="/admin/applications" element={<Navigate to="/superadmin/applications/all" replace />} />
               <Route path="/admin/verification" element={<Navigate to="/superadmin/users/verification" replace />} />
               <Route path="/admin/products" element={<Navigate to="/superadmin/products/catalog" replace />} />
               <Route path="/admin/audit-logs" element={<Navigate to="/superadmin/audit-logs" replace />} />
-              <Route path="/admin/settings" element={<Navigate to="/superadmin/settings/portal" replace />} />
+              <Route path="/admin/settings" element={<Navigate to="/superadmin/settings" replace />} />
             </Route>
 
             {/* LOAN AGENT ROUTES */}

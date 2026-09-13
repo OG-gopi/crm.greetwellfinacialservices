@@ -100,28 +100,20 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
   return (
     <header className="sticky top-0 z-30 h-[76px] w-full items-center bg-white px-4 sm:px-6 border-b border-slate-200/80 shadow-xs font-sans flex justify-between">
-      {/* Left side: Mobile Toggle & Brand/Portal Badge */}
-      <div className="flex items-center space-x-3">
-        {/* Sidebar Toggle Button */}
+      {/* Left side: Portal Name & Icon Badge */}
+      <div className="flex items-center">
         <button
           onClick={onToggleSidebar}
-          className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+          className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer mr-2.5"
           title="Toggle Navigation Sidebar"
         >
           <Menu className="h-5 w-5 stroke-[2.2]" />
         </button>
 
-        {/* Portal Name & Icon Badge */}
-        <div className="flex items-center space-x-2.5">
-          <div className="hidden sm:flex">
-            <GFSLogo size="sm" variant="dark" />
-          </div>
-          <span className="hidden sm:block text-slate-300">|</span>
-          <span className={`inline-flex items-center gap-1.5 text-xs font-extrabold font-mono px-3 py-1 rounded-lg border ${portal.badge}`}>
-            <PortalIcon className="w-3.5 h-3.5" />
-            {portal.name}
-          </span>
-        </div>
+        <span className={`inline-flex items-center gap-2 text-xs font-extrabold font-mono px-3.5 py-1.5 rounded-xl border shadow-xs ${portal.badge}`}>
+          <PortalIcon className="w-4 h-4" />
+          {portal.name}
+        </span>
       </div>
 
       {/* Center: Dynamic Time-Based Greeting */}

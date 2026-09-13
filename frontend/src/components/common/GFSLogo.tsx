@@ -34,14 +34,14 @@ export const GFSLogo: React.FC<GFSLogoProps> = ({
     switch (variant) {
       case 'light':
       case 'card':
-        // Logo on light background: wrap in premium dark navy container with gold border & shadow
-        return 'bg-[#091526] p-1.5 rounded-xl border border-amber-500/30 shadow-md hover:border-amber-400/60 transition-all';
+        // Logo on light background: wrap in premium dark navy circular container with gold border & shadow
+        return 'bg-[#091526] p-1.5 rounded-full border-2 border-amber-400/40 shadow-md hover:border-amber-400/80 transition-all aspect-square overflow-hidden';
       case 'dark':
-        // Logo on dark background: seamless blend with gold accent ring
-        return 'bg-[#091526]/80 p-1 rounded-xl border border-amber-400/30 shadow-sm';
+        // Logo on dark background: circular container with gold accent ring
+        return 'bg-[#091526] p-1 rounded-full border border-amber-400/40 shadow-sm aspect-square overflow-hidden';
       case 'raw':
       default:
-        return '';
+        return 'rounded-full overflow-hidden aspect-square';
     }
   };
 
@@ -59,7 +59,7 @@ export const GFSLogo: React.FC<GFSLogoProps> = ({
           (e.target as HTMLImageElement).src = '/assets/gfs-logo.png';
         }}
         alt={alt}
-        className={`object-contain rounded-lg ${size !== 'custom' ? sizeClasses[size] : ''} ${imgClassName}`}
+        className={`object-contain rounded-full ${size !== 'custom' ? sizeClasses[size] : ''} ${imgClassName}`}
       />
     </div>
   );
