@@ -32,13 +32,26 @@ loadEnvFile(path.resolve(__dirname, '../backend/.env'));
 const postgresSchemaPath = path.resolve(__dirname, '../backend/prisma/schema.prisma');
 const sqliteSchemaPath = path.resolve(__dirname, '../backend/prisma/schema.sqlite.prisma');
 
-const possiblePrismaPaths = [
-  path.resolve(__dirname, '../node_modules/prisma/build/index.js'),
-  path.resolve(__dirname, '../backend/node_modules/prisma/build/index.js'),
-  path.resolve(__dirname, '../../node_modules/prisma/build/index.js'),
-];
+// Dynamically resolve installed Prisma CLI binary
+function getPrismaCliScript() {
+  try {
+    const prismaPkgPath = require.resolve('prisma/package.json');
+    const cliPath = path.join(path.dirname(prismaPkgPath), 'build/index.js');
+    if (fs.existsSync(cliPath)) {
+      return cliPath;
+    }
+  } catch (e) {
+    // Ignore resolution errors and check fallback paths
+  }
 
-const prismaScript = possiblePrismaPaths.find(p => fs.existsSync(p));
+  const fallbackPaths = [
+    path.resolve(__dirname, '../node_modules/prisma/build/index.js'),
+    path.resolve(__dirname, '../backend/node_modules/prisma/build/index.js'),
+    path.resolve(__dirname, '../../node_modules/prisma/build/index.js'),
+  ];
+
+  return fallbackPaths.find(p => fs.existsSync(p)) || null;
+}
 
 async function isPortOpen(host, port, timeout = 800) {
   return new Promise((resolve) => {
@@ -61,34 +74,53 @@ async function isPortOpen(host, port, timeout = 800) {
 }
 
 async function run() {
+  const isVercel = !!(process.env.VERCEL || process.env.NOW_BUILD || process.env.CI);
+  const isProduction = process.env.NODE_ENV === 'production' || isVercel;
+
   let targetSchema = postgresSchemaPath;
   let dbUrl = process.env.DATABASE_URL || '';
+  let useSqlite = false;
 
-  const isLocalhostPg = dbUrl.includes('localhost:5432') || dbUrl.includes('127.0.0.1:5432');
-  let useSqlite = dbUrl.startsWith('file:') || false;
-
-  if (isLocalhostPg) {
-    const pgAvailable = await isPortOpen('127.0.0.1', 5432);
-    if (!pgAvailable) {
-      console.log('ℹ️ [Prisma Generator] Local PostgreSQL (5432) not active. Using SQLite schema & dev.db fallback for local dev.');
+  if (isVercel || isProduction) {
+    // Vercel / Production deployment MUST always use PostgreSQL production schema
+    targetSchema = postgresSchemaPath;
+    useSqlite = false;
+    if (!process.env.DATABASE_URL) {
+      process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/greetwell_crm?schema=public';
+    }
+    if (!process.env.DIRECT_URL) {
+      process.env.DIRECT_URL = process.env.DATABASE_URL;
+    }
+  } else {
+    // Local development mode
+    const isLocalhostPg = dbUrl.includes('localhost:5432') || dbUrl.includes('127.0.0.1:5432');
+    if (dbUrl.startsWith('file:')) {
       useSqlite = true;
+    } else if (isLocalhostPg || !dbUrl) {
+      const pgAvailable = await isPortOpen('127.0.0.1', 5432);
+      if (!pgAvailable) {
+        useSqlite = true;
+      }
+    }
+
+    if (useSqlite) {
+      targetSchema = sqliteSchemaPath;
+      process.env.DATABASE_URL = 'file:./dev.db';
     }
   }
 
-  if (useSqlite || (!dbUrl && process.env.NODE_ENV !== 'production')) {
-    targetSchema = sqliteSchemaPath;
-    process.env.DATABASE_URL = 'file:./dev.db';
-  }
-
+  console.log(`[Prisma Generator] Environment: ${isVercel ? 'Vercel Production' : 'Local Development'}`);
   console.log(`[Prisma Generator] Using schema: ${targetSchema}`);
+
+  const prismaScript = getPrismaCliScript();
 
   try {
     if (prismaScript) {
-      console.log(`[Prisma Generator] Executing Prisma CLI via direct JS: ${prismaScript}`);
+      console.log(`[Prisma Generator] Executing installed Prisma CLI: ${prismaScript}`);
       execSync(`node "${prismaScript}" generate --schema="${targetSchema}"`, { stdio: 'inherit', env: process.env });
     } else {
-      console.log('[Prisma Generator] Direct JS path not found, executing via npx...');
-      execSync(`npx prisma generate --schema="${targetSchema}"`, { stdio: 'inherit', env: process.env });
+      console.log('[Prisma Generator] Executing Prisma CLI via npx --no-install...');
+      execSync(`npx --no-install prisma generate --schema="${targetSchema}"`, { stdio: 'inherit', env: process.env });
     }
 
     if (useSqlite && fs.existsSync(sqliteSchemaPath)) {
@@ -97,7 +129,7 @@ async function run() {
         if (prismaScript) {
           execSync(`node "${prismaScript}" db push --schema="${targetSchema}" --accept-data-loss`, { stdio: 'inherit', env: process.env });
         } else {
-          execSync(`npx prisma db push --schema="${targetSchema}" --accept-data-loss`, { stdio: 'inherit', env: process.env });
+          execSync(`npx --no-install prisma db push --schema="${targetSchema}" --accept-data-loss`, { stdio: 'inherit', env: process.env });
         }
       } catch (pushErr) {
         console.warn('Notice during db push:', pushErr.message);
