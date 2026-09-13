@@ -1,0 +1,581 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String      @id @default(uuid())
+  customerIdCode        String?     @unique // e.g. CUS-2026-000001
+  agentIdCode           String?     @unique // e.g. AGT-2026-000001
+  email                 String      @unique
+  passwordHash          String
+  firstName             String
+  lastName              String?
+  phone                 String?
+  role                  String      // SUPER_ADMIN, LOAN_AGENT, INSURANCE_AGENT, INVESTMENT_AGENT, CUSTOMER
+  status                String      @default("ACTIVE") // ACTIVE, INACTIVE, PENDING_VERIFICATION
+  serviceTypes          String?     // JSON array string: ["LOANS", "INSURANCE", "INVESTMENT"]
+  dob                   DateTime?
+  education             String?
+  hasExperience         Boolean?
+  previousCompany       String?
+  previousJobRole       String?
+  yearsOfExperience     String?
+  previousJobStartDate  DateTime?
+  previousJobEndDate    DateTime?
+  aadhaarDocUrl         String?
+  educationDocUrl       String?
+  experienceDocUrl      String?
+  otherDocUrl           String?
+  resetPasswordToken    String?
+  resetPasswordExpires  DateTime?
+  emailVerified         Boolean     @default(true)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  // Relationships
+  assignedApplications  Application[]  @relation("AssignedAgent")
+  customerApplications  Application[]  @relation("CustomerApplications")
+  uploadedDocuments     Document[]     @relation("DocumentUploader")
+  verifiedDocuments     Document[]     @relation("DocumentVerifier")
+  authorNotes           Note[]         @relation("AuthorNotes")
+  assignedTasks         Task[]         @relation("AssignedTasks")
+  createdTasks          Task[]         @relation("CreatedTasks")
+  notifications         Notification[] @relation("RecipientNotifications")
+  auditLogs             AuditLog[]
+  sentInvitations       Invitation[]   @relation("InvitedByUser")
+  updatedSettings       SystemSetting[]
+  enquiriesRaised       Enquiry[]        @relation("EnquiryUser")
+  enquiriesAssigned     Enquiry[]        @relation("EnquiryAssignedAgent")
+  enquiryMessages       EnquiryMessage[] @relation("EnquiryMessageSender")
+  enquiryHistoryLogs    EnquiryHistory[] @relation("EnquiryHistoryUser")
+  reportsCreated        Report[]         @relation("ReportCreator")
+}
+
+model Invitation {
+  id                    String    @id @default(uuid())
+  email                 String
+  firstName             String?
+  lastName              String?
+  phone                 String?
+  serviceTypes          String?   // JSON array string e.g. ["LOANS"]
+  customerIdCode        String?   // Pre-assigned Customer ID e.g. CUS-2026-000001
+  agentIdCode           String?   // Pre-assigned Agent ID e.g. AGT-2026-000001
+  role                  String    // LOAN_AGENT, INSURANCE_AGENT, INVESTMENT_AGENT, CUSTOMER
+  token                 String    @unique
+  status                String    @default("PENDING") // PENDING, INVITATION_SENT, PENDING_VERIFICATION, ACCEPTED, EXPIRED, FAILED
+  dob                   DateTime?
+  education             String?
+  hasExperience         Boolean?
+  previousCompany       String?
+  previousJobRole       String?
+  yearsOfExperience     String?
+  previousJobStartDate  DateTime?
+  previousJobEndDate    DateTime?
+  aadhaarDocUrl         String?
+  educationDocUrl       String?
+  experienceDocUrl      String?
+  otherDocUrl           String?
+  emailOtp              String?
+  mobileOtp             String?
+  otpExpiresAt          DateTime?
+  isEmailVerified       Boolean   @default(false)
+  isMobileVerified      Boolean   @default(false)
+  deliveryStatus        String    @default("PENDING") // PENDING, SENT, FAILED, DELIVERED
+  invitedByUserId       String?
+  invitedByUser         User?     @relation("InvitedByUser", fields: [invitedByUserId], references: [id])
+  expiresAt             DateTime
+  createdAt             DateTime  @default(now())
+}
+
+model Application {
+  id                  String     @id // e.g. LOAN-2026-000001
+  customerId          String
+  customer            User       @relation("CustomerApplications", fields: [customerId], references: [id])
+  assignedAgentId     String?
+  assignedAgent       User?      @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+  type                String     // LOAN, INSURANCE, INVESTMENT
+  status              String     @default("SUBMITTED") // DRAFT, SUBMITTED, PENDING_ASSIGNMENT, ASSIGNED, UNDER_REVIEW, INFORMATION_REQUIRED, DOCUMENTS_REQUIRED, VERIFICATION, APPROVED, REJECTED, COMPLETED
+  priority            String     @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  amount              Float?
+  term                String?
+  purpose             String?
+  formData            String?    // JSON string for dynamic fields
+  verificationStatus  String     @default("PENDING") // PENDING, VERIFIED, REJECTED
+  verificationComment String?
+  verifiedByUserId    String?
+  verifiedAt          DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  // Relationships
+  documents           Document[]
+  requirements        ApplicationRequirement[]
+  tasks               Task[]
+  notes               Note[]
+}
+
+model Document {
+  id                String        @id @default(uuid())
+  applicationId     String
+  application       Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  documentTypeId    String?
+  documentType      DocumentType? @relation(fields: [documentTypeId], references: [id])
+  title             String
+  fileName          String
+  fileUrl           String
+  fileSize          Int
+  mimeType          String
+  uploadedByUserId  String
+  uploadedByUser    User          @relation("DocumentUploader", fields: [uploadedByUserId], references: [id])
+  status            String        @default("PENDING") // PENDING, VERIFIED, REJECTED, REPLACEMENT_REQUIRED
+  verifiedByUserId  String?
+  verifiedByUser    User?         @relation("DocumentVerifier", fields: [verifiedByUserId], references: [id])
+  verifiedAt        DateTime?
+  rejectionReason   String?
+  createdAt         DateTime      @default(now())
+}
+
+model ApplicationRequirement {
+  id            String      @id @default(uuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  isRequired    Boolean     @default(true)
+  status        String      @default("OPEN") // OPEN, CUSTOMER_REPLIED, UNDER_REVIEW, COMPLETED, CLOSED
+  dueDate       DateTime?
+  customerReply String?
+  replyDocUrl   String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @default(now()) @updatedAt
+}
+
+model Task {
+  id              String       @id @default(uuid())
+  applicationId   String?
+  application     Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  assignedToUserId String
+  assignedToUser   User        @relation("AssignedTasks", fields: [assignedToUserId], references: [id])
+  createdByUserId String
+  createdByUser   User        @relation("CreatedTasks", fields: [createdByUserId], references: [id])
+  title           String
+  description     String?
+  status          String      @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+  priority        String      @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  dueDate         DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime    @default(now())
+}
+
+model Note {
+  id                String      @id @default(uuid())
+  applicationId     String
+  application       Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  authorUserId      String
+  authorUser        User        @relation("AuthorNotes", fields: [authorUserId], references: [id])
+  content           String
+  isCustomerVisible Boolean     @default(false)
+  createdAt         DateTime    @default(now())
+}
+
+model Notification {
+  id              String   @id @default(uuid())
+  recipientUserId String
+  recipientUser   User     @relation("RecipientNotifications", fields: [recipientUserId], references: [id])
+  type            String   // e.g. APPLICATION_CREATED, APPLICATION_ASSIGNED, STATUS_CHANGED, etc.
+  title           String
+  message         String
+  module          String   @default("GENERAL") // LOANS, INSURANCE, INVESTMENTS, CUSTOMERS, AGENTS, APPLICATIONS, DOCUMENTS, ENQUIRIES, COMMENTS, SYSTEM
+  source          String   @default("SYSTEM") // SUPER_ADMIN, AGENT, CUSTOMER, SYSTEM
+  actionStatus    String   @default("NONE") // ACTION_REQUIRED, ACTION_TAKEN, NOT_REQUIRED, NONE
+  recipientRole   String?  // SUPER_ADMIN, LOAN_AGENT, INSURANCE_AGENT, INVESTMENT_AGENT, CUSTOMER
+  customerId      String?
+  agentId         String?
+  applicationId   String?
+  documentId      String?
+  commentId       String?
+  relatedEntity   String?  // APPLICATION, DOCUMENT, USER, TASK, ENQUIRY
+  relatedEntityId String?
+  isRead          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  userRole    String?
+  action      String
+  entityType  String
+  entityId    String?
+  description String
+  ipAddress   String?
+  metadata    String?  // JSON string
+  timestamp   DateTime @default(now())
+}
+
+model LoanProduct {
+  id           String   @id @default(uuid())
+  name         String
+  code         String   @unique
+  category     String   // Personal, Mortgage, Commercial, Auto, Education
+  interestRate Float
+  minAmount    Float
+  maxAmount    Float
+  isActive     Boolean  @default(true)
+  description  String?
+  createdAt    DateTime @default(now())
+}
+
+model InsuranceProduct {
+  id             String   @id @default(uuid())
+  name           String
+  code           String   @unique
+  type           String   // Life, Health, Property, Vehicle, Business
+  coverageAmount Float
+  premiumAmount  Float
+  isActive       Boolean  @default(true)
+  description    String?
+  createdAt      DateTime @default(now())
+}
+
+model InvestmentProduct {
+  id                 String   @id @default(uuid())
+  name               String
+  code               String   @unique
+  riskLevel          String   // Low, Moderate, High
+  expectedReturnRate Float
+  minInvestment     Float
+  isActive           Boolean  @default(true)
+  description        String?
+  createdAt          DateTime @default(now())
+}
+
+model DocumentType {
+  id                String     @id @default(uuid())
+  name              String
+  code              String     @unique
+  category          String?    // LOAN, INSURANCE, INVESTMENT, GENERAL
+  isRequiredDefault Boolean    @default(false)
+  description       String?
+  isActive          Boolean    @default(true)
+  documents         Document[]
+}
+
+model RolePermission {
+  id         String   @id @default(uuid())
+  role       String   // SUPER_ADMIN, LOAN_AGENT, INSURANCE_AGENT, INVESTMENT_AGENT, CUSTOMER
+  permission String   // users.view, agents.create, applications.assign, etc.
+  createdAt  DateTime @default(now())
+
+  @@unique([role, permission])
+}
+
+model SystemSetting {
+  id              String   @id @default(uuid())
+  key             String   @unique
+  value           String
+  category        String   @default("GENERAL")
+  updatedByUserId String?
+  updatedByUser   User?    @relation(fields: [updatedByUserId], references: [id])
+  updatedAt       DateTime @updatedAt
+}
+
+model FAQItem {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  category  String
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+}
+
+model CustomRole {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique // e.g. SUPER_ADMIN, LOAN_AGENT, AUDITOR
+  description String?
+  status      String   @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt   DateTime @default(now())
+}
+
+model Menu {
+  id           String               @id @default(uuid())
+  name         String
+  parentId     String?
+  url          String               @unique
+  icon         String?
+  displayOrder Int                  @default(0)
+  isActive     Boolean              @default(true)
+  description  String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  parent       Menu?                @relation("MenuHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children     Menu[]               @relation("MenuHierarchy")
+  rolePermissions RoleMenuPermission[]
+}
+
+model RoleMenuPermission {
+  id        String   @id @default(uuid())
+  role      String   // SUPER_ADMIN, LOAN_AGENT, INSURANCE_AGENT, INVESTMENT_AGENT, CUSTOMER
+  menuId    String
+  canView   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  menu      Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@unique([role, menuId])
+}
+
+model MethodPermissionDef {
+  id             String                 @id @default(uuid())
+  methodName     String                 // e.g. GetLoanApplications
+  endpoint       String                 // e.g. /api/loan-applications
+  httpMethod     String                 // GET, POST, PUT, DELETE, etc.
+  permissionType String                 // Read, Create, Update, Delete, Download, Upload, Approve, Reject, Assign, Unassign, Export
+  isActive       Boolean                @default(true)
+  description    String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  rolePermissions RoleMethodPermission[]
+}
+
+model RoleMethodPermission {
+  id                 String              @id @default(uuid())
+  role               String              // SUPER_ADMIN, LOAN_AGENT, INSURANCE_AGENT, INVESTMENT_AGENT, CUSTOMER
+  methodPermissionId String
+  isAllowed          Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  methodPermission   MethodPermissionDef @relation(fields: [methodPermissionId], references: [id], onDelete: Cascade)
+
+  @@unique([role, methodPermissionId])
+}
+
+model PermissionGroup {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  status      String   @default("ACTIVE")
+  permissions String   // JSON array string of permission codes
+  createdAt   DateTime @default(now())
+}
+
+model ServiceCategory {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique // LOANS, INSURANCE, INVESTMENTS
+  description String?
+  displayOrder Int     @default(0)
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+}
+
+model Enquiry {
+  id                   String           @id // e.g. ENQ-2026-000001
+  raisedByUserId       String
+  raisedByUser         User             @relation("EnquiryUser", fields: [raisedByUserId], references: [id])
+  userRole             String
+  subject              String
+  category             String           // Loan, Insurance, Investment, Account & Registration, Technical Support, Documents, Payments, Other
+  relatedApplicationId String?
+  description          String
+  status               String           @default("OPEN") // OPEN, IN_PROGRESS, AWAITING_INFORMATION, RESOLVED, CLOSED
+  priority             String           @default("MEDIUM") // LOW, MEDIUM, HIGH
+  attachmentUrl        String?
+  contactEmail         String?
+  contactPhone         String?
+  assignedAgentId      String?
+  assignedAgent        User?            @relation("EnquiryAssignedAgent", fields: [assignedAgentId], references: [id])
+  resolutionComment    String?
+  internalNotes        String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  messages             EnquiryMessage[]
+  history              EnquiryHistory[]
+}
+
+model EnquiryMessage {
+  id            String   @id @default(uuid())
+  enquiryId     String
+  enquiry       Enquiry  @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  senderId      String
+  sender        User     @relation("EnquiryMessageSender", fields: [senderId], references: [id])
+  senderRole    String   // SUPER_ADMIN, LOAN_AGENT, INSURANCE_AGENT, INVESTMENT_AGENT, CUSTOMER
+  message       String
+  attachmentUrl String?
+  createdAt     DateTime @default(now())
+}
+
+model EnquiryHistory {
+  id                String   @id @default(uuid())
+  enquiryId         String
+  enquiry           Enquiry  @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  performedByUserId String
+  performedByUser   User     @relation("EnquiryHistoryUser", fields: [performedByUserId], references: [id])
+  action            String   // ENQUIRY_CREATED, STATUS_CHANGED, PRIORITY_CHANGED, AGENT_ASSIGNED, MESSAGE_ADDED, REOPENED
+  details           String
+  createdAt         DateTime @default(now())
+}
+
+model ComplaintCategory {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+}
+
+model ReleaseNote {
+  id          String   @id @default(uuid())
+  version     String   // e.g. 1.0.0
+  title       String
+  description String
+  updateType  String   // NEW_FEATURE, IMPROVEMENT, BUG_FIX, SECURITY_UPDATE, MAINTENANCE
+  releaseDate DateTime @default(now())
+  status      String   @default("PUBLISHED") // DRAFT, PUBLISHED, ARCHIVED
+  visibility  String   @default("ALL_USERS") // SUPER_ADMIN_ONLY, AGENTS_AND_CUSTOMERS, ALL_USERS
+  createdAt   DateTime @default(now())
+}
+
+model EmailTemplate {
+  id          String   @id @default(uuid())
+  name        String   @unique // AGENT_INVITE, CUSTOMER_INVITE, STATUS_CHANGE, etc.
+  subject     String
+  body        String
+  variables   String   // JSON string of variable placeholders
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+}
+
+model CustomField {
+  id             String   @id @default(uuid())
+  fieldLabel     String
+  fieldName      String   @unique
+  fieldType      String   // Text, Number, Dropdown, Date, File
+  module         String   // Applications, Users, Documents
+  required       Boolean  @default(false)
+  validationRule String?
+  displayOrder   Int      @default(0)
+  status         String   @default("ACTIVE")
+  createdAt      DateTime @default(now())
+}
+
+model Report {
+  id              String   @id @default(uuid())
+  name            String
+  type            String   // APPLICATIONS, USERS, AGENTS, AUDIT
+  format          String   // CSV, PDF, EXCEL
+  fileUrl         String
+  createdByUserId String
+  createdBy       User     @relation("ReportCreator", fields: [createdByUserId], references: [id])
+  createdAt       DateTime @default(now())
+}
+
+model BackupHistory {
+  id            String   @id @default(uuid())
+  fileName      String
+  fileSize      Int
+  status        String   // SUCCESS, FAILED
+  failureReason String?
+  createdAt     DateTime @default(now())
+}
+
+model WhatsAppLog {
+  id             String   @id @default(uuid())
+  recipientPhone String
+  recipientName  String?
+  templateType   String   // REGISTRATION, INVITATION, APP_SUBMITTED, STATUS_UPDATE, DOCUMENT_REQUEST, CUSTOMER_REPLY
+  message        String
+  status         String   @default("SENT") // SENT, DELIVERED, FAILED
+  applicationId  String?
+  metadata       String?  // JSON string
+  createdAt      DateTime @default(now())
+}
+
+model WebsiteContent {
+  id             String   @id @default(uuid())
+  section        String   // HERO, SERVICES, ABOUT, FOOTER, GENERAL
+  key            String   @unique
+  label          String
+  draftValue     String
+  publishedValue String
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+}
+
+model ContactInfo {
+  id             String   @id @default(uuid())
+  key            String   @unique
+  title          String
+  draftValue     String
+  publishedValue String
+  isActive       Boolean  @default(true)
+  displayOrder   Int      @default(0)
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+}
+
+model SocialMediaAcc {
+  id             String   @id @default(uuid())
+  platform       String
+  url            String
+  draftUrl       String?
+  isActive       Boolean  @default(true)
+  draftIsActive  Boolean  @default(true)
+  displayOrder   Int      @default(0)
+  icon           String?
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+}
+
+model WebsiteMedia {
+  id               String   @id @default(uuid())
+  key              String?  @unique
+  title            String
+  draftTitle       String?
+  description      String?
+  draftDescription String?
+  section          String   @default("General")
+  category         String   @default("GENERAL")
+  draftCategory    String?
+  displayType      String   @default("CARD")
+  draftDisplayType String?
+  publishedUrl     String
+  draftUrl         String
+  altText          String?
+  draftAltText     String?
+  displayOrder     Int      @default(0)
+  isActive         Boolean  @default(true)
+  draftIsActive    Boolean  @default(true)
+  status           String   @default("PUBLISHED")
+  createdByUserId  String?
+  createdByName    String?
+  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now())
+}
+
+model WebsiteChangeHistory {
+  id          String   @id @default(uuid())
+  section     String
+  fieldName   String
+  previousVal String?
+  newVal      String?
+  action      String   // SAVE_DRAFT, PUBLISH, DISCARD_DRAFT
+  actorUserId String?
+  actorName   String?
+  actorEmail  String?
+  actorRole   String?
+  createdAt   DateTime @default(now())
+}
