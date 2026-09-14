@@ -9,7 +9,7 @@
   "scripts": {
     "postinstall": "node scripts/generate-prisma.js",
     "build:backend": "node scripts/generate-prisma.js && tsc -p backend/tsconfig.json",
-    "build:frontend": "npm --prefix frontend run build && node -e \"const fs=require('fs'); ['dist', 'public', 'build'].forEach(d => fs.cpSync('frontend/dist', d, {recursive: true})); if (fs.existsSync('api')) fs.cpSync('api', 'dist/api', {recursive: true}); if (fs.existsSync('backend/dist')) fs.cpSync('backend/dist', 'dist/backend/dist', {recursive: true});\"",
+    "build:frontend": "npm --prefix frontend run build && node -e \"const fs=require('fs'); ['dist', 'public', 'build'].forEach(d => fs.cpSync('frontend/dist', d, {recursive: true}));\"",
     "build": "npm run build:backend && npm run build:frontend",
     "vercel-build": "npm run build",
     "dev": "npm --prefix frontend run dev",
