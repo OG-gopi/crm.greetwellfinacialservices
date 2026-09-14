@@ -7,6 +7,7 @@ A COMPLETE, production-style, end-to-end Financial Services Management Portal bu
 ## 🚀 Key Features & Architecture
 
 - **Full-Stack Connectivity**: Connected Frontend + Backend + Database + Authentication + RBAC + Notifications + Audit Logs + File Management.
+- **Unified Vercel Single-Project Architecture**: Single Vercel project serving static Vite frontend (`https://<domain>/`) and Vercel Serverless Function Express API (`https://<domain>/api/*`) with zero cross-domain CORS overhead.
 - **Granular RBAC System**:
   - `SUPER_ADMIN`: Full system access, agent creation/invitation, application assignment, verification center, CMS products, audit logs, global settings.
   - `LOAN_AGENT`: Scoped strictly to assigned customers, loan applications, documents, follow-up tasks, notes/messages.
