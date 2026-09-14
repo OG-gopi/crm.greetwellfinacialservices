@@ -2,8 +2,11 @@ import axios from 'axios';
 
 const getBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
-  if (envUrl) {
+  if (envUrl && envUrl.trim() !== '' && envUrl !== '/api') {
     let url = envUrl.trim().replace(/\/+$/, '');
+    if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+      url = `https://${url}`;
+    }
     if (!url.endsWith('/api') && !url.includes('/api/')) {
       url = `${url}/api`;
     }
