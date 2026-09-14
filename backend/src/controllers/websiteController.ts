@@ -3,13 +3,18 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { prisma } from '../utils/prisma';
+import { CONFIG } from '../config';
 
 // Configure Multer for Website Media Uploads
 const mediaStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '../../uploads/media');
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
+    const uploadPath = path.join(CONFIG.UPLOAD_DIR, 'media');
+    try {
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
+      }
+    } catch (e) {
+      console.warn('Notice creating media upload directory:', e);
     }
     cb(null, uploadPath);
   },

@@ -11,8 +11,12 @@ import { AuthRequest } from '../middleware/authMiddleware';
 // Configure Multer storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    if (!fs.existsSync(CONFIG.UPLOAD_DIR)) {
-      fs.mkdirSync(CONFIG.UPLOAD_DIR, { recursive: true });
+    try {
+      if (!fs.existsSync(CONFIG.UPLOAD_DIR)) {
+        fs.mkdirSync(CONFIG.UPLOAD_DIR, { recursive: true });
+      }
+    } catch (e) {
+      console.warn('Notice creating upload directory:', e);
     }
     cb(null, CONFIG.UPLOAD_DIR);
   },
