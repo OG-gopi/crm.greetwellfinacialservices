@@ -8,8 +8,34 @@ import { CONFIG } from './config';
 
 const app = express();
 
-// Middlewares
-app.use(cors());
+// Configure explicit CORS for deployed frontend domain and local development
+const allowedOrigins = [
+  'https://crm-greetwellfinacialservicescrm.vercel.app',
+  'https://crm-greetwellfinacialservices.vercel.app',
+  'http://localhost:3001',
+  'http://localhost:5000',
+  'http://127.0.0.1:3001',
+  'http://127.0.0.1:5000',
+];
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || (process.env.ALLOWED_ORIGINS && process.env.ALLOWED_ORIGINS.split(',').includes(origin))) {
+      return callback(null, true);
+    }
+    if (origin.endsWith('.vercel.app') || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -24,13 +50,13 @@ app.use('/uploads', (req, res) => {
   return res.status(404).send('Document not found');
 });
 
-// API Routes
-app.use('/api', apiRoutes);
-
-// Health check endpoint
-app.get('/health', (req, res) => {
+// Health check endpoints (both /health and /api/health)
+app.get(['/health', '/api/health'], (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
+
+// API Routes
+app.use('/api', apiRoutes);
 
 // Serve frontend static build if available
 const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');

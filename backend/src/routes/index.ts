@@ -20,6 +20,10 @@ import websiteRoutes from './websiteRoutes';
 
 const router = Router();
 
+router.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/applications', applicationRoutes);

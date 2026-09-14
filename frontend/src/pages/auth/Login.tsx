@@ -52,6 +52,28 @@ export const Login: React.FC = () => {
     }
   }, [location.search]);
 
+  const formatLoginError = (err: any): string => {
+    if (!err.response) {
+      return 'Backend service unavailable. Please verify internet connection or backend server status.';
+    }
+    const status = err.response.status;
+    const serverMessage = typeof err.response.data?.message === 'string' ? err.response.data.message : null;
+
+    if (status === 404) {
+      return 'API route not found (404). Please ensure the backend login endpoint is configured correctly.';
+    }
+    if (status === 401 || status === 400) {
+      return serverMessage || 'Invalid email address or password. Please try again.';
+    }
+    if (status === 500 || status === 503) {
+      if (serverMessage && (serverMessage.toLowerCase().includes('database') || serverMessage.toLowerCase().includes('prisma') || serverMessage.toLowerCase().includes('db'))) {
+        return `Database error: ${serverMessage}`;
+      }
+      return serverMessage || 'Backend server error (500). Please try again later or contact support.';
+    }
+    return serverMessage || `Login request failed with status ${status}.`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -90,7 +112,7 @@ export const Login: React.FC = () => {
         }
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid email address or password. Please try again.');
+      setError(formatLoginError(err));
     } finally {
       setLoading(false);
     }
