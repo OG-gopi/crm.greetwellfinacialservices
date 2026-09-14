@@ -1,8 +1,9 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "memory": 1024,
       "maxDuration": 15
     }
@@ -10,11 +11,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.ts"
+      "destination": "/api/index.js"
     },
     {
       "source": "/health",
-      "destination": "/api/index.ts"
+      "destination": "/api/index.js"
     },
     {
       "source": "/(.*)",
