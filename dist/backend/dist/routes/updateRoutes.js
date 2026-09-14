@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const updateController_1 = require("../controllers/updateController");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const router = (0, express_1.Router)();
+router.use(authMiddleware_1.authenticate);
+router.get('/release-notes', updateController_1.getReleaseNotes);
+router.post('/release-notes', (0, authMiddleware_1.requireRole)('SUPER_ADMIN'), updateController_1.createReleaseNote);
+exports.default = router;
