@@ -52,7 +52,7 @@ app.use('/uploads', (req, res) => {
 
 // Health check endpoints (both /health and /api/health)
 app.get(['/health', '/api/health'], (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // API Routes (mounted on both /api and root for Vercel serverless rewrite resilience)

@@ -54,7 +54,7 @@ export const Login: React.FC = () => {
 
   const formatLoginError = (err: any): string => {
     if (!err.response) {
-      return 'Backend service unavailable. Please verify internet connection or backend server status.';
+      return 'Network error or backend service unavailable. Please check your internet connection or backend server status.';
     }
     const status = err.response.status;
     const serverMessage = typeof err.response.data?.message === 'string' ? err.response.data.message : null;
@@ -62,16 +62,25 @@ export const Login: React.FC = () => {
     if (status === 404) {
       return 'API route not found (404). Please ensure the backend login endpoint is configured correctly.';
     }
-    if (status === 401 || status === 400) {
+    if (status === 401) {
       return serverMessage || 'Invalid email address or password. Please try again.';
+    }
+    if (status === 400) {
+      return serverMessage || 'Validation error: Please check your email and password format.';
+    }
+    if (status === 403) {
+      return serverMessage || 'Access denied (403): Account is inactive or unauthorized for this portal.';
+    }
+    if (status === 409) {
+      return serverMessage || 'Conflict error (409): Account status conflict.';
     }
     if (status === 500 || status === 503) {
       if (serverMessage && (serverMessage.toLowerCase().includes('database') || serverMessage.toLowerCase().includes('prisma') || serverMessage.toLowerCase().includes('db'))) {
-        return `Database error: ${serverMessage}`;
+        return `Database connection error: ${serverMessage}`;
       }
       return serverMessage || 'Backend server error (500). Please try again later or contact support.';
     }
-    return serverMessage || `Login request failed with status ${status}.`;
+    return serverMessage || `Server returned error (${status}). Please try again.`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

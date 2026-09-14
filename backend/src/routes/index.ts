@@ -21,7 +21,7 @@ import websiteRoutes from './websiteRoutes';
 const router = Router();
 
 router.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 router.use('/auth', authRoutes);
