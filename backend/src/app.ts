@@ -55,8 +55,9 @@ app.get(['/health', '/api/health'], (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// API Routes
+// API Routes (mounted on both /api and root for Vercel serverless rewrite resilience)
 app.use('/api', apiRoutes);
+app.use('/', apiRoutes);
 
 // Serve frontend static build if available
 const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
