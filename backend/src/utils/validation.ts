@@ -26,3 +26,40 @@ export function validateIndianMobile(phone: string | null | undefined): { isVali
     cleanPhone: `+${digitsOnly}`,
   };
 }
+
+/**
+ * Safely parses a string or array into a string array.
+ * Prevents SyntaxError exceptions when serviceTypes in DB is stored as:
+ * - JSON string e.g. '["LOANS", "INSURANCE"]'
+ * - Comma-separated string e.g. 'LOANS,INSURANCE' or 'LOANS'
+ * - Already an array e.g. ['LOANS', 'INSURANCE']
+ * - null, undefined, or empty string
+ */
+export function safeParseJsonArray(input: any): string[] {
+  if (!input) return [];
+  if (Array.isArray(input)) return input.map((item) => String(item).trim()).filter(Boolean);
+  if (typeof input !== 'string') return [];
+
+  const trimmed = input.trim();
+  if (!trimmed) return [];
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => String(item).trim()).filter(Boolean);
+    }
+    if (typeof parsed === 'string') {
+      return parsed.split(',').map((item) => item.trim()).filter(Boolean);
+    }
+  } catch (_e) {
+    // If JSON parsing fails (e.g. invalid JSON or plain string like "LOANS,INSURANCE" or "LOANS")
+  }
+
+  // Fallback: split by comma and remove any leading/trailing quotes or brackets
+  const cleaned = trimmed.replace(/^[\["'\s]+|[\]"'\s]+$/g, '');
+  return cleaned
+    .split(',')
+    .map((s) => s.replace(/["'\s]/g, '').trim())
+    .filter(Boolean);
+}
+

@@ -8,7 +8,8 @@ import { createAuditLog } from '../services/auditService';
 import { notifySuperAdmins } from '../services/notificationService';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { generateCustomerId, generateAgentId } from '../utils/appId';
-import { validateIndianMobile } from '../utils/validation';
+import { validateIndianMobile, safeParseJsonArray } from '../utils/validation';
+
 
 export async function login(req: Request, res: Response) {
   try {
@@ -111,7 +112,7 @@ export async function login(req: Request, res: Response) {
           status: user.status,
           customerIdCode: user.customerIdCode,
           agentIdCode: user.agentIdCode,
-          serviceTypes: user.serviceTypes ? JSON.parse(user.serviceTypes) : [],
+          serviceTypes: safeParseJsonArray(user.serviceTypes),
         },
       },
     });
@@ -227,7 +228,7 @@ export async function registerCustomer(req: Request, res: Response) {
           phone: newCustomer.phone,
           role: newCustomer.role,
           status: newCustomer.status,
-          serviceTypes: newCustomer.serviceTypes ? JSON.parse(newCustomer.serviceTypes) : [],
+          serviceTypes: safeParseJsonArray(newCustomer.serviceTypes),
         },
         customerIdCode: newCustomer.customerIdCode,
         email: cleanEmail,
@@ -341,7 +342,7 @@ export async function verifyInviteToken(req: Request, res: Response) {
         firstName: invitation.firstName,
         lastName: invitation.lastName,
         phone: invitation.phone,
-        serviceTypes: invitation.serviceTypes ? JSON.parse(invitation.serviceTypes) : [],
+        serviceTypes: safeParseJsonArray(invitation.serviceTypes),
         customerIdCode: invitation.customerIdCode,
         agentIdCode: invitation.agentIdCode,
         dob: invitation.dob,
@@ -564,7 +565,7 @@ export async function acceptInviteSetupPassword(req: Request, res: Response) {
           status: user.status,
           customerIdCode: user.customerIdCode,
           agentIdCode: user.agentIdCode,
-          serviceTypes: user.serviceTypes ? JSON.parse(user.serviceTypes) : [],
+          serviceTypes: safeParseJsonArray(user.serviceTypes),
         },
       },
     });
@@ -679,7 +680,7 @@ export async function getProfile(req: AuthRequest, res: Response) {
       success: true,
       data: {
         ...user,
-        serviceTypes: user.serviceTypes ? JSON.parse(user.serviceTypes) : [],
+        serviceTypes: safeParseJsonArray(user.serviceTypes),
       },
     });
   } catch (err: any) {

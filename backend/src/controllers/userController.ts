@@ -7,7 +7,7 @@ import { createAuditLog } from '../services/auditService';
 import { createNotification, notifySuperAdmins } from '../services/notificationService';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { generateCustomerId, generateAgentId } from '../utils/appId';
-import { validateIndianMobile } from '../utils/validation';
+import { validateIndianMobile, safeParseJsonArray } from '../utils/validation';
 import { whatsAppService } from '../services/whatsappService';
 
 export async function getUsers(req: AuthRequest, res: Response) {
@@ -96,7 +96,7 @@ export async function getUsers(req: AuthRequest, res: Response) {
 
     const formattedUsers = users.map((u) => ({
       ...u,
-      serviceTypes: u.serviceTypes ? JSON.parse(u.serviceTypes) : [],
+      serviceTypes: safeParseJsonArray(u.serviceTypes),
     }));
 
     return res.json({
@@ -164,7 +164,7 @@ export async function getUserById(req: AuthRequest, res: Response) {
       success: true,
       data: {
         ...safeUser,
-        serviceTypes: safeUser.serviceTypes ? JSON.parse(safeUser.serviceTypes) : [],
+        serviceTypes: safeParseJsonArray(safeUser.serviceTypes),
       },
     });
   } catch (err: any) {
@@ -678,7 +678,7 @@ export async function getInvitations(req: AuthRequest, res: Response) {
 
     const formatted = invitations.map((inv) => ({
       ...inv,
-      serviceTypes: inv.serviceTypes ? JSON.parse(inv.serviceTypes) : [],
+      serviceTypes: safeParseJsonArray(inv.serviceTypes),
     }));
 
     return res.json({ success: true, data: formatted });
@@ -770,7 +770,7 @@ export async function requestServiceAccess(req: AuthRequest, res: Response) {
       return res.status(404).json({ success: false, message: 'User account not found.' });
     }
 
-    const existingServices: string[] = currentUser.serviceTypes ? JSON.parse(currentUser.serviceTypes) : [];
+    const existingServices: string[] = safeParseJsonArray(currentUser.serviceTypes);
     if (existingServices.includes(serviceCode)) {
       return res.status(400).json({ success: false, message: `Service '${serviceCode}' is already enabled for your account.` });
     }

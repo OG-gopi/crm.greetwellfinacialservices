@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../utils/prisma';
 import { AuthRequest } from '../middleware/authMiddleware';
+import { safeParseJsonArray } from '../utils/validation';
 
 export async function getNotifications(req: AuthRequest, res: Response) {
   try {
@@ -95,9 +96,7 @@ export async function getNotifications(req: AuthRequest, res: Response) {
         where: { id: userId },
         select: { serviceTypes: true },
       });
-      const enabledServices: string[] = customerRecord?.serviceTypes
-        ? JSON.parse(customerRecord.serviceTypes).map((s: string) => s.toUpperCase())
-        : ['LOANS'];
+      const enabledServices: string[] = safeParseJsonArray(customerRecord?.serviceTypes).map((s: string) => s.toUpperCase());
 
       const allowedModules = ['GENERAL', 'SYSTEM', 'CUSTOMERS', 'APPLICATIONS', 'DOCUMENTS', 'COMMENTS'];
       if (enabledServices.includes('LOAN') || enabledServices.includes('LOANS')) {

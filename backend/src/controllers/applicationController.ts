@@ -5,7 +5,7 @@ import { createAuditLog } from '../services/auditService';
 import { createNotification, notifySuperAdmins } from '../services/notificationService';
 import { emailService } from '../services/emailService';
 import { whatsAppService } from '../services/whatsappService';
-import { validateIndianMobile } from '../utils/validation';
+import { validateIndianMobile, safeParseJsonArray } from '../utils/validation';
 import { AuthRequest } from '../middleware/authMiddleware';
 
 const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -201,9 +201,7 @@ export async function createApplication(req: AuthRequest, res: Response) {
         where: { id: user.id },
         select: { serviceTypes: true },
       });
-      const customerServices: string[] = customerRecord?.serviceTypes
-        ? JSON.parse(customerRecord.serviceTypes).map((s: string) => s.toUpperCase())
-        : ['LOANS'];
+      const customerServices: string[] = safeParseJsonArray(customerRecord?.serviceTypes).map((s: string) => s.toUpperCase());
 
       const categoryMap: Record<string, string[]> = {
         LOAN: ['LOAN', 'LOANS'],

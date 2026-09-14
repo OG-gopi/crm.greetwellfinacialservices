@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, JwtPayload } from '../utils/jwt';
 import { prisma } from '../utils/prisma';
+import { safeParseJsonArray } from '../utils/validation';
 
 export interface AuthRequest extends Request {
   user?: JwtPayload & {
@@ -36,14 +37,7 @@ export async function authenticate(req: AuthRequest, res: Response, next: NextFu
       return res.status(403).json({ success: false, message: 'Your account is deactivated or pending verification.' });
     }
 
-    let parsedServiceTypes: string[] = [];
-    if (user.serviceTypes) {
-      try {
-        parsedServiceTypes = typeof user.serviceTypes === 'string' ? JSON.parse(user.serviceTypes) : user.serviceTypes;
-      } catch (e) {
-        parsedServiceTypes = [user.serviceTypes];
-      }
-    }
+    const parsedServiceTypes: string[] = safeParseJsonArray(user.serviceTypes);
 
     req.user = {
       userId: user.id,
