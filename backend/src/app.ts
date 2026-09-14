@@ -10,6 +10,7 @@ const app = express();
 
 // Configure explicit CORS for deployed frontend domain and local development
 const allowedOrigins = [
+  'https://crmgreetwellfinacialservices.vercel.app',
   'https://crm-greetwellfinacialservicescrm.vercel.app',
   'https://crm-greetwellfinacialservices.vercel.app',
   'http://localhost:3001',
@@ -66,7 +67,11 @@ app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/health')) {
     return next();
   }
-  res.sendFile(path.join(frontendDistPath, 'index.html'));
+  const indexPath = path.join(frontendDistPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  next();
 });
 
 // Centralized error handler
