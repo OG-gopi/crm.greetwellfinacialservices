@@ -117,11 +117,10 @@ async function run() {
     // Vercel / Production deployment MUST always use PostgreSQL production schema
     targetSchema = postgresSchemaPath;
     useSqlite = false;
-    if (!process.env.DATABASE_URL) {
-      process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/greetwell_crm?schema=public';
-    }
-    if (!process.env.DIRECT_URL) {
-      process.env.DIRECT_URL = process.env.DATABASE_URL;
+    const directSupabaseUrl = 'postgresql://postgres:7893220502%40Gopi@db.wthrxtouwlhjwcfnhkgo.supabase.co:5432/postgres';
+    if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('pooler.supabase.com')) {
+      process.env.DATABASE_URL = directSupabaseUrl;
+      process.env.DIRECT_URL = directSupabaseUrl;
     }
   } else {
     // Local development mode
