@@ -2,21 +2,18 @@
   "version": 2,
   "buildCommand": "npm run build",
   "functions": {
-    "api/**/*.js": {
-      "includeFiles": "node_modules/.prisma/client/**"
-    },
-    "api/**/*.ts": {
-      "includeFiles": "node_modules/.prisma/client/**"
+    "api/index.js": {
+      "includeFiles": "backend/dist/**"
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index"
+      "destination": "/api/index.js"
     },
     {
       "source": "/health",
-      "destination": "/api/index"
+      "destination": "/api/index.js"
     },
     {
       "source": "/(.*)",
