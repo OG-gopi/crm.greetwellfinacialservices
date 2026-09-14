@@ -3,12 +3,13 @@ import { PrismaClient } from '@prisma/client';
 const isVercel = !!(process.env.VERCEL || process.env.NOW_BUILD || process.env.CI);
 const isProduction = process.env.NODE_ENV === 'production' || isVercel;
 
-if (!process.env.DATABASE_URL) {
-  if (!isProduction) {
-    process.env.DATABASE_URL = 'file:./dev.db';
-  } else {
-    console.warn('DATABASE_URL is not set in environment variables. Setting default fallback.');
-    process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/greetwell_crm?schema=public';
+const directSupabaseUrl = 'postgresql://postgres:7893220502%40Gopi@db.wthrxtouwlhjwcfnhkgo.supabase.co:5432/postgres';
+
+if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('pooler.supabase.com') || process.env.DATABASE_URL.includes('localhost')) {
+  if (isProduction || process.env.DATABASE_URL?.includes('pooler.supabase.com')) {
+    console.log('Using direct Supabase PostgreSQL URL fallback');
+    process.env.DATABASE_URL = directSupabaseUrl;
+    process.env.DIRECT_URL = directSupabaseUrl;
   }
 }
 
