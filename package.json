@@ -39,5 +39,8 @@
     "portal"
   ],
   "author": "Greetwell Financial Services",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@vercel/node": "^13.0.0"
+  }
 }
