@@ -75,9 +75,11 @@ const AVAILABLE_ICONS: Record<string, any> = {
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse }) => {
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
   const location = useLocation();
@@ -154,6 +156,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   }, [location.pathname, dynamicMenus]);
 
   const toggleSubMenu = (menuKey: string) => {
+    if (isCollapsed && onToggleCollapse) {
+      onToggleCollapse();
+    }
     setOpenSubMenus((prev) => (prev[menuKey] ? {} : { [menuKey]: true }));
   };
 
@@ -172,31 +177,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   // Render Role-Specific Sidebar for non-Super Admin roles
   if (user.role === 'LOAN_AGENT') {
-    return <LoanAgentSidebar isOpen={isOpen} onClose={onClose} />;
+    return <LoanAgentSidebar isOpen={isOpen} onClose={onClose} isCollapsed={isCollapsed} onToggleCollapse={onToggleCollapse} />;
   }
   if (user.role === 'INSURANCE_AGENT') {
-    return <InsuranceAgentSidebar isOpen={isOpen} onClose={onClose} />;
+    return <InsuranceAgentSidebar isOpen={isOpen} onClose={onClose} isCollapsed={isCollapsed} onToggleCollapse={onToggleCollapse} />;
   }
   if (user.role === 'INVESTMENT_AGENT') {
-    return <InvestmentAgentSidebar isOpen={isOpen} onClose={onClose} />;
+    return <InvestmentAgentSidebar isOpen={isOpen} onClose={onClose} isCollapsed={isCollapsed} onToggleCollapse={onToggleCollapse} />;
   }
   if (user.role === 'CUSTOMER') {
-    return <CustomerSidebar isOpen={isOpen} onClose={onClose} />;
+    return <CustomerSidebar isOpen={isOpen} onClose={onClose} isCollapsed={isCollapsed} onToggleCollapse={onToggleCollapse} />;
   }
 
   const renderIcon = (iconName: string, isActive: boolean) => {
     const IconComp = AVAILABLE_ICONS[iconName] || FileText;
     return (
       <IconComp
-        className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 transition-colors ${
-          isActive ? 'text-white' : 'text-[#1d63ed]'
-        }`}
+        className={`h-[22px] w-[22px] flex-shrink-0 transition-all ${
+          isCollapsed ? 'mr-0' : 'mr-3.5'
+        } ${isActive ? 'text-white' : 'text-[#1d63ed]'}`}
       />
     );
   };
 
   const getNavItemClasses = (isActive: boolean) =>
-    `flex items-center px-4 h-12 rounded-xl transition-all ${
+    `flex items-center h-12 rounded-xl transition-all ${
+      isCollapsed ? 'justify-center px-0' : 'px-4'
+    } ${
       isActive
         ? 'bg-[#2377fc] text-white font-bold shadow-md shadow-blue-500/20'
         : 'text-[#1e3a8a] hover:bg-blue-100/70 hover:text-[#0f2852]'
@@ -219,13 +226,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
       {/* Sidebar Container: Light Soft Blue Background */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-[#e8f1fd] text-slate-800 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-blue-200/80 shadow-sm ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 z-50 h-full bg-[#e8f1fd] text-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-blue-200/80 shadow-sm ${
+          isCollapsed ? 'lg:w-20 w-64' : 'w-64'
+        } ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header Logo & Super Admin Crown Role Badge */}
-          <div className="pt-4 pb-4 px-5 flex flex-col items-center justify-center relative bg-[#e8f1fd]">
+          <div className="pt-4 pb-4 px-3 flex flex-col items-center justify-center relative bg-[#e8f1fd]">
             <button
               onClick={onClose}
               className="absolute right-3 top-3 text-slate-500 hover:text-slate-900 lg:hidden"
@@ -233,13 +240,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <X className="h-5 w-5" />
             </button>
 
+            {onToggleCollapse && (
+              <button
+                onClick={onToggleCollapse}
+                className="hidden lg:flex absolute right-2 top-2 p-1.5 text-slate-500 hover:text-blue-700 hover:bg-white/80 rounded-lg transition-colors cursor-pointer"
+                title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+              >
+                <MenuIcon className="h-4 w-4" />
+              </button>
+            )}
+
             {/* Clickable GFS Logo at the Top */}
-            <GFSLogo size="lg" variant="card" onClick={handleLogoClick} />
+            <div className="transition-all">
+              <GFSLogo size={isCollapsed ? 'sm' : 'lg'} variant="card" onClick={handleLogoClick} />
+            </div>
 
             {/* Super Admin Role Badge */}
-            <div className="mt-3.5 px-4 py-1.5 rounded-full bg-white/90 text-[#1e3a8a] border border-blue-200/80 text-xs font-extrabold shadow-sm flex items-center gap-1.5 font-sans">
-              <Crown className="w-4 h-4 text-blue-600 fill-blue-100" />
-              <span>Super Admin</span>
+            <div className={`mt-3 px-3 py-1 rounded-full bg-white/90 text-[#1e3a8a] border border-blue-200/80 text-xs font-extrabold shadow-sm flex items-center justify-center gap-1.5 font-sans transition-all ${
+              isCollapsed ? 'px-2 py-1' : 'px-4 py-1.5'
+            }`}>
+              <Crown className="w-4 h-4 text-blue-600 fill-blue-100 flex-shrink-0" />
+              {!isCollapsed && <span>Super Admin</span>}
             </div>
           </div>
 
@@ -255,12 +276,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                       key={m.id}
                       to={m.url}
                       onClick={onClose}
+                      title={m.name}
                       className={({ isActive }) => getNavItemClasses(isActive)}
                     >
                       {({ isActive }) => (
                         <>
                           {renderIcon(m.icon, isActive)}
-                          <span className="truncate">{m.name}</span>
+                          {!isCollapsed && <span className="truncate">{m.name}</span>}
                         </>
                       )}
                     </NavLink>
@@ -273,22 +295,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   <div key={m.id}>
                     <button
                       onClick={() => toggleSubMenu(m.id)}
-                      className={`w-full flex items-center justify-between px-4 h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/80 hover:text-[#0f2852] font-semibold ${
+                      title={m.name}
+                      className={`w-full flex items-center ${
+                        isCollapsed ? 'justify-center px-0' : 'justify-between px-4'
+                      } h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/80 hover:text-[#0f2852] font-semibold ${
                         isSubOpen ? 'bg-blue-100/60 text-[#0f2852]' : ''
                       }`}
                     >
                       <div className="flex items-center truncate">
                         {renderIcon(m.icon, false)}
-                        <span className="truncate">{m.name}</span>
+                        {!isCollapsed && <span className="truncate">{m.name}</span>}
                       </div>
-                      <ChevronDown
-                        className={`h-4 w-4 text-[#1d63ed] ml-auto flex-shrink-0 transition-transform ${
-                          isSubOpen ? 'rotate-180 text-blue-700' : ''
-                        }`}
-                      />
+                      {!isCollapsed && (
+                        <ChevronDown
+                          className={`h-4 w-4 text-[#1d63ed] ml-auto flex-shrink-0 transition-transform ${
+                            isSubOpen ? 'rotate-180 text-blue-700' : ''
+                          }`}
+                        />
+                      )}
                     </button>
 
-                    {isSubOpen && (
+                    {isSubOpen && !isCollapsed && (
                       <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-blue-100 text-xs shadow-inner">
                         {m.children.map((c: any) => (
                           <NavLink

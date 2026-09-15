@@ -20,9 +20,11 @@ import { GFSLogo } from './GFSLogo';
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse }) => {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
   const location = useLocation();
@@ -42,6 +44,9 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => 
   }, [location.pathname]);
 
   const toggleSubMenu = (key: string) => {
+    if (isCollapsed && onToggleCollapse) {
+      onToggleCollapse();
+    }
     setOpenSubMenus((prev) => (prev[key] ? {} : { [key]: true }));
   };
 
@@ -74,20 +79,22 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => 
 
       {/* Sidebar Container: Light Blue Background */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-[#e8f1fd] text-slate-800 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-blue-200/80 shadow-sm ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 z-50 h-full bg-[#e8f1fd] text-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-blue-200/80 shadow-sm ${
+          isCollapsed ? 'lg:w-20 w-64' : 'w-64'
+        } ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header Logo & Customer Desk Role Badge */}
-          <div className="pt-4 pb-4 px-5 flex flex-col items-center justify-center relative bg-[#e8f1fd]">
+          <div className="pt-4 pb-4 px-3 flex flex-col items-center justify-center relative bg-[#e8f1fd]">
             <button onClick={onClose} className="absolute right-3 top-3 text-slate-500 hover:text-slate-900 lg:hidden">
               <X className="h-5 w-5" />
             </button>
-            <GFSLogo size="lg" variant="card" onClick={handleLogoClick} />
-            <div className="mt-3.5 px-4 py-1.5 rounded-full bg-white/90 text-[#1e3a8a] border border-blue-200/80 text-xs font-extrabold shadow-sm flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-blue-600" />
-              <span>Customer Portal</span>
+            <GFSLogo size={isCollapsed ? 'sm' : 'lg'} variant="card" onClick={handleLogoClick} />
+            <div className={`mt-3 px-3 py-1 rounded-full bg-white/90 text-[#1e3a8a] border border-blue-200/80 text-xs font-extrabold shadow-sm flex items-center justify-center gap-1.5 transition-all ${
+              isCollapsed ? 'px-2 py-1' : 'px-4 py-1.5'
+            }`}>
+              <User className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+              {!isCollapsed && <span>Customer Portal</span>}
             </div>
           </div>
 
@@ -97,8 +104,11 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => 
             <NavLink
               to="/customer/dashboard"
               onClick={onClose}
+              title="Dashboard"
               className={({ isActive }) =>
-                `flex items-center px-4 h-12 rounded-xl transition-all ${
+                `flex items-center h-12 rounded-xl transition-all ${
+                  isCollapsed ? 'justify-center px-0' : 'px-4'
+                } ${
                   isActive
                     ? 'bg-[#2377fc] text-white font-bold shadow-md shadow-blue-500/20'
                     : 'text-[#1e3a8a] hover:bg-blue-100/70 hover:text-[#0f2852]'
@@ -107,8 +117,8 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => 
             >
               {({ isActive }) => (
                 <>
-                  <LayoutDashboard className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                  <span>Dashboard</span>
+                  <LayoutDashboard className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                  {!isCollapsed && <span>Dashboard</span>}
                 </>
               )}
             </NavLink>
@@ -117,21 +127,24 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => 
             <div>
               <button
                 onClick={() => toggleSubMenu('applications')}
-                className={`w-full flex items-center justify-between px-4 h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/70 hover:text-[#0f2852] ${
+                title="My Applications"
+                className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-4'} h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/70 hover:text-[#0f2852] ${
                   openSubMenus['applications'] ? 'bg-blue-100/50' : ''
                 }`}
               >
                 <div className="flex items-center truncate">
-                  <FileText className="h-[22px] w-[22px] mr-3.5 flex-shrink-0 text-[#1d63ed]" />
-                  <span className="truncate">My Applications</span>
+                  <FileText className={`h-[22px] w-[22px] flex-shrink-0 text-[#1d63ed] ${isCollapsed ? 'mr-0' : 'mr-3.5'}`} />
+                  {!isCollapsed && <span className="truncate">My Applications</span>}
                 </div>
-                <ChevronDown
-                  className={`h-4 w-4 text-blue-500 ml-auto flex-shrink-0 transition-transform ${
-                    openSubMenus['applications'] ? 'rotate-180 text-blue-700' : ''
-                  }`}
-                />
+                {!isCollapsed && (
+                  <ChevronDown
+                    className={`h-4 w-4 text-blue-500 ml-auto flex-shrink-0 transition-transform ${
+                      openSubMenus['applications'] ? 'rotate-180 text-blue-700' : ''
+                    }`}
+                  />
+                )}
               </button>
-              {openSubMenus['applications'] && (
+              {openSubMenus['applications'] && !isCollapsed && (
                 <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-blue-100 text-xs shadow-inner">
                   <NavLink
                     to="/customer/applications"
@@ -198,8 +211,11 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => 
             <NavLink
               to="/customer/documents"
               onClick={onClose}
+              title="My Documents"
               className={({ isActive }) =>
-                `flex items-center px-4 h-12 rounded-xl transition-all ${
+                `flex items-center h-12 rounded-xl transition-all ${
+                  isCollapsed ? 'justify-center px-0' : 'px-4'
+                } ${
                   isActive
                     ? 'bg-[#2377fc] text-white font-bold shadow-md shadow-blue-500/20'
                     : 'text-[#1e3a8a] hover:bg-blue-100/70 hover:text-[#0f2852]'
@@ -208,8 +224,8 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => 
             >
               {({ isActive }) => (
                 <>
-                  <FolderOpen className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                  <span>My Documents</span>
+                  <FolderOpen className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                  {!isCollapsed && <span>My Documents</span>}
                 </>
               )}
             </NavLink>
@@ -218,8 +234,11 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => 
             <NavLink
               to="/customer/enquiries"
               onClick={onClose}
+              title="Help & Enquiries"
               className={({ isActive }) =>
-                `flex items-center px-4 h-12 rounded-xl transition-all ${
+                `flex items-center h-12 rounded-xl transition-all ${
+                  isCollapsed ? 'justify-center px-0' : 'px-4'
+                } ${
                   isActive
                     ? 'bg-[#2377fc] text-white font-bold shadow-md shadow-blue-500/20'
                     : 'text-[#1e3a8a] hover:bg-blue-100/70 hover:text-[#0f2852]'
@@ -228,8 +247,8 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => 
             >
               {({ isActive }) => (
                 <>
-                  <AlertCircle className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                  <span>Help & Enquiries</span>
+                  <AlertCircle className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                  {!isCollapsed && <span>Help & Enquiries</span>}
                 </>
               )}
             </NavLink>
@@ -238,8 +257,11 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => 
             <NavLink
               to="/customer/updates"
               onClick={onClose}
+              title="Platform Updates"
               className={({ isActive }) =>
-                `flex items-center px-4 h-12 rounded-xl transition-all ${
+                `flex items-center h-12 rounded-xl transition-all ${
+                  isCollapsed ? 'justify-center px-0' : 'px-4'
+                } ${
                   isActive
                     ? 'bg-[#2377fc] text-white font-bold shadow-md shadow-blue-500/20'
                     : 'text-[#1e3a8a] hover:bg-blue-100/70 hover:text-[#0f2852]'
@@ -248,8 +270,8 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => 
             >
               {({ isActive }) => (
                 <>
-                  <Sparkles className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                  <span>Platform Updates</span>
+                  <Sparkles className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                  {!isCollapsed && <span>Platform Updates</span>}
                 </>
               )}
             </NavLink>
@@ -258,8 +280,11 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => 
             <NavLink
               to="/profile"
               onClick={onClose}
+              title="My Profile"
               className={({ isActive }) =>
-                `flex items-center px-4 h-12 rounded-xl transition-all ${
+                `flex items-center h-12 rounded-xl transition-all ${
+                  isCollapsed ? 'justify-center px-0' : 'px-4'
+                } ${
                   isActive
                     ? 'bg-[#2377fc] text-white font-bold shadow-md shadow-blue-500/20'
                     : 'text-[#1e3a8a] hover:bg-blue-100/70 hover:text-[#0f2852]'
@@ -268,8 +293,8 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => 
             >
               {({ isActive }) => (
                 <>
-                  <UserCheck className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                  <span>My Profile</span>
+                  <UserCheck className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                  {!isCollapsed && <span>My Profile</span>}
                 </>
               )}
             </NavLink>
@@ -277,9 +302,9 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => 
         </div>
 
         {/* Footer Logout */}
-        <div className="p-4 border-t border-blue-200/60 bg-[#e8f1fd] flex items-center justify-between text-xs">
-          <button onClick={logout} className="text-rose-600 hover:text-rose-700 font-extrabold flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-rose-50 transition-colors w-full justify-center border border-rose-200/60 bg-white/80 shadow-sm">
-            <LogOut className="h-4 w-4" /> Logout Account
+        <div className="p-3 border-t border-blue-200/60 bg-[#e8f1fd] flex items-center justify-between text-xs">
+          <button onClick={logout} title="Logout Account" className="text-rose-600 hover:text-rose-700 font-extrabold flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-rose-50 transition-colors w-full justify-center border border-rose-200/60 bg-white/80 shadow-sm">
+            <LogOut className="h-4 w-4 shrink-0" /> {!isCollapsed && <span>Logout Account</span>}
           </button>
         </div>
       </aside>

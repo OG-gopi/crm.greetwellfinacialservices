@@ -21,9 +21,11 @@ import { GFSLogo } from './GFSLogo';
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse }) => {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
   const location = useLocation();
@@ -47,6 +49,9 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
   }, [location.pathname]);
 
   const toggleSubMenu = (key: string) => {
+    if (isCollapsed && onToggleCollapse) {
+      onToggleCollapse();
+    }
     setOpenSubMenus((prev) => (prev[key] ? {} : { [key]: true }));
   };
 
@@ -72,20 +77,22 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
 
       {/* Sidebar Container: Light Mint Background */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-[#e8f7f2] text-slate-800 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-emerald-200/80 shadow-sm ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 z-50 h-full bg-[#e8f7f2] text-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-emerald-200/80 shadow-sm ${
+          isCollapsed ? 'lg:w-20 w-64' : 'w-64'
+        } ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header Logo & Loan Agent Desk Role Badge */}
-          <div className="pt-4 pb-4 px-5 flex flex-col items-center justify-center relative bg-[#e8f7f2]">
+          <div className="pt-4 pb-4 px-3 flex flex-col items-center justify-center relative bg-[#e8f7f2]">
             <button onClick={onClose} className="absolute right-3 top-3 text-slate-500 hover:text-slate-900 lg:hidden">
               <X className="h-5 w-5" />
             </button>
-            <GFSLogo size="lg" variant="card" onClick={handleLogoClick} />
-            <div className="mt-3.5 px-4 py-1.5 rounded-full bg-white/90 text-emerald-900 border border-emerald-300/80 text-xs font-extrabold shadow-sm flex items-center gap-1.5">
-              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Loan Agent Desk</span>
+            <GFSLogo size={isCollapsed ? 'sm' : 'lg'} variant="card" onClick={handleLogoClick} />
+            <div className={`mt-3 px-3 py-1 rounded-full bg-white/90 text-emerald-900 border border-emerald-300/80 text-xs font-extrabold shadow-sm flex items-center justify-center gap-1.5 transition-all ${
+              isCollapsed ? 'px-2 py-1' : 'px-4 py-1.5'
+            }`}>
+              <UserCheck className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+              {!isCollapsed && <span>Loan Agent Desk</span>}
             </div>
           </div>
 
@@ -95,18 +102,21 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
             <NavLink
               to="/loan-agent/dashboard"
               onClick={onClose}
+              title="Dashboard"
               className={({ isActive }) =>
-                `flex items-center px-4 h-12 rounded-xl transition-all ${
+                `flex items-center h-12 rounded-xl transition-all ${
+                  isCollapsed ? 'justify-center px-0' : 'px-4'
+                } ${
                   isActive
-                    ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20'
+                    ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20'
                     : 'text-emerald-950 hover:bg-emerald-100/70 hover:text-emerald-900'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <LayoutDashboard className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-emerald-600'}`} />
-                  <span>Dashboard</span>
+                  <LayoutDashboard className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-emerald-700'}`} />
+                  {!isCollapsed && <span>Dashboard</span>}
                 </>
               )}
             </NavLink>
@@ -115,21 +125,24 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
             <div>
               <button
                 onClick={() => toggleSubMenu('customers')}
-                className={`w-full flex items-center justify-between px-4 h-12 rounded-xl transition-all text-emerald-950 hover:bg-emerald-100/70 hover:text-emerald-900 ${
+                title="Customers"
+                className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-4'} h-12 rounded-xl transition-all text-emerald-950 hover:bg-emerald-100/70 hover:text-emerald-900 ${
                   openSubMenus['customers'] ? 'bg-emerald-100/50' : ''
                 }`}
               >
                 <div className="flex items-center truncate">
-                  <Users className="h-[22px] w-[22px] mr-3.5 flex-shrink-0 text-emerald-600" />
-                  <span className="truncate">Customers</span>
+                  <Users className={`h-[22px] w-[22px] flex-shrink-0 text-emerald-600 ${isCollapsed ? 'mr-0' : 'mr-3.5'}`} />
+                  {!isCollapsed && <span className="truncate">Customers</span>}
                 </div>
-                <ChevronDown
-                  className={`h-4 w-4 text-emerald-500 ml-auto flex-shrink-0 transition-transform ${
-                    openSubMenus['customers'] ? 'rotate-180 text-emerald-700' : ''
-                  }`}
-                />
+                {!isCollapsed && (
+                  <ChevronDown
+                    className={`h-4 w-4 text-emerald-500 ml-auto flex-shrink-0 transition-transform ${
+                      openSubMenus['customers'] ? 'rotate-180 text-emerald-700' : ''
+                    }`}
+                  />
+                )}
               </button>
-              {openSubMenus['customers'] && (
+              {openSubMenus['customers'] && !isCollapsed && (
                 <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-emerald-100 text-xs shadow-inner">
                   <NavLink
                     to="/loan-agent/customers"
@@ -150,21 +163,24 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
             <div>
               <button
                 onClick={() => toggleSubMenu('applications')}
-                className={`w-full flex items-center justify-between px-4 h-12 rounded-xl transition-all text-emerald-950 hover:bg-emerald-100/70 hover:text-emerald-900 ${
+                title="Applications"
+                className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-4'} h-12 rounded-xl transition-all text-emerald-950 hover:bg-emerald-100/70 hover:text-emerald-900 ${
                   openSubMenus['applications'] ? 'bg-emerald-100/50' : ''
                 }`}
               >
                 <div className="flex items-center truncate">
-                  <FileText className="h-[22px] w-[22px] mr-3.5 flex-shrink-0 text-emerald-600" />
-                  <span className="truncate">Applications</span>
+                  <FileText className={`h-[22px] w-[22px] flex-shrink-0 text-emerald-600 ${isCollapsed ? 'mr-0' : 'mr-3.5'}`} />
+                  {!isCollapsed && <span className="truncate">Applications</span>}
                 </div>
-                <ChevronDown
-                  className={`h-4 w-4 text-emerald-500 ml-auto flex-shrink-0 transition-transform ${
-                    openSubMenus['applications'] ? 'rotate-180 text-emerald-700' : ''
-                  }`}
-                />
+                {!isCollapsed && (
+                  <ChevronDown
+                    className={`h-4 w-4 text-emerald-500 ml-auto flex-shrink-0 transition-transform ${
+                      openSubMenus['applications'] ? 'rotate-180 text-emerald-700' : ''
+                    }`}
+                  />
+                )}
               </button>
-              {openSubMenus['applications'] && (
+              {openSubMenus['applications'] && !isCollapsed && (
                 <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-emerald-100 text-xs shadow-inner">
                   <NavLink
                     to="/loan-agent/applications"
@@ -203,21 +219,24 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
             <div>
               <button
                 onClick={() => toggleSubMenu('documents')}
-                className={`w-full flex items-center justify-between px-4 h-12 rounded-xl transition-all text-emerald-950 hover:bg-emerald-100/70 hover:text-emerald-900 ${
+                title="Documents"
+                className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-4'} h-12 rounded-xl transition-all text-emerald-950 hover:bg-emerald-100/70 hover:text-emerald-900 ${
                   openSubMenus['documents'] ? 'bg-emerald-100/50' : ''
                 }`}
               >
                 <div className="flex items-center truncate">
-                  <FolderOpen className="h-[22px] w-[22px] mr-3.5 flex-shrink-0 text-emerald-600" />
-                  <span className="truncate">Documents</span>
+                  <FolderOpen className={`h-[22px] w-[22px] flex-shrink-0 text-emerald-600 ${isCollapsed ? 'mr-0' : 'mr-3.5'}`} />
+                  {!isCollapsed && <span className="truncate">Documents</span>}
                 </div>
-                <ChevronDown
-                  className={`h-4 w-4 text-emerald-500 ml-auto flex-shrink-0 transition-transform ${
-                    openSubMenus['documents'] ? 'rotate-180 text-emerald-700' : ''
-                  }`}
-                />
+                {!isCollapsed && (
+                  <ChevronDown
+                    className={`h-4 w-4 text-emerald-500 ml-auto flex-shrink-0 transition-transform ${
+                      openSubMenus['documents'] ? 'rotate-180 text-emerald-700' : ''
+                    }`}
+                  />
+                )}
               </button>
-              {openSubMenus['documents'] && (
+              {openSubMenus['documents'] && !isCollapsed && (
                 <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-emerald-100 text-xs shadow-inner">
                   <NavLink
                     to="/loan-agent/documents"
@@ -238,8 +257,11 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
             <NavLink
               to="/loan-agent/tasks"
               onClick={onClose}
+              title="Pending Tasks"
               className={({ isActive }) =>
-                `flex items-center px-4 h-12 rounded-xl transition-all ${
+                `flex items-center h-12 rounded-xl transition-all ${
+                  isCollapsed ? 'justify-center px-0' : 'px-4'
+                } ${
                   isActive
                     ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20'
                     : 'text-emerald-950 hover:bg-emerald-100/70 hover:text-emerald-900'
@@ -248,8 +270,8 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
             >
               {({ isActive }) => (
                 <>
-                  <CheckSquare className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-emerald-600'}`} />
-                  <span>Pending Tasks</span>
+                  <CheckSquare className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-emerald-600'}`} />
+                  {!isCollapsed && <span>Pending Tasks</span>}
                 </>
               )}
             </NavLink>
@@ -258,8 +280,11 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
             <NavLink
               to="/loan-agent/reports"
               onClick={onClose}
+              title="Loan Reports"
               className={({ isActive }) =>
-                `flex items-center px-4 h-12 rounded-xl transition-all ${
+                `flex items-center h-12 rounded-xl transition-all ${
+                  isCollapsed ? 'justify-center px-0' : 'px-4'
+                } ${
                   isActive
                     ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20'
                     : 'text-emerald-950 hover:bg-emerald-100/70 hover:text-emerald-900'
@@ -268,8 +293,8 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
             >
               {({ isActive }) => (
                 <>
-                  <BarChart3 className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-emerald-600'}`} />
-                  <span>Loan Reports</span>
+                  <BarChart3 className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-emerald-600'}`} />
+                  {!isCollapsed && <span>Loan Reports</span>}
                 </>
               )}
             </NavLink>
@@ -278,8 +303,11 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
             <NavLink
               to="/profile"
               onClick={onClose}
+              title="My Profile"
               className={({ isActive }) =>
-                `flex items-center px-4 h-12 rounded-xl transition-all ${
+                `flex items-center h-12 rounded-xl transition-all ${
+                  isCollapsed ? 'justify-center px-0' : 'px-4'
+                } ${
                   isActive
                     ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20'
                     : 'text-emerald-950 hover:bg-emerald-100/70 hover:text-emerald-900'
@@ -288,8 +316,8 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
             >
               {({ isActive }) => (
                 <>
-                  <UserCheck className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-emerald-600'}`} />
-                  <span>My Profile</span>
+                  <UserCheck className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-emerald-600'}`} />
+                  {!isCollapsed && <span>My Profile</span>}
                 </>
               )}
             </NavLink>
@@ -298,8 +326,11 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
             <NavLink
               to="/loan-agent/enquiries"
               onClick={onClose}
+              title="Support & Enquiries"
               className={({ isActive }) =>
-                `flex items-center px-4 h-12 rounded-xl transition-all ${
+                `flex items-center h-12 rounded-xl transition-all ${
+                  isCollapsed ? 'justify-center px-0' : 'px-4'
+                } ${
                   isActive
                     ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20'
                     : 'text-emerald-950 hover:bg-emerald-100/70 hover:text-emerald-900'
@@ -308,8 +339,8 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
             >
               {({ isActive }) => (
                 <>
-                  <AlertCircle className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-emerald-600'}`} />
-                  <span>Support & Enquiries</span>
+                  <AlertCircle className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-emerald-600'}`} />
+                  {!isCollapsed && <span>Support & Enquiries</span>}
                 </>
               )}
             </NavLink>
@@ -317,9 +348,9 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) =>
         </div>
 
         {/* Footer Logout */}
-        <div className="p-4 border-t border-emerald-200/70 bg-[#e8f7f2] flex items-center justify-between text-xs">
-          <button onClick={logout} className="text-rose-600 hover:text-rose-700 font-extrabold flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-rose-50 transition-colors w-full justify-center border border-rose-200/60 bg-white/80 shadow-sm">
-            <LogOut className="h-4 w-4" /> Logout Account
+        <div className="p-3 border-t border-emerald-200/60 bg-[#e8f7f2] flex items-center justify-between text-xs">
+          <button onClick={logout} title="Logout Account" className="text-rose-600 hover:text-rose-700 font-extrabold flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-rose-50 transition-colors w-full justify-center border border-rose-200/60 bg-white/80 shadow-sm">
+            <LogOut className="h-4 w-4 shrink-0" /> {!isCollapsed && <span>Logout Account</span>}
           </button>
         </div>
       </aside>

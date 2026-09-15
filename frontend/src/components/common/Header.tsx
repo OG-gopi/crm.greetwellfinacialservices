@@ -21,9 +21,11 @@ import { GFSLogo } from './GFSLogo';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
+export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isCollapsed, onToggleCollapse }) => {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
   const location = useLocation();
@@ -105,10 +107,20 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         <button
           onClick={onToggleSidebar}
           className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer mr-2.5"
-          title="Toggle Navigation Sidebar"
+          title="Toggle Mobile Sidebar"
         >
           <Menu className="h-5 w-5 stroke-[2.2]" />
         </button>
+
+        {onToggleCollapse && (
+          <button
+            onClick={onToggleCollapse}
+            className="hidden lg:flex p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer mr-2.5 border border-slate-200/80 shadow-2xs"
+            title={isCollapsed ? 'Expand Sidebar Menu' : 'Collapse Sidebar Menu'}
+          >
+            <Menu className="h-5 w-5 stroke-[2.2]" />
+          </button>
+        )}
 
         <span className={`inline-flex items-center gap-2 text-xs font-extrabold font-mono px-3.5 py-1.5 rounded-xl border shadow-xs ${portal.badge}`}>
           <PortalIcon className="w-4 h-4" />
