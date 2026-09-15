@@ -240,15 +240,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
               <X className="h-5 w-5" />
             </button>
 
-            {onToggleCollapse && (
-              <button
-                onClick={onToggleCollapse}
-                className="hidden lg:flex absolute right-2 top-2 p-1.5 text-slate-500 hover:text-blue-700 hover:bg-white/80 rounded-lg transition-colors cursor-pointer"
-                title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-              >
-                <MenuIcon className="h-4 w-4" />
-              </button>
-            )}
 
             {/* Clickable GFS Logo at the Top */}
             <div className="transition-all">
