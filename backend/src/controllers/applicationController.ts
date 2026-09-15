@@ -188,7 +188,7 @@ export async function getApplicationById(req: AuthRequest, res: Response) {
 
 export async function createApplication(req: AuthRequest, res: Response) {
   try {
-    const { type, amount, term, purpose, formData, documents, priority = 'MEDIUM' } = req.body;
+    const { type, amount, term, purpose, formData, documents, priority = 'MEDIUM', customerId } = req.body;
     const user = req.user!;
 
     if (!['LOAN', 'INSURANCE', 'INVESTMENT'].includes(type)) {
@@ -219,6 +219,29 @@ export async function createApplication(req: AuthRequest, res: Response) {
       }
     }
 
+    // Determine target customer ID for application
+    let targetCustomerId = user.id;
+
+    if (['SUPER_ADMIN', 'LOAN_AGENT', 'INSURANCE_AGENT', 'INVESTMENT_AGENT'].includes(user.role)) {
+      if (customerId && typeof customerId === 'string' && customerId.trim() !== '') {
+        const trimmedCus = customerId.trim();
+        const targetUser = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { id: trimmedCus },
+              { customerIdCode: trimmedCus },
+              { email: trimmedCus },
+            ],
+          },
+        });
+
+        if (!targetUser) {
+          return res.status(400).json({ success: false, message: `Specified Customer '${customerId}' was not found in portal database.` });
+        }
+        targetCustomerId = targetUser.id;
+      }
+    }
+
     // Validate mobile number if supplied in formData or user profile
     const mobileToValidate = formData?.mobile || formData?.phone;
     if (mobileToValidate) {
@@ -233,7 +256,7 @@ export async function createApplication(req: AuthRequest, res: Response) {
     const newApp = await prisma.application.create({
       data: {
         id: appId,
-        customerId: user.id,
+        customerId: targetCustomerId,
         type,
         status: 'SUBMITTED',
         priority,

@@ -18,9 +18,10 @@ import {
   Briefcase,
   HeartPulse,
   Car,
+  User,
   Coins,
-  PiggyBank,
   PieChart,
+  PiggyBank,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { ApplicationType } from '../../types';
@@ -39,6 +40,12 @@ export const CreateApplication: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [appType, setAppType] = useState<ApplicationType>(initialType);
 
+  // Target Customer Selection for Staff Roles (SuperAdmin & Agents)
+  const isStaffRole = ['SUPER_ADMIN', 'LOAN_AGENT', 'INSURANCE_AGENT', 'INVESTMENT_AGENT'].includes(user?.role || '');
+  const [customersList, setCustomersList] = useState<any[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [loadingCustomers, setLoadingCustomers] = useState<boolean>(false);
+
   // Sub-product / Scheme Selection
   const [productType, setProductType] = useState<string>('Personal Loan');
 
@@ -55,7 +62,6 @@ export const CreateApplication: React.FC = () => {
 
   // Dynamic Product Form Fields
   const [formData, setFormData] = useState<Record<string, any>>({
-    // Loan Specific
     educationCourseName: '',
     educationUniversity: '',
     educationCountry: 'India',
@@ -75,7 +81,6 @@ export const CreateApplication: React.FC = () => {
     annualRevenue: '',
     gstNumber: '',
 
-    // Insurance Specific
     nomineeName: '',
     nomineeRelation: 'Spouse',
     preExistingConditions: 'None',
@@ -84,7 +89,6 @@ export const CreateApplication: React.FC = () => {
     vehicleRegNo: '',
     vehicleMakeModel: '',
 
-    // Investment Specific
     chitSchemeName: 'GFS Gold Monthly Chit',
     chitTotalAmount: '100000',
     chitMonthlyContribution: '5000',
@@ -102,6 +106,46 @@ export const CreateApplication: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successAppId, setSuccessAppId] = useState<string | null>(null);
+
+  // Fetch Customers List for Staff Roles on Component Mount
+  useEffect(() => {
+    if (isStaffRole) {
+      setLoadingCustomers(true);
+      api.get('/users?role=CUSTOMER&limit=500')
+        .then((res) => {
+          if (res.data.success) {
+            const list = res.data.data || [];
+            setCustomersList(list);
+
+            const paramCusId = searchParams.get('customerId') || searchParams.get('customerIdCode') || searchParams.get('email');
+            let initialCus = list.find((c: any) => c.id === paramCusId || c.customerIdCode === paramCusId || c.email === paramCusId);
+
+            if (!initialCus && list.length > 0) {
+              initialCus = list[0];
+            }
+
+            if (initialCus) {
+              setSelectedCustomerId(initialCus.id);
+              setCustomerName(`${initialCus.firstName || ''} ${initialCus.lastName || ''}`.trim());
+              setEmail(initialCus.email || '');
+              setPhone(initialCus.phone || '');
+            }
+          }
+        })
+        .catch(console.error)
+        .finally(() => setLoadingCustomers(false));
+    }
+  }, [user?.role]);
+
+  const handleCustomerSelectChange = (cusId: string) => {
+    setSelectedCustomerId(cusId);
+    const selectedCus = customersList.find((c) => c.id === cusId);
+    if (selectedCus) {
+      setCustomerName(`${selectedCus.firstName || ''} ${selectedCus.lastName || ''}`.trim());
+      setEmail(selectedCus.email || '');
+      setPhone(selectedCus.phone || '');
+    }
+  };
 
   // Service Access Helper
   const userServices: string[] = Array.isArray(user?.serviceTypes)
@@ -140,7 +184,6 @@ export const CreateApplication: React.FC = () => {
     }
   };
 
-  // Ensure default appType is set to an enabled service on mount if current is disabled
   useEffect(() => {
     if (!isCategoryEnabled(appType)) {
       if (user?.role === 'LOAN_AGENT') setAppType('LOAN');
@@ -154,7 +197,6 @@ export const CreateApplication: React.FC = () => {
     }
   }, [user]);
 
-  // Sync default sub-products on category change
   useEffect(() => {
     if (appType === 'LOAN') {
       setProductType('Personal Loan');
@@ -165,7 +207,6 @@ export const CreateApplication: React.FC = () => {
     }
   }, [appType]);
 
-  // Indian Mobile Validation (10-12 digits)
   const validateMobileInput = (val: string) => {
     setPhone(val);
     if (!val.trim()) {
@@ -207,10 +248,17 @@ export const CreateApplication: React.FC = () => {
       return;
     }
 
+    if (isStaffRole && !selectedCustomerId) {
+      setError('Please select a target Customer ID to create this application.');
+      setCurrentStep(2);
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
         type: appType,
+        customerId: isStaffRole ? selectedCustomerId : undefined,
         amount: amount ? parseFloat(amount) : undefined,
         term,
         purpose: purpose || `${productType} Application`,
@@ -336,7 +384,7 @@ export const CreateApplication: React.FC = () => {
           {successAppId}
         </div>
         <p className="text-xs text-slate-500 max-w-md mx-auto">
-          A confirmation email and WhatsApp notification have been sent to <strong>{email}</strong> and <strong>{phone}</strong>. Our designated agent will review your application.
+          Application registered for <strong>{customerName}</strong> ({email} / {phone}). Confirmation notifications sent.
         </p>
         <div className="pt-4 flex justify-center gap-3">
           <button
@@ -351,48 +399,43 @@ export const CreateApplication: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-2xl font-extrabold text-slate-900">Create Financial Application</h2>
-        <p className="text-xs text-slate-500">
-          Complete the step-based workflow to apply for Loans, Insurance, or Investments (including Chit Schemes).
-        </p>
-      </div>
+    <div className="max-w-4xl mx-auto space-y-6 font-['Inter',sans-serif]">
+      {/* HEADER */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div>
+          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <PlusCircle className="w-6 h-6 text-blue-600" />
+            <span>Create New Financial Application</span>
+          </h2>
+          <p className="text-xs text-slate-500 font-medium">
+            {isStaffRole 
+              ? 'Select target Customer ID and complete scheme application entry' 
+              : 'Submit your request for Loans, Insurance, or Investment schemes'}
+          </p>
+        </div>
 
-      {/* Stepper Progress Indicator */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-        {[
-          { step: 1, label: '1. Select Scheme' },
-          { step: 2, label: '2. Application Details' },
-          { step: 3, label: '3. Required Documents' },
-          { step: 4, label: '4. Review & Submit' },
-        ].map((s) => (
-          <div key={s.step} className="flex items-center gap-2">
+        {/* STEP PROGRESS BADGES */}
+        <div className="flex items-center gap-1.5 self-start sm:self-center">
+          {[1, 2, 3, 4].map((step) => (
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                currentStep === s.step
-                  ? 'bg-blue-600 text-white ring-4 ring-blue-100'
-                  : currentStep > s.step
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-100 text-slate-500 border'
+              key={step}
+              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                currentStep === step
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : currentStep > step
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-slate-100 text-slate-400'
               }`}
             >
-              {currentStep > s.step ? '✓' : s.step}
+              {step}
             </div>
-            <span
-              className={`text-xs font-semibold hidden sm:inline ${
-                currentStep === s.step ? 'text-blue-700 font-bold' : 'text-slate-500'
-              }`}
-            >
-              {s.label}
-            </span>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2 font-medium">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-bold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
@@ -437,7 +480,6 @@ export const CreateApplication: React.FC = () => {
             })}
           </div>
 
-          {/* If selected category is NOT enabled */}
           {!isCategoryEnabled(appType) ? (
             user?.role !== 'CUSTOMER' ? (
               <div className="p-8 rounded-2xl bg-rose-50 border-2 border-rose-200 text-center space-y-4 my-4">
@@ -495,7 +537,6 @@ export const CreateApplication: React.FC = () => {
             )
           ) : (
             <>
-              {/* Sub-Product Type Cards */}
               <div className="space-y-3 pt-2">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Select Specific {appType} Scheme / Product Type:
@@ -558,10 +599,10 @@ export const CreateApplication: React.FC = () => {
                 {appType === 'INVESTMENT' && (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[
-                      { name: 'Chit Investment', icon: Coins, desc: 'GFS Monthly Savings Chit Scheme' },
-                      { name: 'Fixed Deposit', icon: PiggyBank, desc: 'High-yield guaranteed returns' },
-                      { name: 'Mutual Funds', icon: PieChart, desc: 'SIP & Lumpsum wealth building' },
-                      { name: 'Stock Portfolio', icon: TrendingUp, desc: 'Managed equity portfolios' },
+                      { name: 'Chit Investment', icon: Coins, desc: 'GFS monthly savings & auction chit' },
+                      { name: 'Mutual Funds', icon: PieChart, desc: 'High growth equity portfolios' },
+                      { name: 'Fixed Deposit', icon: PiggyBank, desc: 'Guaranteed high yield returns' },
+                      { name: 'SIP Wealth', icon: TrendingUp, desc: 'Systematic monthly wealth builder' },
                     ].map((item) => {
                       const Icon = item.icon;
                       const active = productType === item.name;
@@ -583,10 +624,11 @@ export const CreateApplication: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex justify-end pt-4">
+              <div className="flex justify-end pt-4 border-t">
                 <button
+                  type="button"
                   onClick={() => setCurrentStep(2)}
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md"
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2"
                 >
                   <span>Next: Application Form</span>
                   <ArrowRight className="w-4 h-4" />
@@ -609,6 +651,37 @@ export const CreateApplication: React.FC = () => {
               {productType}
             </span>
           </div>
+
+          {/* TARGET CUSTOMER SELECTION FOR STAFF ROLES */}
+          {isStaffRole && (
+            <div className="p-4 bg-blue-50/80 border-2 border-blue-200 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block font-black text-blue-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-blue-600" />
+                  <span>Select Target Customer Account</span>
+                  <span className="text-rose-500">*</span>
+                </label>
+                {loadingCustomers && (
+                  <span className="text-[11px] text-blue-600 font-bold animate-pulse">Loading Customers...</span>
+                )}
+              </div>
+              <SearchableSelect
+                options={customersList.map((c) => ({
+                  value: c.id,
+                  label: `${c.firstName} ${c.lastName || ''}`,
+                  sublabel: `${c.customerIdCode ? `Customer ID: ${c.customerIdCode} | ` : ''}${c.email}${c.phone ? ` | Mobile: ${c.phone}` : ''}`,
+                }))}
+                value={selectedCustomerId}
+                onChange={handleCustomerSelectChange}
+                placeholder="Select Target Customer ID..."
+                searchPlaceholder="Search Customer ID code, name, email, phone..."
+                className="w-full"
+              />
+              <p className="text-[11px] text-blue-700 font-medium">
+                This application will be officially registered under the selected Customer's ID and account profile.
+              </p>
+            </div>
+          )}
 
           {/* Common Customer Details */}
           <div className="space-y-3">
@@ -702,11 +775,77 @@ export const CreateApplication: React.FC = () => {
                     type="number"
                     required
                     value={formData.educationTuitionFee}
-                    onChange={(e) => {
-                      setFormData({ ...formData, educationTuitionFee: e.target.value });
-                      setAmount(e.target.value);
-                    }}
+                    onChange={(e) => setFormData({ ...formData, educationTuitionFee: e.target.value })}
                     placeholder="25000"
+                    className="w-full p-2.5 border rounded-lg bg-white"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* HOME LOAN DYNAMIC FIELDS */}
+            {productType === 'Home Loan' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-emerald-50/40 rounded-xl border border-emerald-200">
+                <div className="sm:col-span-2">
+                  <label className="block font-bold text-slate-700 mb-1">Property Address <span className="text-rose-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.propertyAddress}
+                    onChange={(e) => setFormData({ ...formData, propertyAddress: e.target.value })}
+                    placeholder="Plot No 42, Jubilee Hills, Hyderabad"
+                    className="w-full p-2.5 border rounded-lg bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Estimated Property Value (₹) <span className="text-rose-500">*</span></label>
+                  <input
+                    type="number"
+                    required
+                    value={formData.propertyValue}
+                    onChange={(e) => setFormData({ ...formData, propertyValue: e.target.value })}
+                    placeholder="7500000"
+                    className="w-full p-2.5 border rounded-lg bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Construction Status</label>
+                  <SearchableSelect
+                    options={[
+                      { value: 'Ready to Move', label: 'Ready to Move' },
+                      { value: 'Under Construction', label: 'Under Construction' },
+                      { value: 'Plot Purchase', label: 'Plot Purchase' },
+                    ]}
+                    value={formData.constructionStatus}
+                    onChange={(val) => setFormData({ ...formData, constructionStatus: val })}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* BUSINESS LOAN DYNAMIC FIELDS */}
+            {productType === 'Business Loan' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-emerald-50/40 rounded-xl border border-emerald-200">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Business Registered Name <span className="text-rose-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.businessName}
+                    onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                    placeholder="Greetwell Enterprises Pvt Ltd"
+                    className="w-full p-2.5 border rounded-lg bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Years in Operation <span className="text-rose-500">*</span></label>
+                  <input
+                    type="number"
+                    required
+                    value={formData.yearsInBusiness}
+                    onChange={(e) => setFormData({ ...formData, yearsInBusiness: e.target.value })}
+                    placeholder="4"
                     className="w-full p-2.5 border rounded-lg bg-white"
                   />
                 </div>
@@ -715,267 +854,128 @@ export const CreateApplication: React.FC = () => {
 
             {/* CHIT INVESTMENT DYNAMIC FIELDS */}
             {productType === 'Chit Investment' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-amber-50/50 rounded-xl border border-amber-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-amber-50/40 rounded-xl border border-amber-200">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Chit Scheme Name <span className="text-rose-500">*</span></label>
+                  <label className="block font-bold text-slate-700 mb-1">Selected Chit Scheme</label>
                   <input
                     type="text"
-                    required
+                    readOnly
                     value={formData.chitSchemeName}
-                    onChange={(e) => setFormData({ ...formData, chitSchemeName: e.target.value })}
-                    className="w-full p-2.5 border rounded-lg bg-white font-semibold"
+                    className="w-full p-2.5 border rounded-lg bg-slate-100 font-bold text-slate-700"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Total Chit Amount (₹) <span className="text-rose-500">*</span></label>
-                  <input
-                    type="number"
-                    required
-                    value={formData.chitTotalAmount}
-                    onChange={(e) => {
-                      setFormData({ ...formData, chitTotalAmount: e.target.value });
-                      setAmount(e.target.value);
-                    }}
-                    placeholder="100000"
-                    className="w-full p-2.5 border rounded-lg bg-white font-bold text-amber-700"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Monthly Contribution (₹) <span className="text-rose-500">*</span></label>
-                  <input
-                    type="number"
-                    required
-                    value={formData.chitMonthlyContribution}
-                    onChange={(e) => setFormData({ ...formData, chitMonthlyContribution: e.target.value })}
-                    placeholder="5000"
-                    className="w-full p-2.5 border rounded-lg bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Chit Duration (Months) <span className="text-rose-500">*</span></label>
-                  <input
-                    type="number"
-                    required
-                    value={formData.chitDurationMonths}
-                    onChange={(e) => {
-                      setFormData({ ...formData, chitDurationMonths: e.target.value });
-                      setTerm(`${e.target.value} Months`);
-                    }}
-                    placeholder="20"
-                    className="w-full p-2.5 border rounded-lg bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Payout Bank Account Number <span className="text-rose-500">*</span></label>
+                  <label className="block font-bold text-slate-700 mb-1">Monthly Subscription (₹)</label>
                   <input
                     type="text"
-                    required
-                    value={formData.bankAccountNo}
-                    onChange={(e) => setFormData({ ...formData, bankAccountNo: e.target.value })}
-                    placeholder="9876543210123"
-                    className="w-full p-2.5 border rounded-lg bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">IFSC Code <span className="text-rose-500">*</span></label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.bankIfscCode}
-                    onChange={(e) => setFormData({ ...formData, bankIfscCode: e.target.value.toUpperCase() })}
-                    placeholder="SBIN0001234"
-                    className="w-full p-2.5 border rounded-lg bg-white uppercase"
+                    readOnly
+                    value={`₹ ${formData.chitMonthlyContribution} / Month`}
+                    className="w-full p-2.5 border rounded-lg bg-slate-100 font-bold text-slate-700"
                   />
                 </div>
               </div>
             )}
 
-            {/* HEALTH / LIFE INSURANCE DYNAMIC FIELDS */}
-            {(productType === 'Health Insurance' || productType === 'Life Insurance') && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-purple-50/40 rounded-xl border border-purple-200">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Nominee Full Name <span className="text-rose-500">*</span></label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.nomineeName}
-                    onChange={(e) => setFormData({ ...formData, nomineeName: e.target.value })}
-                    placeholder="Jane Doe"
-                    className="w-full p-2.5 border rounded-lg bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Nominee Relationship <span className="text-rose-500">*</span></label>
-                  <SearchableSelect
-                    options={[
-                      { value: 'Spouse', label: 'Spouse' },
-                      { value: 'Parent', label: 'Parent' },
-                      { value: 'Child', label: 'Child' },
-                      { value: 'Sibling', label: 'Sibling' },
-                    ]}
-                    value={formData.nomineeRelation}
-                    onChange={(val) => setFormData({ ...formData, nomineeRelation: val })}
-                    placeholder="Select relationship..."
-                    searchPlaceholder="Search relationship..."
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Coverage Sum Insured ($ / ₹) <span className="text-rose-500">*</span></label>
-                  <input
-                    type="number"
-                    required
-                    value={formData.sumInsured}
-                    onChange={(e) => {
-                      setFormData({ ...formData, sumInsured: e.target.value });
-                      setAmount(e.target.value);
-                    }}
-                    placeholder="500000"
-                    className="w-full p-2.5 border rounded-lg bg-white font-bold text-purple-700"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Tobacco / Smoker Status <span className="text-rose-500">*</span></label>
-                  <SearchableSelect
-                    options={[
-                      { value: 'Non-Smoker', label: 'Non-Smoker / Non-Tobacco' },
-                      { value: 'Smoker', label: 'Smoker / Tobacco User' },
-                    ]}
-                    value={formData.smokerStatus}
-                    onChange={(val) => setFormData({ ...formData, smokerStatus: val })}
-                    placeholder="Select smoker status..."
-                    searchPlaceholder="Search status..."
-                    className="w-full"
-                  />
-                </div>
+            {/* Standard Amount & Tenure */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Requested Amount / Investment Sum (₹) <span className="text-rose-500">*</span></label>
+                <input
+                  type="number"
+                  required
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="e.g. 500000"
+                  className="w-full p-2.5 border border-slate-200 rounded-lg bg-white font-bold"
+                />
               </div>
-            )}
-
-            {/* DEFAULT AMOUNT & TERM FALLBACK FOR OTHER TYPES */}
-            {productType !== 'Education Loan' && productType !== 'Chit Investment' && productType !== 'Health Insurance' && productType !== 'Life Insurance' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Requested Amount ($ / ₹) <span className="text-rose-500">*</span></label>
-                  <input
-                    type="number"
-                    required
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="50000"
-                    className="w-full p-2.5 border rounded-lg bg-white font-bold text-blue-700"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Term / Horizon <span className="text-rose-500">*</span></label>
-                  <input
-                    type="text"
-                    required
-                    value={term}
-                    onChange={(e) => setTerm(e.target.value)}
-                    placeholder="36 Months"
-                    className="w-full p-2.5 border rounded-lg bg-white font-semibold"
-                  />
-                </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Preferred Tenure / Duration</label>
+                <SearchableSelect
+                  options={[
+                    { value: '12 Months', label: '12 Months (1 Year)' },
+                    { value: '24 Months', label: '24 Months (2 Years)' },
+                    { value: '36 Months', label: '36 Months (3 Years)' },
+                    { value: '60 Months', label: '60 Months (5 Years)' },
+                    { value: '120 Months', label: '120 Months (10 Years)' },
+                    { value: '240 Months', label: '240 Months (20 Years)' },
+                  ]}
+                  value={term}
+                  onChange={setTerm}
+                  className="w-full"
+                />
               </div>
-            )}
-
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Application Goal / Purpose</label>
-              <input
-                type="text"
-                value={purpose}
-                onChange={(e) => setPurpose(e.target.value)}
-                placeholder={`e.g. ${productType} Enrollment & Processing`}
-                className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50"
-              />
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-4">
+          <div className="flex justify-between items-center pt-4 border-t">
             <button
+              type="button"
               onClick={() => setCurrentStep(1)}
-              className="px-5 py-2.5 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-2 hover:bg-slate-50"
+              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
             </button>
 
             <button
-              onClick={() => {
-                if (validateMobileInput(phone)) setCurrentStep(3);
-              }}
-              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md"
+              type="button"
+              onClick={() => setCurrentStep(3)}
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2"
             >
-              <span>Next: Document Upload</span>
+              <span>Next: Document Attachments</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* STEP 3: DOCUMENT UPLOAD */}
+      {/* STEP 3: DOCUMENT ATTACHMENTS */}
       {currentStep === 3 && (
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6 text-xs">
-          <div className="border-b pb-3">
-            <h3 className="text-sm font-extrabold text-slate-900 uppercase">Step 3: Upload Supporting Documents (Optional)</h3>
-            <p className="text-slate-500">Optionally attach identity or scheme supporting documents if available</p>
+          <div className="flex items-center justify-between border-b pb-3">
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900 uppercase">Step 3: Verification Documents</h3>
+              <p className="text-slate-500">Upload optional or required verification files for {productType}</p>
+            </div>
+            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 font-extrabold rounded-lg border border-emerald-200">
+              Optional Uploads
+            </span>
           </div>
 
-          <div className="space-y-3">
-            {getRequiredDocsForProduct().map((docSpec) => {
-              const uploaded = uploadedDocs.find(
-                (d) =>
-                  d.type === docSpec.title ||
-                  d.type.includes(docSpec.title) ||
-                  (docSpec.title.includes('Aadhaar') && d.type.includes('Aadhaar'))
-              );
+          <div className="space-y-4">
+            {getRequiredDocsForProduct().map((doc, idx) => {
+              const uploaded = uploadedDocs.find((d) => d.type === doc.title);
               return (
-                <div
-                  key={docSpec.title}
-                  className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                    uploaded ? 'bg-emerald-50/60 border-emerald-200' : 'bg-slate-50 border-slate-200'
-                  }`}
-                >
+                <div key={idx} className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900">{docSpec.title}</span>
-                      {docSpec.required ? (
-                        <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-100 text-blue-800 border border-blue-200">
-                          Mandatory
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-slate-200 text-slate-600 border border-slate-300">
-                          Optional
-                        </span>
-                      )}
-                    </div>
-                    {uploaded ? (
-                      <p className="text-[11px] text-emerald-700 font-medium mt-1">
-                        ✓ File uploaded: <strong>{uploaded.name}</strong> ({uploaded.size} KB)
-                      </p>
-                    ) : (
-                      <p className="text-[10px] text-slate-400 mt-1">
-                        {docSpec.description || 'Allowed formats: PDF, JPG, PNG (Max 5MB)'}
+                    <p className="font-bold text-slate-900">{doc.title}</p>
+                    {doc.description && <p className="text-[11px] text-slate-500 mt-0.5">{doc.description}</p>}
+                    {uploaded && (
+                      <p className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Attached: {uploaded.name} ({uploaded.size} KB)
                       </p>
                     )}
                   </div>
 
-                  <div>
+                  <div className="flex items-center gap-2">
                     {uploaded ? (
                       <button
-                        onClick={() => handleRemoveDoc(docSpec.title)}
-                        className="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-lg flex items-center gap-1"
+                        type="button"
+                        onClick={() => handleRemoveDoc(doc.title)}
+                        className="px-3 py-1.5 bg-rose-50 text-rose-600 border border-rose-200 font-bold rounded-lg hover:bg-rose-100 transition-all text-[11px]"
                       >
-                        <X className="w-3.5 h-3.5" /> Remove
+                        Remove
                       </button>
                     ) : (
-                      <label className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg cursor-pointer flex items-center gap-1.5 shadow-sm">
-                        <Upload className="w-3.5 h-3.5" /> Select File
+                      <label className="cursor-pointer px-4 py-2 bg-white border border-slate-300 hover:border-slate-400 font-bold text-slate-700 rounded-lg shadow-2xs transition-all inline-flex items-center gap-1.5 text-xs">
+                        <Upload className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Upload File</span>
                         <input
                           type="file"
-                          accept=".pdf,.jpg,.jpeg,.png"
+                          accept=".pdf,.png,.jpg,.jpeg"
+                          onChange={(e) => handleDocSimulatedUpload(doc.title, e)}
                           className="hidden"
-                          onChange={(e) => handleDocSimulatedUpload(docSpec.title, e)}
                         />
                       </label>
                     )}
@@ -985,18 +985,20 @@ export const CreateApplication: React.FC = () => {
             })}
           </div>
 
-          <div className="flex items-center justify-between pt-4">
+          <div className="flex justify-between items-center pt-4 border-t">
             <button
+              type="button"
               onClick={() => setCurrentStep(2)}
-              className="px-5 py-2.5 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-2 hover:bg-slate-50"
+              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
             </button>
 
             <button
+              type="button"
               onClick={handleValidateStep3}
-              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-md"
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2"
             >
               <span>Next: Review & Submit</span>
               <ArrowRight className="w-4 h-4" />
@@ -1009,33 +1011,51 @@ export const CreateApplication: React.FC = () => {
       {currentStep === 4 && (
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6 text-xs">
           <div className="border-b pb-3">
-            <h3 className="text-sm font-extrabold text-slate-900 uppercase">Step 4: Review & Submit Application</h3>
-            <p className="text-slate-500">Please review all submitted details before final submission</p>
+            <h3 className="text-sm font-extrabold text-slate-900 uppercase">Step 4: Final Summary Review</h3>
+            <p className="text-slate-500">Please review your application details before final submission</p>
           </div>
 
-          {/* Summary Box */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-            <div className="flex items-center justify-between border-b pb-2">
-              <span className="font-extrabold text-slate-900 text-sm">{productType} ({appType})</span>
-              <span className="font-extrabold text-emerald-700 text-base">
-                {amount ? `Amount: ₹ / $ ${parseFloat(amount).toLocaleString()}` : 'N/A'}
-              </span>
+          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pb-3 border-b border-slate-200">
+              <div>
+                <p className="text-slate-400 font-bold uppercase text-[10px]">Category</p>
+                <p className="font-extrabold text-slate-900 text-sm mt-0.5">{appType}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 font-bold uppercase text-[10px]">Scheme / Product</p>
+                <p className="font-extrabold text-slate-900 text-sm mt-0.5">{productType}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 font-bold uppercase text-[10px]">Requested Amount</p>
+                <p className="font-extrabold text-emerald-700 text-sm mt-0.5">₹ {amount ? parseFloat(amount).toLocaleString('en-IN') : '0'}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 font-bold uppercase text-[10px]">Tenure</p>
+                <p className="font-extrabold text-slate-900 text-sm mt-0.5">{term}</p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-slate-700">
-              <p><strong>Customer:</strong> {customerName}</p>
-              <p><strong>Email:</strong> {email}</p>
-              <p><strong>Mobile:</strong> {phone}</p>
-              <p><strong>Term:</strong> {term}</p>
-              <p><strong>Uploaded Docs:</strong> {uploadedDocs.length} File(s)</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+              <div>
+                <p className="text-slate-400 font-bold uppercase text-[10px]">Customer Name</p>
+                <p className="font-bold text-slate-800">{customerName}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 font-bold uppercase text-[10px]">Email Address</p>
+                <p className="font-bold text-slate-800">{email}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 font-bold uppercase text-[10px]">Mobile Phone</p>
+                <p className="font-bold text-slate-800">{phone}</p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-4">
+          <div className="flex justify-between items-center pt-4 border-t">
             <button
               type="button"
               onClick={() => setCurrentStep(3)}
-              className="px-5 py-2.5 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-2 hover:bg-slate-50"
+              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
@@ -1044,9 +1064,19 @@ export const CreateApplication: React.FC = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl flex items-center gap-2 shadow-lg transition-all"
+              className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2 uppercase tracking-wider disabled:opacity-50"
             >
-              {submitting ? 'Creating Application...' : 'Create Application'}
+              {submitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                  <span>Submitting Application...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Submit Application Now</span>
+                </>
+              )}
             </button>
           </div>
         </form>
