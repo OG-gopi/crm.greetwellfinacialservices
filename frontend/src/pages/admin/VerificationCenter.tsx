@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, CheckCircle2, XCircle, FileText, ExternalLink, MessageSquare, AlertCircle } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, XCircle, FileText, ExternalLink, MessageSquare, AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '../../services/api';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Modal } from '../../components/common/Modal';
@@ -225,23 +225,23 @@ export const VerificationCenter: React.FC = () => {
             <button
               onClick={() => handleVerifyAction('VERIFY')}
               disabled={submitting}
-              className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center justify-center gap-1"
+              className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center justify-center gap-1 disabled:opacity-50"
             >
-              <CheckCircle2 className="h-4 w-4" /> Approve / Verify
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Approve / Verify
             </button>
             <button
               onClick={() => handleVerifyAction('REQUEST_CHANGES')}
               disabled={submitting}
-              className="flex-1 py-2 px-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg flex items-center justify-center gap-1"
+              className="flex-1 py-2 px-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg flex items-center justify-center gap-1 disabled:opacity-50"
             >
-              <AlertCircle className="h-4 w-4" /> Request Changes
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertCircle className="h-4 w-4" />} Request Changes
             </button>
             <button
               onClick={() => handleVerifyAction('REJECT')}
               disabled={submitting}
-              className="flex-1 py-2 px-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg flex items-center justify-center gap-1"
+              className="flex-1 py-2 px-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg flex items-center justify-center gap-1 disabled:opacity-50"
             >
-              <XCircle className="h-4 w-4" /> Reject Item
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />} Reject Item
             </button>
           </div>
         </div>

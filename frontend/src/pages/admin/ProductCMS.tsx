@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, Edit, Check, X } from 'lucide-react';
+import { Package, Plus, Edit, Check, X, Loader2 } from 'lucide-react';
 import { api } from '../../services/api';
 import { LoanProduct, InsuranceProduct, InvestmentProduct } from '../../types';
 import { Modal } from '../../components/common/Modal';
@@ -14,6 +14,7 @@ export const ProductCMS: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Dynamic Product Form
   const [form, setForm] = useState<any>({
@@ -76,6 +77,7 @@ export const ProductCMS: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     try {
       if (activeCategory === 'LOAN') {
         if (editingId) await api.put(`/products/loan/${editingId}`, form);
@@ -91,6 +93,8 @@ export const ProductCMS: React.FC = () => {
       fetchProducts();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to save product.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -369,15 +373,22 @@ export const ProductCMS: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
-              className="px-4 py-2 border rounded-lg font-semibold"
+              className="px-4 py-2 border rounded-lg font-semibold text-slate-600 hover:bg-slate-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-500"
+              disabled={saving}
+              className="px-5 py-2 bg-blue-600 text-white font-extrabold rounded-lg hover:bg-blue-500 disabled:opacity-50 flex items-center gap-2"
             >
-              Save Product
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                </>
+              ) : (
+                'Save Product'
+              )}
             </button>
           </div>
         </form>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, UserPlus, Mail, Phone, ShieldCheck, Settings, Check, X, PlusCircle } from 'lucide-react';
+import { Users, UserPlus, Mail, Phone, ShieldCheck, Settings, Check, X, PlusCircle, Loader2 } from 'lucide-react';
 import { api } from '../../services/api';
 import { User } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -239,7 +239,15 @@ export const AgentCustomers: React.FC = () => {
                           disabled={verifyingId === cust.id}
                           className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-lg inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-xs disabled:opacity-50"
                         >
-                          <ShieldCheck className="w-3.5 h-3.5" /> {verifyingId === cust.id ? 'Verifying...' : 'Verify Customer'}
+                          {verifyingId === cust.id ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Verifying...
+                            </>
+                          ) : (
+                            <>
+                              <ShieldCheck className="w-3.5 h-3.5" /> Verify Customer
+                            </>
+                          )}
                         </button>
                       )}
                       <button
@@ -342,9 +350,15 @@ export const AgentCustomers: React.FC = () => {
                 type="button"
                 onClick={handleSaveServices}
                 disabled={savingServices}
-                className="px-5 py-2 bg-blue-600 text-white font-extrabold rounded-xl hover:bg-blue-700 shadow-sm cursor-pointer"
+                className="px-5 py-2 bg-blue-600 text-white font-extrabold rounded-xl hover:bg-blue-700 shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-2"
               >
-                {savingServices ? 'Saving...' : 'Save Allowed Services'}
+                {savingServices ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                  </>
+                ) : (
+                  'Save Allowed Services'
+                )}
               </button>
             </div>
           </div>

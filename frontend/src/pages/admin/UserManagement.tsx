@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Edit, Power, RefreshCw, Trash2, Send, MailCheck, ShieldCheck, Users, Mail, UserCheck, Shield } from 'lucide-react';
+import { Search, Filter, Edit, Power, RefreshCw, Trash2, Send, MailCheck, ShieldCheck, Users, Mail, UserCheck, Shield, Loader2 } from 'lucide-react';
 import { api } from '../../services/api';
 import { User } from '../../types';
 import { Modal } from '../../components/common/Modal';
@@ -475,10 +475,19 @@ export const UserManagement: React.FC = () => {
                         <button
                           onClick={() => handleResendInvitation(inv)}
                           disabled={resendingId === inv.id}
-                          className="px-3.5 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg border border-blue-200 text-xs font-bold inline-flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                          className="px-3.5 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg border border-blue-200 text-xs font-bold inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs disabled:opacity-50"
                         >
-                          <Send className="w-3.5 h-3.5" />
-                          <span>{resendingId === inv.id ? 'Resending...' : 'Resend Email'}</span>
+                          {resendingId === inv.id ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Resending...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-3.5 h-3.5" />
+                              <span>Resend Email</span>
+                            </>
+                          )}
                         </button>
                         <button
                           onClick={() => {
@@ -562,9 +571,15 @@ export const UserManagement: React.FC = () => {
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 bg-blue-600 text-white font-extrabold rounded-xl hover:bg-blue-700 shadow-sm cursor-pointer"
+              className="px-5 py-2 bg-blue-600 text-white font-extrabold rounded-xl hover:bg-blue-700 shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-2"
             >
-              {saving ? 'Saving Changes...' : 'Save Changes'}
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Saving Changes...
+                </>
+              ) : (
+                'Save Changes'
+              )}
             </button>
           </div>
         </form>
@@ -589,9 +604,15 @@ export const UserManagement: React.FC = () => {
               type="button"
               onClick={handleConfirmCancelInvitation}
               disabled={canceling}
-              className="px-5 py-2 bg-rose-600 text-white font-extrabold rounded-xl hover:bg-rose-700 shadow-sm cursor-pointer"
+              className="px-5 py-2 bg-rose-600 text-white font-extrabold rounded-xl hover:bg-rose-700 shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-2"
             >
-              {canceling ? 'Canceling...' : 'Confirm Cancel'}
+              {canceling ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Canceling...
+                </>
+              ) : (
+                'Confirm Cancel'
+              )}
             </button>
           </div>
         </div>

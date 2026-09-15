@@ -41,7 +41,8 @@ import {
   ChevronRight,
   Eye,
   CheckCircle2,
-  Slash
+  Slash,
+  Loader2
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
@@ -166,6 +167,14 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
   const [accessModalPermissions, setAccessModalPermissions] = useState<Record<string, boolean>>({});
   const [isSavingAccess, setIsSavingAccess] = useState(false);
 
+  // Action Loading States
+  const [isSavingMenu, setIsSavingMenu] = useState(false);
+  const [isDeletingMenu, setIsDeletingMenu] = useState(false);
+  const [isSavingMethod, setIsSavingMethod] = useState(false);
+  const [deletingMethodId, setDeletingMethodId] = useState<string | null>(null);
+  const [togglingMenuId, setTogglingMenuId] = useState<string | null>(null);
+  const [togglingMethodId, setTogglingMethodId] = useState<string | null>(null);
+
   // Delete Confirm Modal State
   const [deleteConfirmMenu, setDeleteConfirmMenu] = useState<any | null>(null);
 
@@ -284,6 +293,7 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
     e.preventDefault();
     if (!validateMenuForm()) return;
 
+    setIsSavingMenu(true);
     try {
       if (editingMenu) {
         await api.put(`/menus/${editingMenu.id}`, menuForm);
@@ -297,10 +307,13 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
       window.dispatchEvent(new Event('menuPermissionsUpdated'));
     } catch (err: any) {
       setToastMessage({ type: 'error', text: err.response?.data?.message || 'Failed to save menu item.' });
+    } finally {
+      setIsSavingMenu(false);
     }
   };
 
   const handleToggleMenuStatus = async (menuId: string, menuName: string, currentStatus: boolean) => {
+    setTogglingMenuId(menuId);
     try {
       await api.patch(`/menus/${menuId}/status`, { isActive: !currentStatus });
       setToastMessage({
@@ -311,11 +324,14 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
       window.dispatchEvent(new Event('menuPermissionsUpdated'));
     } catch (err: any) {
       setToastMessage({ type: 'error', text: err.response?.data?.message || 'Failed to toggle menu status.' });
+    } finally {
+      setTogglingMenuId(null);
     }
   };
 
   const handleConfirmDeleteMenu = async () => {
     if (!deleteConfirmMenu) return;
+    setIsDeletingMenu(true);
     try {
       await api.delete(`/menus/${deleteConfirmMenu.id}`);
       setToastMessage({ type: 'success', text: `Menu item '${deleteConfirmMenu.name}' deleted successfully.` });
@@ -324,6 +340,8 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
       window.dispatchEvent(new Event('menuPermissionsUpdated'));
     } catch (err: any) {
       setToastMessage({ type: 'error', text: err.response?.data?.message || 'Failed to delete menu item.' });
+    } finally {
+      setIsDeletingMenu(false);
     }
   };
 
@@ -425,6 +443,7 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
       return;
     }
 
+    setIsSavingMethod(true);
     try {
       if (editingMethod) {
         await api.put(`/permissions/methods/${editingMethod.id}`, methodForm);
@@ -435,15 +454,20 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
       fetchData();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to save method permission.');
+    } finally {
+      setIsSavingMethod(false);
     }
   };
 
   const handleToggleMethodStatus = async (mpId: string, currentStatus: boolean) => {
+    setTogglingMethodId(mpId);
     try {
       await api.patch(`/permissions/methods/${mpId}/status`, { isActive: !currentStatus });
       fetchData();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to toggle method permission status.');
+    } finally {
+      setTogglingMethodId(null);
     }
   };
 
@@ -451,11 +475,14 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
     if (!window.confirm(`Are you sure you want to delete method permission '${methodName}'?`)) {
       return;
     }
+    setDeletingMethodId(mpId);
     try {
       await api.delete(`/permissions/methods/${mpId}`);
       fetchData();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to delete method permission.');
+    } finally {
+      setDeletingMethodId(null);
     }
   };
 
@@ -1199,9 +1226,15 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
                   type="button"
                   onClick={handleSaveManageAccess}
                   disabled={isSavingAccess}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-md disabled:opacity-50"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-2"
                 >
-                  {isSavingAccess ? 'Saving...' : 'Save Permissions'}
+                  {isSavingAccess ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    'Save Permissions'
+                  )}
                 </button>
               </div>
             </div>
@@ -1244,9 +1277,16 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
               <button
                 type="button"
                 onClick={handleConfirmDeleteMenu}
-                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl shadow-md"
+                disabled={isDeletingMenu}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-2"
               >
-                Confirm Delete
+                {isDeletingMenu ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Deleting...
+                  </>
+                ) : (
+                  'Confirm Delete'
+                )}
               </button>
             </div>
           </div>
@@ -1400,9 +1440,18 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-md"
+              disabled={isSavingMenu}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-2"
             >
-              {editingMenu ? 'Update Menu' : 'Save Menu Item'}
+              {isSavingMenu ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                </>
+              ) : editingMenu ? (
+                'Update Menu'
+              ) : (
+                'Save Menu Item'
+              )}
             </button>
           </div>
         </form>
@@ -1518,9 +1567,18 @@ export const PermissionsSub: React.FC<{ subPage?: string }> = ({ subPage = 'role
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-md"
+              disabled={isSavingMethod}
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-2"
             >
-              {editingMethod ? 'Update Method Rule' : 'Save Method Rule'}
+              {isSavingMethod ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                </>
+              ) : editingMethod ? (
+                'Update Method Rule'
+              ) : (
+                'Save Method Rule'
+              )}
             </button>
           </div>
         </form>
