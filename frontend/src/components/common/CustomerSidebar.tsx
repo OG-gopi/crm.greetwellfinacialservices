@@ -145,35 +145,47 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({
 
             {/* 2. Applications Menu */}
             <div>
-              <button
-                onClick={() => handleParentClick('applications')}
-                title={isCollapsed ? 'My Applications' : undefined}
-                className={
-                  isCollapsed
-                    ? `relative flex items-center justify-center h-12 w-12 mx-auto rounded-xl transition-all cursor-pointer text-[#1e3a8a] hover:bg-blue-100/70 hover:text-[#0f2852] ${
-                        openSubMenus['applications'] ? 'bg-blue-100/70' : ''
-                      }`
-                    : `w-full flex items-center justify-between px-4 h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/70 hover:text-[#0f2852] ${
-                        openSubMenus['applications'] ? 'bg-blue-100/50' : ''
-                      }`
-                }
-              >
-                {isCollapsed ? (
-                  <FileText className="h-[22px] w-[22px] text-[#1d63ed]" />
-                ) : (
-                  <>
-                    <div className="flex items-center truncate">
-                      <FileText className="h-[22px] w-[22px] mr-3.5 flex-shrink-0 text-[#1d63ed]" />
-                      <span className="truncate">My Applications</span>
-                    </div>
-                    <ChevronDown
-                      className={`h-4 w-4 text-blue-500 ml-auto flex-shrink-0 transition-transform ${
-                        openSubMenus['applications'] ? 'rotate-180 text-blue-700' : ''
-                      }`}
-                    />
-                  </>
-                )}
-              </button>
+              {(() => {
+                const isAppsActive = location.pathname.startsWith('/customer/applications') || location.pathname.startsWith('/customer/create-application');
+                return (
+                  <button
+                    onClick={() => handleParentClick('applications')}
+                    title={isCollapsed ? 'My Applications' : undefined}
+                    className={
+                      isCollapsed
+                        ? `relative flex items-center justify-center h-12 w-12 mx-auto rounded-xl transition-all cursor-pointer ${
+                            isAppsActive
+                              ? 'bg-[#2377fc] text-white font-bold shadow-md shadow-blue-500/20'
+                              : openSubMenus['applications']
+                              ? 'bg-blue-100/70 text-[#0f2852]'
+                              : 'text-[#1e3a8a] hover:bg-blue-100/70 hover:text-[#0f2852]'
+                          }`
+                        : `w-full flex items-center justify-between px-4 h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/70 hover:text-[#0f2852] ${
+                            isAppsActive || openSubMenus['applications'] ? 'bg-blue-100/50' : ''
+                          }`
+                    }
+                  >
+                    {isCollapsed ? (
+                      <>
+                        {isAppsActive && <div className="absolute left-0 top-2 bottom-2 w-1 bg-[#2377fc] rounded-r-full" />}
+                        <FileText className={`h-[22px] w-[22px] ${isAppsActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center truncate">
+                          <FileText className="h-[22px] w-[22px] mr-3.5 flex-shrink-0 text-[#1d63ed]" />
+                          <span className="truncate">My Applications</span>
+                        </div>
+                        <ChevronDown
+                          className={`h-4 w-4 text-blue-500 ml-auto flex-shrink-0 transition-transform ${
+                            openSubMenus['applications'] ? 'rotate-180 text-blue-700' : ''
+                          }`}
+                        />
+                      </>
+                    )}
+                  </button>
+                );
+              })()}
 
               {!isCollapsed && openSubMenus['applications'] && (
                 <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-blue-100 text-xs shadow-inner">
