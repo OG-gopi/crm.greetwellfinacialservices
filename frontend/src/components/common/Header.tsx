@@ -100,17 +100,22 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
   return (
     <header className="sticky top-0 z-30 h-[96px] w-full items-center bg-white px-4 sm:px-6 border-b border-[#E4E0D6] shadow-xs font-sans flex justify-between">
-      {/* Left side: Portal Name & Icon Badge */}
-      <div className="flex items-center">
+      {/* Left side: Hamburger Toggle + GFS Logo + Portal Badge */}
+      <div className="flex items-center space-x-3">
         <button
           onClick={onToggleSidebar}
-          className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer mr-2.5"
+          className="p-2 text-slate-700 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-colors cursor-pointer border border-slate-200/80 shadow-2xs"
           title="Toggle Navigation Sidebar"
         >
           <Menu className="h-5 w-5 stroke-[2.2]" />
         </button>
 
-        <span className={`inline-flex items-center gap-2 text-xs font-extrabold font-mono px-3.5 py-1.5 rounded-xl border shadow-xs ${portal.badge}`}>
+        {/* GFS Logo in Navbar */}
+        <Link to={getNotificationRoute().replace('/notifications', '/dashboard')} className="flex items-center shrink-0">
+          <GFSLogo size="md" variant="card" />
+        </Link>
+
+        <span className={`hidden sm:inline-flex items-center gap-2 text-xs font-extrabold font-mono px-3 py-1.5 rounded-xl border shadow-2xs ${portal.badge}`}>
           <PortalIcon className="w-4 h-4" />
           {portal.name}
         </span>
