@@ -5,7 +5,6 @@ import { NotificationProvider } from './context/NotificationContext';
 import { ToastProvider } from './context/ToastContext';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
-import { PageHeader } from './components/common/PageHeader';
 import { ProtectedRoleRoute } from './components/common/ProtectedRoleRoute';
 
 // Auth Pages
@@ -66,28 +65,13 @@ import { Unauthorized } from './pages/error/Unauthorized';
 import { NotFound } from './pages/error/NotFound';
 
 const MainLayout: React.FC = () => {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
-
-  const handleToggleSidebar = () => {
-    if (window.innerWidth >= 1024) {
-      setIsCollapsed((prev) => !prev);
-    } else {
-      setMobileOpen((prev) => !prev);
-    }
-  };
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <Sidebar
-        isOpen={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-        isCollapsed={isCollapsed}
-        setIsCollapsed={setIsCollapsed}
-      />
-      <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-        <Header onToggleSidebar={handleToggleSidebar} />
-        <PageHeader />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Header onToggleSidebar={() => setSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <MenuRouteGuard>
             <Outlet />
