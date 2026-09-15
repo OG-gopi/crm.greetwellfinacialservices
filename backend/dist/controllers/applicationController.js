@@ -90,6 +90,15 @@ async function getApplications(req, res) {
                 { customer: { firstName: { contains: q } } },
                 { customer: { lastName: { contains: q } } },
                 { customer: { email: { contains: q } } },
+                { customer: { customerIdCode: { contains: q } } },
+                { createdBy: { firstName: { contains: q } } },
+                { createdBy: { lastName: { contains: q } } },
+                { createdBy: { email: { contains: q } } },
+                { createdBy: { agentIdCode: { contains: q } } },
+                { createdBy: { customerIdCode: { contains: q } } },
+                { assignedAgent: { firstName: { contains: q } } },
+                { assignedAgent: { lastName: { contains: q } } },
+                { assignedAgent: { agentIdCode: { contains: q } } },
             ];
         }
         const [applications, total] = await Promise.all([
@@ -97,7 +106,8 @@ async function getApplications(req, res) {
                 where,
                 include: {
                     customer: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, customerIdCode: true, serviceTypes: true } },
-                    assignedAgent: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+                    createdBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true, customerIdCode: true, agentIdCode: true, adminIdCode: true, superAdminIdCode: true } },
+                    assignedAgent: { select: { id: true, firstName: true, lastName: true, email: true, role: true, agentIdCode: true } },
                     _count: { select: { documents: true, notes: true, tasks: true } },
                 },
                 orderBy: { createdAt: 'desc' },
@@ -129,7 +139,8 @@ async function getApplicationById(req, res) {
             where: { id },
             include: {
                 customer: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, customerIdCode: true, serviceTypes: true, dob: true, education: true, hasExperience: true, previousCompany: true, previousJobRole: true, yearsOfExperience: true } },
-                assignedAgent: { select: { id: true, firstName: true, lastName: true, email: true, role: true } },
+                createdBy: { select: { id: true, firstName: true, lastName: true, email: true, role: true, customerIdCode: true, agentIdCode: true, adminIdCode: true, superAdminIdCode: true } },
+                assignedAgent: { select: { id: true, firstName: true, lastName: true, email: true, role: true, agentIdCode: true } },
                 documents: {
                     include: {
                         documentType: true,
@@ -217,22 +228,42 @@ async function createApplication(req, res) {
         // Determine target customer ID for application
         let targetCustomerId = user.id;
         if (['SUPER_ADMIN', 'LOAN_AGENT', 'INSURANCE_AGENT', 'INVESTMENT_AGENT'].includes(user.role)) {
-            if (customerId && typeof customerId === 'string' && customerId.trim() !== '') {
-                const trimmedCus = customerId.trim();
-                const targetUser = await prisma_1.prisma.user.findFirst({
-                    where: {
-                        OR: [
-                            { id: trimmedCus },
-                            { customerIdCode: trimmedCus },
-                            { email: trimmedCus },
-                        ],
-                    },
+            if (!customerId || typeof customerId !== 'string' || customerId.trim() === '') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'A valid Customer must be selected to create an application. Applications cannot be created without a target customer.',
                 });
-                if (!targetUser) {
-                    return res.status(400).json({ success: false, message: `Specified Customer '${customerId}' was not found in portal database.` });
-                }
-                targetCustomerId = targetUser.id;
             }
+            const trimmedCus = customerId.trim();
+            const targetUser = await prisma_1.prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { id: trimmedCus },
+                        { customerIdCode: trimmedCus },
+                        { email: trimmedCus },
+                    ],
+                },
+            });
+            if (!targetUser) {
+                return res.status(400).json({ success: false, message: `Specified Customer '${customerId}' was not found in portal database.` });
+            }
+            if (targetUser.role !== 'CUSTOMER') {
+                return res.status(400).json({ success: false, message: `Selected user '${targetUser.email}' is not a valid Customer.` });
+            }
+            if (targetUser.status !== 'ACTIVE') {
+                return res.status(400).json({ success: false, message: `Selected Customer account '${targetUser.email}' is not active.` });
+            }
+            // Check agent role service authorization
+            if (user.role === 'LOAN_AGENT' && type !== 'LOAN') {
+                return res.status(403).json({ success: false, message: 'Loan Agents can only create LOAN applications.' });
+            }
+            if (user.role === 'INSURANCE_AGENT' && type !== 'INSURANCE') {
+                return res.status(403).json({ success: false, message: 'Insurance Agents can only create INSURANCE applications.' });
+            }
+            if (user.role === 'INVESTMENT_AGENT' && type !== 'INVESTMENT') {
+                return res.status(403).json({ success: false, message: 'Investment Agents can only create INVESTMENT applications.' });
+            }
+            targetCustomerId = targetUser.id;
         }
         // Validate mobile number if supplied in formData or user profile
         const mobileToValidate = formData?.mobile || formData?.phone;
@@ -247,6 +278,7 @@ async function createApplication(req, res) {
             data: {
                 id: appId,
                 customerId: targetCustomerId,
+                createdById: user.id,
                 type,
                 status: 'SUBMITTED',
                 priority,
@@ -256,7 +288,8 @@ async function createApplication(req, res) {
                 formData: formData ? JSON.stringify(formData) : null,
             },
             include: {
-                customer: { select: { firstName: true, lastName: true, email: true, phone: true } },
+                customer: { select: { firstName: true, lastName: true, email: true, phone: true, customerIdCode: true } },
+                createdBy: { select: { firstName: true, lastName: true, email: true, role: true, customerIdCode: true, agentIdCode: true, superAdminIdCode: true } },
             },
         });
         // Create Document records if customer attached documents during application creation

@@ -3,6 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateApplicationId = generateApplicationId;
 exports.generateCustomerId = generateCustomerId;
 exports.generateAgentId = generateAgentId;
+exports.generateAdminId = generateAdminId;
+exports.generateSuperAdminId = generateSuperAdminId;
+exports.generateUserIdByRole = generateUserIdByRole;
 const prisma_1 = require("./prisma");
 async function generateApplicationId(type) {
     const currentYear = new Date().getFullYear();
@@ -110,4 +113,71 @@ async function generateAgentId() {
     invitations.forEach((i) => extractSeq(i.agentIdCode));
     const nextSeq = (maxSeq + 1).toString().padStart(6, '0');
     return `${yearPrefix}${nextSeq}`;
+}
+async function generateAdminId() {
+    const currentYear = new Date().getFullYear();
+    const yearPrefix = `ADM-${currentYear}-`;
+    const users = await prisma_1.prisma.user.findMany({
+        where: {
+            adminIdCode: {
+                startsWith: yearPrefix,
+            },
+        },
+        select: { adminIdCode: true },
+    });
+    let maxSeq = 0;
+    for (const u of users) {
+        if (!u.adminIdCode)
+            continue;
+        const parts = u.adminIdCode.split('-');
+        if (parts.length === 3) {
+            const num = parseInt(parts[2], 10);
+            if (!isNaN(num) && num > maxSeq) {
+                maxSeq = num;
+            }
+        }
+    }
+    const nextSeq = (maxSeq + 1).toString().padStart(6, '0');
+    return `${yearPrefix}${nextSeq}`;
+}
+async function generateSuperAdminId() {
+    const currentYear = new Date().getFullYear();
+    const yearPrefix = `SAD-${currentYear}-`;
+    const users = await prisma_1.prisma.user.findMany({
+        where: {
+            superAdminIdCode: {
+                startsWith: yearPrefix,
+            },
+        },
+        select: { superAdminIdCode: true },
+    });
+    let maxSeq = 0;
+    for (const u of users) {
+        if (!u.superAdminIdCode)
+            continue;
+        const parts = u.superAdminIdCode.split('-');
+        if (parts.length === 3) {
+            const num = parseInt(parts[2], 10);
+            if (!isNaN(num) && num > maxSeq) {
+                maxSeq = num;
+            }
+        }
+    }
+    const nextSeq = (maxSeq + 1).toString().padStart(6, '0');
+    return `${yearPrefix}${nextSeq}`;
+}
+async function generateUserIdByRole(role) {
+    if (role === 'CUSTOMER') {
+        return { customerIdCode: await generateCustomerId() };
+    }
+    else if (['LOAN_AGENT', 'INSURANCE_AGENT', 'INVESTMENT_AGENT'].includes(role)) {
+        return { agentIdCode: await generateAgentId() };
+    }
+    else if (role === 'ADMIN') {
+        return { adminIdCode: await generateAdminId() };
+    }
+    else if (role === 'SUPER_ADMIN') {
+        return { superAdminIdCode: await generateSuperAdminId() };
+    }
+    return {};
 }

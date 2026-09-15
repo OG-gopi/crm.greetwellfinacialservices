@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Mail, Phone, ShieldCheck, Settings, Check, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, UserPlus, Mail, Phone, ShieldCheck, Settings, Check, X, PlusCircle } from 'lucide-react';
 import { api } from '../../services/api';
 import { User } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -8,6 +9,7 @@ import { LazyLoadTrigger } from '../../components/common/LazyLoadTrigger';
 import { Modal } from '../../components/common/Modal';
 
 export const AgentCustomers: React.FC = () => {
+  const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const [customers, setCustomers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +24,21 @@ export const AgentCustomers: React.FC = () => {
   const [modalServices, setModalServices] = useState<string[]>([]);
   const [savingServices, setSavingServices] = useState(false);
   const [serviceModalError, setServiceModalError] = useState('');
+
+  const handleCreateAppForCustomer = (cust: User) => {
+    const targetId = cust.customerIdCode || cust.id;
+    if (currentUser?.role === 'SUPER_ADMIN') {
+      navigate(`/superadmin/applications/create?customerId=${targetId}`);
+    } else if (currentUser?.role === 'LOAN_AGENT') {
+      navigate(`/loan-agent/applications/create?customerId=${targetId}&type=LOAN`);
+    } else if (currentUser?.role === 'INSURANCE_AGENT') {
+      navigate(`/insurance-agent/applications/create?customerId=${targetId}&type=INSURANCE`);
+    } else if (currentUser?.role === 'INVESTMENT_AGENT') {
+      navigate(`/investment-agent/applications/create?customerId=${targetId}&type=INVESTMENT`);
+    } else {
+      navigate(`/customer/applications/create?customerId=${targetId}`);
+    }
+  };
 
   const fetchCustomers = async (pageToFetch = 1, isInitial = false) => {
     if (isInitial) setLoading(true);
@@ -136,19 +153,19 @@ export const AgentCustomers: React.FC = () => {
                 <th className="py-4 px-5">SERVICE TYPES</th>
                 <th className="py-4 px-5">STATUS</th>
                 <th className="py-4 px-5">JOINED DATE</th>
-                {currentUser?.role === 'SUPER_ADMIN' && <th className="py-4 px-5 text-right">ACTIONS</th>}
+                <th className="py-4 px-5 text-right">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={currentUser?.role === 'SUPER_ADMIN' ? 8 : 7} className="py-12 text-center text-slate-400 font-semibold">
+                  <td colSpan={8} className="py-12 text-center text-slate-400 font-semibold">
                     Loading customers...
                   </td>
                 </tr>
               ) : customers.length === 0 ? (
                 <tr>
-                  <td colSpan={currentUser?.role === 'SUPER_ADMIN' ? 8 : 7} className="py-12 text-center text-slate-400 font-semibold">
+                  <td colSpan={8} className="py-12 text-center text-slate-400 font-semibold">
                     No customers found. Click "Invite Customer" to onboard your first client.
                   </td>
                 </tr>
@@ -197,16 +214,22 @@ export const AgentCustomers: React.FC = () => {
                     <td className="py-4 px-5 text-slate-500 font-medium">
                       {cust.createdAt ? new Date(cust.createdAt).toLocaleDateString() : 'N/A'}
                     </td>
-                    {currentUser?.role === 'SUPER_ADMIN' && (
-                      <td className="py-4 px-5 text-right">
+                    <td className="py-4 px-5 text-right flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleCreateAppForCustomer(cust)}
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-lg inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                      >
+                        <PlusCircle className="w-3.5 h-3.5" /> + Create App
+                      </button>
+                      {currentUser?.role === 'SUPER_ADMIN' && (
                         <button
                           onClick={() => openManageServices(cust)}
                           className="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-lg border border-slate-200 inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
                         >
-                          <Settings className="w-3.5 h-3.5 text-slate-500" /> Manage Services
+                          <Settings className="w-3.5 h-3.5 text-slate-500" /> Services
                         </button>
-                      </td>
-                    )}
+                      )}
+                    </td>
                   </tr>
                 ))
               )}

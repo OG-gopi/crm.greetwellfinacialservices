@@ -17,6 +17,8 @@ export interface User {
   status: UserStatus;
   customerIdCode?: string;
   agentIdCode?: string;
+  adminIdCode?: string;
+  superAdminIdCode?: string;
   serviceTypes?: string[];
   dob?: string;
   education?: string;
@@ -86,6 +88,8 @@ export interface Application {
   id: string;
   customerId: string;
   customer?: User;
+  createdById?: string | null;
+  createdBy?: User | null;
   assignedAgentId?: string | null;
   assignedAgent?: User | null;
   type: ApplicationType;

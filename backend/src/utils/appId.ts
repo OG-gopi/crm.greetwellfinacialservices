@@ -115,3 +115,80 @@ export async function generateAgentId(): Promise<string> {
   const nextSeq = (maxSeq + 1).toString().padStart(6, '0');
   return `${yearPrefix}${nextSeq}`;
 }
+
+export async function generateAdminId(): Promise<string> {
+  const currentYear = new Date().getFullYear();
+  const yearPrefix = `ADM-${currentYear}-`;
+
+  const users = await prisma.user.findMany({
+    where: {
+      adminIdCode: {
+        startsWith: yearPrefix,
+      },
+    },
+    select: { adminIdCode: true },
+  });
+
+  let maxSeq = 0;
+  for (const u of users) {
+    if (!u.adminIdCode) continue;
+    const parts = u.adminIdCode.split('-');
+    if (parts.length === 3) {
+      const num = parseInt(parts[2], 10);
+      if (!isNaN(num) && num > maxSeq) {
+        maxSeq = num;
+      }
+    }
+  }
+
+  const nextSeq = (maxSeq + 1).toString().padStart(6, '0');
+  return `${yearPrefix}${nextSeq}`;
+}
+
+export async function generateSuperAdminId(): Promise<string> {
+  const currentYear = new Date().getFullYear();
+  const yearPrefix = `SAD-${currentYear}-`;
+
+  const users = await prisma.user.findMany({
+    where: {
+      superAdminIdCode: {
+        startsWith: yearPrefix,
+      },
+    },
+    select: { superAdminIdCode: true },
+  });
+
+  let maxSeq = 0;
+  for (const u of users) {
+    if (!u.superAdminIdCode) continue;
+    const parts = u.superAdminIdCode.split('-');
+    if (parts.length === 3) {
+      const num = parseInt(parts[2], 10);
+      if (!isNaN(num) && num > maxSeq) {
+        maxSeq = num;
+      }
+    }
+  }
+
+  const nextSeq = (maxSeq + 1).toString().padStart(6, '0');
+  return `${yearPrefix}${nextSeq}`;
+}
+
+export async function generateUserIdByRole(role: string): Promise<{
+  customerIdCode?: string;
+  agentIdCode?: string;
+  adminIdCode?: string;
+  superAdminIdCode?: string;
+}> {
+  if (role === 'CUSTOMER') {
+    return { customerIdCode: await generateCustomerId() };
+  } else if (['LOAN_AGENT', 'INSURANCE_AGENT', 'INVESTMENT_AGENT'].includes(role)) {
+    return { agentIdCode: await generateAgentId() };
+  } else if (role === 'ADMIN') {
+    return { adminIdCode: await generateAdminId() };
+  } else if (role === 'SUPER_ADMIN') {
+    return { superAdminIdCode: await generateSuperAdminId() };
+  }
+  return {};
+}
+

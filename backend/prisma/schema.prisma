@@ -13,6 +13,8 @@ model User {
   id                    String      @id @default(uuid())
   customerIdCode        String?     @unique // e.g. CUS-2026-000001
   agentIdCode           String?     @unique // e.g. AGT-2026-000001
+  adminIdCode           String?     @unique // e.g. ADM-2026-000001
+  superAdminIdCode      String?     @unique // e.g. SAD-2026-000001
   email                 String      @unique
   passwordHash          String
   firstName             String
@@ -42,6 +44,7 @@ model User {
   // Relationships
   assignedApplications  Application[]  @relation("AssignedAgent")
   customerApplications  Application[]  @relation("CustomerApplications")
+  createdApplications   Application[]  @relation("CreatedApplications")
   uploadedDocuments     Document[]     @relation("DocumentUploader")
   verifiedDocuments     Document[]     @relation("DocumentVerifier")
   authorNotes           Note[]         @relation("AuthorNotes")
@@ -98,6 +101,8 @@ model Application {
   id                  String     @id // e.g. LOAN-2026-000001
   customerId          String
   customer            User       @relation("CustomerApplications", fields: [customerId], references: [id])
+  createdById         String?
+  createdBy           User?      @relation("CreatedApplications", fields: [createdById], references: [id])
   assignedAgentId     String?
   assignedAgent       User?      @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
   type                String     // LOAN, INSURANCE, INVESTMENT

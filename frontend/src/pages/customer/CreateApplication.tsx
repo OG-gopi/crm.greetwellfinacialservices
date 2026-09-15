@@ -45,6 +45,7 @@ export const CreateApplication: React.FC = () => {
   const [customersList, setCustomersList] = useState<any[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [loadingCustomers, setLoadingCustomers] = useState<boolean>(false);
+  const [isLockedFromUrl, setIsLockedFromUrl] = useState<boolean>(false);
 
   // Sub-product / Scheme Selection
   const [productType, setProductType] = useState<string>('Personal Loan');
@@ -120,7 +121,9 @@ export const CreateApplication: React.FC = () => {
             const paramCusId = searchParams.get('customerId') || searchParams.get('customerIdCode') || searchParams.get('email');
             let initialCus = list.find((c: any) => c.id === paramCusId || c.customerIdCode === paramCusId || c.email === paramCusId);
 
-            if (!initialCus && list.length > 0) {
+            if (initialCus) {
+              setIsLockedFromUrl(true);
+            } else if (list.length > 0) {
               initialCus = list[0];
             }
 
