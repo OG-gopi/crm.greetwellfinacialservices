@@ -435,33 +435,31 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
             className="w-32"
           />
         </div>
-      </div>
-
-      {/* Applications Data Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      </div>      {/* Applications Data Table */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs font-medium">
+          <table className="w-full text-left text-xs font-medium border-collapse min-w-[1250px]">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
-                <th className="py-3.5 px-4">Application ID</th>
-                <th className="py-3.5 px-4">Customer Name & ID</th>
-                <th className="py-3.5 px-4">Created By</th>
-                <th className="py-3.5 px-4">Category & Scheme</th>
-                <th className="py-3.5 px-4">Amount</th>
-                <th className="py-3.5 px-4">Status & Progress</th>
-                <th className="py-3.5 px-4">Assigned Agent</th>
-                <th className="py-3.5 px-4">Submission Date</th>
-                <th className="py-3.5 px-4 text-right">Actions</th>
+              <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-400 font-extrabold uppercase text-[11px] tracking-wider">
+                <th className="py-4 px-5">APPLICATION ID</th>
+                <th className="py-4 px-5">CUSTOMER NAME & ID</th>
+                <th className="py-4 px-5">CREATED BY</th>
+                <th className="py-4 px-5">CATEGORY & SCHEME</th>
+                <th className="py-4 px-5">AMOUNT</th>
+                <th className="py-4 px-5">STATUS & PROGRESS</th>
+                <th className="py-4 px-5">ASSIGNED AGENT</th>
+                <th className="py-4 px-5">SUBMISSION DATE</th>
+                <th className="py-4 px-5 text-right">ACTIONS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-slate-500">Loading applications...</td>
+                  <td colSpan={9} className="py-12 text-center text-slate-400 font-semibold">Loading applications...</td>
                 </tr>
               ) : applications.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-slate-500">
+                  <td colSpan={9} className="py-12 text-center text-slate-400 font-semibold">
                     {user?.role === 'CUSTOMER' ? (
                       <div className="space-y-1 py-4">
                         <p className="font-extrabold text-slate-800 text-sm">No applications found</p>
@@ -477,46 +475,52 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
                   const pct = getProgressPercent(app.status);
                   const creator = getCreatorInfo(app);
                   return (
-                    <tr key={app.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <span className="font-extrabold text-blue-700 text-xs block">{app.id}</span>
-                        <span className="text-[10px] text-slate-400 block font-mono">
-                          {app.priority ? `Priority: ${app.priority}` : ''}
+                    <tr key={app.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-4 px-5 align-top">
+                        <span className="font-extrabold text-blue-700 text-xs sm:text-sm font-mono block">{app.id}</span>
+                        <span className="inline-block text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">
+                          Priority: {app.priority || 'MEDIUM'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <p className="font-bold text-slate-900">{app.customer?.firstName} {app.customer?.lastName}</p>
-                        {app.customer?.customerIdCode && (
-                          <span className="inline-block mt-0.5 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-100 px-1.5 py-0.2 rounded">
-                            {app.customer.customerIdCode}
-                          </span>
-                        )}
-                        <p className="text-[10px] text-slate-500">{app.customer?.email}</p>
+                      <td className="py-4 px-5 align-top max-w-[220px]">
+                        <p className="font-extrabold text-slate-900 text-xs sm:text-sm truncate">
+                          {app.customer?.firstName} {app.customer?.lastName}
+                        </p>
+                        <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                          {app.customer?.customerIdCode && (
+                            <span className="font-mono text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md">
+                              {app.customer.customerIdCode}
+                            </span>
+                          )}
+                          <span className="text-[11px] text-slate-500 truncate">{app.customer?.email}</span>
+                        </div>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <p className="font-bold text-slate-800">{creator.name}</p>
-                        <div className="flex items-center gap-1 flex-wrap mt-0.5">
-                          <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200 uppercase">
+                      <td className="py-4 px-5 align-top max-w-[200px]">
+                        <p className="font-bold text-slate-900 text-xs truncate">{creator.name}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider whitespace-nowrap">
                             {creator.roleLabel}
                           </span>
                           {creator.idCode && (
-                            <span className="text-[10px] font-mono text-slate-500">
-                              ({creator.idCode})
+                            <span className="font-mono text-[11px] text-slate-600 font-medium whitespace-nowrap">
+                              {creator.idCode}
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <span className="font-extrabold text-slate-800 uppercase block text-[11px]">{app.type}</span>
-                        <span className="text-[11px] text-slate-600 font-semibold truncate max-w-[160px] block">
-                          {getProductSchemeLabel(app)}
+                      <td className="py-4 px-5 align-top max-w-[180px]">
+                        <span className="inline-block px-2 py-0.5 text-[10px] font-black rounded uppercase tracking-wider bg-slate-100 text-slate-800 border border-slate-200">
+                          {app.type}
                         </span>
+                        <p className="text-xs text-slate-800 font-extrabold truncate mt-1">
+                          {getProductSchemeLabel(app)}
+                        </p>
                       </td>
-                      <td className="py-3.5 px-4 font-extrabold text-emerald-700">
+                      <td className="py-4 px-5 align-top font-black text-sm text-emerald-700 whitespace-nowrap">
                         {app.amount ? `₹ ${app.amount.toLocaleString()}` : 'N/A'}
                       </td>
-                      <td className="py-3.5 px-4">
-                        <div className="space-y-1.5 min-w-[130px]">
+                      <td className="py-4 px-5 align-top min-w-[150px]">
+                        <div className="space-y-1.5">
                           <div className="flex items-center justify-between gap-1">
                             <StatusBadge status={app.status} />
                             <span className="text-[10px] font-black text-slate-600">{pct}%</span>
@@ -535,7 +539,7 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
                           </div>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-4 px-5 align-top min-w-[170px]">
                         {user?.role === 'SUPER_ADMIN' ? (
                           <SearchableSelect
                             options={[
@@ -549,30 +553,37 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
                                 })
                                 .map((ag) => ({
                                   value: ag.id,
-                                  label: `${ag.firstName} ${ag.lastName || ''} (${ag.role.replace('_', ' ')})`,
+                                  label: `${ag.firstName} ${ag.lastName || ''} (${ag.agentIdCode || ag.role.replace('_', ' ')})`,
                                 })),
                             ]}
                             value={app.assignedAgentId || ''}
                             onChange={(val) => handleAssignAgent(app.id, val)}
                             placeholder="-- Assign Agent --"
                             searchPlaceholder="Search agent..."
-                            className="w-44"
+                            className="w-48 text-xs"
                           />
                         ) : (
-                          <span className="font-semibold text-slate-700">
-                            {app.assignedAgent ? `${app.assignedAgent.firstName} ${app.assignedAgent.lastName}` : 'Unassigned'}
-                          </span>
+                          <div className="space-y-0.5">
+                            <p className="font-bold text-slate-800">
+                              {app.assignedAgent ? `${app.assignedAgent.firstName} ${app.assignedAgent.lastName}` : 'Unassigned'}
+                            </p>
+                            {app.assignedAgent?.agentIdCode && (
+                              <span className="text-[10px] font-mono text-slate-500">
+                                {app.assignedAgent.agentIdCode}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-500 whitespace-nowrap">
+                      <td className="py-4 px-5 align-top text-slate-600 font-semibold text-xs whitespace-nowrap">
                         {new Date(app.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-4 px-5 align-top text-right whitespace-nowrap">
                         <button
                           onClick={() => handleOpenModal(app.id)}
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs inline-flex items-center gap-1 shadow-sm"
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-sm inline-flex items-center gap-1.5 transition-all cursor-pointer"
                         >
-                          <Eye className="h-3.5 w-3.5" /> View & Manage
+                          <Eye className="h-4 w-4" /> View & Manage
                         </button>
                       </td>
                     </tr>
@@ -582,7 +593,6 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
             </tbody>
           </table>
         </div>
-
       </div>
 
       {/* Infinite Scroll Lazy Loading Trigger */}

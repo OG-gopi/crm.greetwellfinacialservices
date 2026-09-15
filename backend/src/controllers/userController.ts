@@ -520,16 +520,35 @@ export async function updateUserStatus(req: AuthRequest, res: Response) {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!['ACTIVE', 'INACTIVE'].includes(status)) {
-      return res.status(400).json({ success: false, message: 'Invalid status. Must be ACTIVE or INACTIVE.' });
+    if (!['ACTIVE', 'INACTIVE', 'PENDING_VERIFICATION'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status. Must be ACTIVE, INACTIVE, or PENDING_VERIFICATION.' });
+    }
+
+    const updateData: any = { status };
+    if (status === 'ACTIVE') {
+      updateData.emailVerified = true;
     }
 
     const user = await prisma.user.update({
       where: { id },
-      data: { status },
+      data: updateData,
     });
 
-    return res.json({ success: true, data: user });
+    await createAuditLog({
+      userId: req.user?.id,
+      userRole: req.user?.role,
+      action: 'UPDATE_USER_STATUS',
+      entityType: 'USER',
+      entityId: user.id,
+      description: `User ${user.email} (${user.role}) status changed to ${status} by ${req.user?.email}.`,
+      ipAddress: req.ip,
+    });
+
+    return res.json({
+      success: true,
+      message: `Customer ${user.email} status updated to ${status} successfully.`,
+      data: user,
+    });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
   }

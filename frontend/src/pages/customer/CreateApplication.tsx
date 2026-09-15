@@ -373,30 +373,141 @@ export const CreateApplication: React.FC = () => {
     setCurrentStep(4);
   };
 
+  const [copiedAppId, setCopiedAppId] = useState(false);
+
+  const handleCopyAppId = () => {
+    if (!successAppId) return;
+    navigator.clipboard.writeText(successAppId);
+    setCopiedAppId(true);
+    setTimeout(() => setCopiedAppId(false), 2000);
+  };
+
   if (successAppId) {
+    const selectedCusObj = customersList.find((c) => c.id === selectedCustomerId);
+    const cusIdCode = selectedCusObj?.customerIdCode || user?.customerIdCode || 'CUS-2026-000001';
+
     return (
-      <div className="max-w-2xl mx-auto my-8 bg-white p-8 rounded-2xl border border-slate-200 shadow-xl text-center space-y-5">
-        <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-          <CheckCircle2 className="w-10 h-10" />
+      <div className="max-w-md mx-auto my-8 bg-white p-7 sm:p-8 rounded-3xl border border-slate-200/90 shadow-2xl font-['Inter',sans-serif] text-slate-800">
+        {/* Eyebrow Row */}
+        <div className="flex items-center justify-between mb-5">
+          <span className="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full uppercase tracking-wider">
+            {appType} Application
+          </span>
+          <span className="text-xs text-slate-400 font-medium">
+            Today, {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
         </div>
-        <h2 className="text-2xl font-extrabold text-slate-900">Application Submitted Successfully!</h2>
-        <p className="text-sm text-slate-600">
-          Your official <strong>{appType}</strong> application reference code is:
+
+        {/* Heading & Subtitle */}
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-1.5 leading-snug">
+          Submitted. Here's what happens next.
+        </h1>
+        <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+          We'll message you at each stage below as your application moves forward.
         </p>
-        <div className="inline-block px-6 py-2.5 bg-emerald-50 border-2 border-emerald-500 text-emerald-800 font-extrabold text-xl rounded-xl tracking-wider">
-          {successAppId}
+
+        {/* Stepper Workflow */}
+        <div className="space-y-0 mb-6">
+          {/* Step 1: Submitted */}
+          <div className="flex gap-3.5">
+            <div className="flex flex-col items-center shrink-0">
+              <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <CheckCircle2 className="w-4 h-4 stroke-[3]" />
+              </div>
+              <div className="w-0.5 flex-1 min-h-[28px] bg-blue-600" />
+            </div>
+            <div className="pb-5 pt-0.5">
+              <p className="text-sm font-bold text-slate-900 mb-0.5">Submitted</p>
+              <p className="text-xs text-slate-500">Your application and documents are with us.</p>
+            </div>
+          </div>
+
+          {/* Step 2: Under Review */}
+          <div className="flex gap-3.5">
+            <div className="flex flex-col items-center shrink-0">
+              <div className="w-6 h-6 rounded-full bg-white border-2 border-slate-300 flex items-center justify-center shrink-0" />
+              <div className="w-0.5 flex-1 min-h-[28px] bg-slate-200" />
+            </div>
+            <div className="pb-5 pt-0.5">
+              <p className="text-sm font-medium text-slate-500 mb-0.5">Under review</p>
+              <p className="text-xs text-slate-400">Your assigned agent checks your details and documents.</p>
+            </div>
+          </div>
+
+          {/* Step 3: Decision */}
+          <div className="flex gap-3.5">
+            <div className="flex flex-col items-center shrink-0">
+              <div className="w-6 h-6 rounded-full bg-white border-2 border-slate-300 flex items-center justify-center shrink-0" />
+              <div className="w-0.5 flex-1 min-h-[28px] bg-slate-200" />
+            </div>
+            <div className="pb-5 pt-0.5">
+              <p className="text-sm font-medium text-slate-500 mb-0.5">Decision</p>
+              <p className="text-xs text-slate-400">You'll hear whether you're approved, or if we need more info.</p>
+            </div>
+          </div>
+
+          {/* Step 4: Disbursed / Sanctioned */}
+          <div className="flex gap-3.5">
+            <div className="flex flex-col items-center shrink-0">
+              <div className="w-6 h-6 rounded-full bg-white border-2 border-slate-300 flex items-center justify-center shrink-0" />
+            </div>
+            <div className="pt-0.5">
+              <p className="text-sm font-medium text-slate-500 mb-0.5">
+                {appType === 'LOAN' ? 'Disbursed' : appType === 'INSURANCE' ? 'Policy Issued' : 'Investment Allocated'}
+              </p>
+              <p className="text-xs text-slate-400">
+                {appType === 'LOAN' ? 'Funds move directly to your bank account.' : 'Policy document issued and activated.'}
+              </p>
+            </div>
+          </div>
         </div>
-        <p className="text-xs text-slate-500 max-w-md mx-auto">
-          Application registered for <strong>{customerName}</strong> ({email} / {phone}). Confirmation notifications sent.
-        </p>
-        <div className="pt-4 flex justify-center gap-3">
-          <button
-            onClick={() => navigate(user?.role === 'CUSTOMER' ? '/customer/applications' : '/superadmin/applications/all')}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all"
-          >
-            View All Applications
-          </button>
+
+        <hr className="border-slate-200 mb-5" />
+
+        {/* Reference Code Block */}
+        <div className="mb-5 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-slate-500">Application Reference ID</p>
+            <span className="text-[11px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+              {cusIdCode}
+            </span>
+          </div>
+          <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+            <p className="font-mono text-base font-extrabold text-slate-900 tracking-wider">
+              {successAppId}
+            </p>
+            <button
+              onClick={handleCopyAppId}
+              className="text-xs font-extrabold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer px-2 py-1"
+            >
+              {copiedAppId ? 'Copied ✓' : 'Copy'}
+            </button>
+          </div>
         </div>
+
+        {/* Contacts Summary */}
+        <div className="mb-6 divide-y divide-slate-100 text-xs border-y border-slate-100 py-1">
+          <div className="flex items-center justify-between py-2">
+            <span className="text-slate-500">Applicant Name</span>
+            <span className="font-bold text-slate-900">{customerName}</span>
+          </div>
+          <div className="flex items-center justify-between py-2">
+            <span className="text-slate-500">Confirmation sent to</span>
+            <span className="font-semibold text-slate-800">{email}</span>
+          </div>
+          <div className="flex items-center justify-between py-2">
+            <span className="text-slate-500">WhatsApp update to</span>
+            <span className="font-semibold text-slate-800">{phone}</span>
+          </div>
+        </div>
+
+        {/* CTA Button */}
+        <button
+          onClick={() => navigate(user?.role === 'CUSTOMER' ? '/customer/applications' : '/superadmin/applications/all')}
+          className="w-full py-3.5 bg-[#2F5D8A] hover:bg-[#254B70] text-white font-extrabold text-sm rounded-xl shadow-md transition-all cursor-pointer"
+        >
+          View All Applications
+        </button>
       </div>
     );
   }

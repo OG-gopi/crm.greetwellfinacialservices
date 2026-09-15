@@ -25,6 +25,24 @@ export const AgentCustomers: React.FC = () => {
   const [savingServices, setSavingServices] = useState(false);
   const [serviceModalError, setServiceModalError] = useState('');
 
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+
+  const handleVerifyCustomer = async (cust: User) => {
+    setVerifyingId(cust.id);
+    try {
+      const res = await api.put(`/users/${cust.id}/status`, { status: 'ACTIVE' });
+      if (res.data.success) {
+        setCustomers((prev) =>
+          prev.map((c) => (c.id === cust.id ? { ...c, status: 'ACTIVE' } : c))
+        );
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Verification failed.');
+    } finally {
+      setVerifyingId(null);
+    }
+  };
+
   const handleCreateAppForCustomer = (cust: User) => {
     const targetId = cust.customerIdCode || cust.id;
     if (currentUser?.role === 'SUPER_ADMIN') {
@@ -215,6 +233,15 @@ export const AgentCustomers: React.FC = () => {
                       {cust.createdAt ? new Date(cust.createdAt).toLocaleDateString() : 'N/A'}
                     </td>
                     <td className="py-4 px-5 text-right flex items-center justify-end gap-2">
+                      {cust.status !== 'ACTIVE' && (currentUser?.role === 'SUPER_ADMIN' || ['LOAN_AGENT', 'INSURANCE_AGENT', 'INVESTMENT_AGENT'].includes(currentUser?.role || '')) && (
+                        <button
+                          onClick={() => handleVerifyCustomer(cust)}
+                          disabled={verifyingId === cust.id}
+                          className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-lg inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5" /> {verifyingId === cust.id ? 'Verifying...' : 'Verify Customer'}
+                        </button>
+                      )}
                       <button
                         onClick={() => handleCreateAppForCustomer(cust)}
                         className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-lg inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
