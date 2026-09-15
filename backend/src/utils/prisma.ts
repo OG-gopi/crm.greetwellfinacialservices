@@ -12,7 +12,7 @@ function formatSupabaseUrl(url: string): string {
     formatted = formatted.replace('.pooler.supabase.com:5432', '.pooler.supabase.com:6543');
   }
 
-  // Ensure pgbouncer and connection_limit=1 are set for serverless pooled mode
+  // Ensure pgbouncer, connection_limit=10 and pool_timeout=30 are set for serverless pooled mode
   if (formatted.includes('.pooler.supabase.com') || formatted.includes('supabase.co')) {
     if (!formatted.includes('pgbouncer=true')) {
       const sep = formatted.includes('?') ? '&' : '?';
@@ -20,7 +20,13 @@ function formatSupabaseUrl(url: string): string {
     }
     if (!formatted.includes('connection_limit=')) {
       const sep = formatted.includes('?') ? '&' : '?';
-      formatted += `${sep}connection_limit=1`;
+      formatted += `${sep}connection_limit=10`;
+    } else {
+      formatted = formatted.replace(/connection_limit=\d+/, 'connection_limit=10');
+    }
+    if (!formatted.includes('pool_timeout=')) {
+      const sep = formatted.includes('?') ? '&' : '?';
+      formatted += `${sep}pool_timeout=30`;
     }
   }
 
@@ -29,7 +35,7 @@ function formatSupabaseUrl(url: string): string {
 
 export function getPrisma(): PrismaClient {
   if (!prismaInstance) {
-    const rawFallbackUrl = 'postgresql://postgres.wthrxtouwlhjwcfnhkgo:7893220502%40gfs@aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1';
+    const rawFallbackUrl = 'postgresql://postgres.wthrxtouwlhjwcfnhkgo:7893220502%40gfs@aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=10&pool_timeout=30';
     
     const rawUrl = (process.env.DATABASE_URL && process.env.DATABASE_URL.trim() !== '' && !process.env.DATABASE_URL.includes('localhost'))
       ? process.env.DATABASE_URL
