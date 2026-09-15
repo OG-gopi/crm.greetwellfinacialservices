@@ -7,7 +7,7 @@ import { createAuditLog } from '../services/auditService';
 import { createNotification, notifySuperAdmins } from '../services/notificationService';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { generateCustomerId, generateAgentId } from '../utils/appId';
-import { validateIndianMobile, safeParseJsonArray } from '../utils/validation';
+import { validateIndianMobile, safeParseJsonArray, checkDuplicateUserOrInvite } from '../utils/validation';
 import { whatsAppService } from '../services/whatsappService';
 
 export async function getUsers(req: AuthRequest, res: Response) {
@@ -180,6 +180,7 @@ export async function createAgentInvitation(req: AuthRequest, res: Response) {
       lastName,
       phone,
       agentType,
+      serviceTypes,
       dob,
       education,
       aadhaarDocUrl,
@@ -232,10 +233,10 @@ export async function createAgentInvitation(req: AuthRequest, res: Response) {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // 2. Existing User Check
-    const existingUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
-    if (existingUser) {
-      return res.status(400).json({ success: false, message: `A user with email '${cleanEmail}' already exists in the system.` });
+    // 2. Strict Existing User & Invitation Duplicate Check (Email & Mobile Phone)
+    const dupCheck = await checkDuplicateUserOrInvite(prisma, cleanEmail, phone);
+    if (dupCheck.isDuplicate) {
+      return res.status(400).json({ success: false, message: dupCheck.message });
     }
 
     // 3. Generate Agent ID Code (e.g. AGT-2026-000001)
@@ -410,14 +411,11 @@ export async function inviteCustomer(req: AuthRequest, res: Response) {
       }
     }
 
-    // 3. Duplicate User / Invitation Check
+    // 3. Strict Duplicate User / Invitation Check (Email & Mobile Phone)
     const cleanEmail = email.trim().toLowerCase();
-    const existingUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: `A user with email '${cleanEmail}' is already registered in the system.`,
-      });
+    const dupCheck = await checkDuplicateUserOrInvite(prisma, cleanEmail, phone);
+    if (dupCheck.isDuplicate) {
+      return res.status(400).json({ success: false, message: dupCheck.message });
     }
 
     // 4. Generate Unique Customer ID Code (CUS-2026-000001)

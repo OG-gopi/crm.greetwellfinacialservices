@@ -178,7 +178,7 @@ async function getUserById(req, res) {
 }
 async function createAgentInvitation(req, res) {
     try {
-        const { email, firstName, lastName, phone, agentType, dob, education, aadhaarDocUrl, hasExperience, previousCompany, previousJobRole, yearsOfExperience, previousJobStartDate, previousJobEndDate, educationDocUrl, experienceDocUrl, otherDocUrl, } = req.body;
+        const { email, firstName, lastName, phone, agentType, serviceTypes, dob, education, aadhaarDocUrl, hasExperience, previousCompany, previousJobRole, yearsOfExperience, previousJobStartDate, previousJobEndDate, educationDocUrl, experienceDocUrl, otherDocUrl, } = req.body;
         const adminUserId = req.user?.id;
         // 1. Mandatory Form Validations (First Name, DOB, Education, Email, Mobile, Agent Role, Aadhaar)
         if (!email || !email.trim()) {
@@ -208,10 +208,10 @@ async function createAgentInvitation(req, res) {
             return res.status(400).json({ success: false, message: 'Please select a valid Agent Role (Loan, Insurance, or Investment).' });
         }
         const cleanEmail = email.trim().toLowerCase();
-        // 2. Existing User Check
-        const existingUser = await prisma_1.prisma.user.findUnique({ where: { email: cleanEmail } });
-        if (existingUser) {
-            return res.status(400).json({ success: false, message: `A user with email '${cleanEmail}' already exists in the system.` });
+        // 2. Strict Existing User & Invitation Duplicate Check (Email & Mobile Phone)
+        const dupCheck = await (0, validation_1.checkDuplicateUserOrInvite)(prisma_1.prisma, cleanEmail, phone);
+        if (dupCheck.isDuplicate) {
+            return res.status(400).json({ success: false, message: dupCheck.message });
         }
         // 3. Generate Agent ID Code (e.g. AGT-2026-000001)
         const agentIdCode = await (0, appId_1.generateAgentId)();
@@ -369,14 +369,11 @@ async function inviteCustomer(req, res) {
                 });
             }
         }
-        // 3. Duplicate User / Invitation Check
+        // 3. Strict Duplicate User / Invitation Check (Email & Mobile Phone)
         const cleanEmail = email.trim().toLowerCase();
-        const existingUser = await prisma_1.prisma.user.findUnique({ where: { email: cleanEmail } });
-        if (existingUser) {
-            return res.status(400).json({
-                success: false,
-                message: `A user with email '${cleanEmail}' is already registered in the system.`,
-            });
+        const dupCheck = await (0, validation_1.checkDuplicateUserOrInvite)(prisma_1.prisma, cleanEmail, phone);
+        if (dupCheck.isDuplicate) {
+            return res.status(400).json({ success: false, message: dupCheck.message });
         }
         // 4. Generate Unique Customer ID Code (CUS-2026-000001)
         const customerIdCode = await (0, appId_1.generateCustomerId)();

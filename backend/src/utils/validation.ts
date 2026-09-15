@@ -63,3 +63,85 @@ export function safeParseJsonArray(input: any): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Checks if an email address or mobile phone number already exists in User or Invitation database.
+ * Prevents duplicate emails and duplicate mobile numbers across all roles.
+ */
+export async function checkDuplicateUserOrInvite(
+  prismaClient: any,
+  email: string,
+  phone?: string | null,
+  excludeUserId?: string
+): Promise<{ isDuplicate: boolean; message?: string }> {
+  const cleanEmail = email.trim().toLowerCase();
+
+  // 1. Check duplicate email in User table
+  const existingUserEmail = await prismaClient.user.findFirst({
+    where: {
+      email: cleanEmail,
+      ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
+    },
+  });
+  if (existingUserEmail) {
+    return {
+      isDuplicate: true,
+      message: `A user account with email address '${cleanEmail}' already exists in the system. Duplicate email addresses are strictly prohibited.`,
+    };
+  }
+
+  // 2. Check duplicate email in Invitation table
+  const existingInviteEmail = await prismaClient.invitation.findFirst({
+    where: {
+      email: cleanEmail,
+      status: { in: ['PENDING', 'INVITATION_SENT'] },
+    },
+  });
+  if (existingInviteEmail) {
+    return {
+      isDuplicate: true,
+      message: `An active invitation has already been issued to email address '${cleanEmail}'. Duplicate invitations are prohibited.`,
+    };
+  }
+
+  // 3. Check duplicate mobile phone number if provided
+  if (phone && phone.trim() && phone.trim() !== 'N/A') {
+    const rawPhone = phone.trim();
+    const digitsOnly = rawPhone.replace(/\D/g, '');
+
+    if (digitsOnly.length >= 10) {
+      const last10Digits = digitsOnly.slice(-10);
+
+      // Check User table for phone
+      const existingUserPhone = await prismaClient.user.findFirst({
+        where: {
+          phone: { contains: last10Digits },
+          ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
+        },
+      });
+      if (existingUserPhone) {
+        return {
+          isDuplicate: true,
+          message: `A user account with mobile phone number '${rawPhone}' already exists (${existingUserPhone.email}). Duplicate mobile numbers are strictly prohibited.`,
+        };
+      }
+
+      // Check Invitation table for phone
+      const existingInvitePhone = await prismaClient.invitation.findFirst({
+        where: {
+          phone: { contains: last10Digits },
+          status: { in: ['PENDING', 'INVITATION_SENT'] },
+        },
+      });
+      if (existingInvitePhone) {
+        return {
+          isDuplicate: true,
+          message: `An active invitation has already been issued to mobile phone number '${rawPhone}'. Duplicate mobile numbers are strictly prohibited.`,
+        };
+      }
+    }
+  }
+
+  return { isDuplicate: false };
+}
+
+

@@ -8,7 +8,7 @@ import { createAuditLog } from '../services/auditService';
 import { notifySuperAdmins } from '../services/notificationService';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { generateCustomerId, generateAgentId } from '../utils/appId';
-import { validateIndianMobile, safeParseJsonArray } from '../utils/validation';
+import { validateIndianMobile, safeParseJsonArray, checkDuplicateUserOrInvite } from '../utils/validation';
 
 
 export async function login(req: Request, res: Response) {
@@ -152,9 +152,11 @@ export async function registerCustomer(req: Request, res: Response) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const existingUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
-    if (existingUser) {
-      return res.status(400).json({ success: false, message: 'Email address is already registered.' });
+
+    // Enforce strict duplicate email & phone check across User and Invitation tables
+    const dupCheck = await checkDuplicateUserOrInvite(prisma, cleanEmail, phone);
+    if (dupCheck.isDuplicate) {
+      return res.status(400).json({ success: false, message: dupCheck.message });
     }
 
     if (phone && phone.trim() && phone.trim() !== 'N/A') {

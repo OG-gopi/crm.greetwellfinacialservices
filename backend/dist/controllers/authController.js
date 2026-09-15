@@ -147,9 +147,10 @@ async function registerCustomer(req, res) {
             return res.status(400).json({ success: false, message: 'Passwords do not match.' });
         }
         const cleanEmail = email.trim().toLowerCase();
-        const existingUser = await prisma_1.prisma.user.findUnique({ where: { email: cleanEmail } });
-        if (existingUser) {
-            return res.status(400).json({ success: false, message: 'Email address is already registered.' });
+        // Enforce strict duplicate email & phone check across User and Invitation tables
+        const dupCheck = await (0, validation_1.checkDuplicateUserOrInvite)(prisma_1.prisma, cleanEmail, phone);
+        if (dupCheck.isDuplicate) {
+            return res.status(400).json({ success: false, message: dupCheck.message });
         }
         if (phone && phone.trim() && phone.trim() !== 'N/A') {
             const mobCheck = (0, validation_1.validateIndianMobile)(phone);
