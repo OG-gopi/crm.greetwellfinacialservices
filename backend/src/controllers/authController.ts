@@ -37,7 +37,8 @@ export async function login(req: Request, res: Response) {
       console.error('Database connection error during login lookup:', dbErr);
       return res.status(503).json({
         success: false,
-        message: 'Unable to connect to database. Please ensure DATABASE_URL and DIRECT_URL are set in Vercel Environment Variables.',
+        message: 'Unable to connect to database: ' + (dbErr?.message || String(dbErr)),
+        error_details: String(dbErr?.stack || dbErr),
       });
     }
 
