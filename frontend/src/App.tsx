@@ -65,13 +65,27 @@ import { Unauthorized } from './pages/error/Unauthorized';
 import { NotFound } from './pages/error/NotFound';
 
 const MainLayout: React.FC = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleToggleSidebar = () => {
+    if (window.innerWidth >= 1024) {
+      setIsExpanded((prev) => !prev);
+    } else {
+      setMobileOpen((prev) => !prev);
+    }
+  };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header onToggleSidebar={() => setSidebarOpen(true)} />
+    <div className="flex h-screen bg-[#F3F5F8] overflow-hidden">
+      <Sidebar
+        isOpen={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        isExpanded={isExpanded}
+        setIsExpanded={setIsExpanded}
+      />
+      <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+        <Header onToggleSidebar={handleToggleSidebar} />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <MenuRouteGuard>
             <Outlet />
