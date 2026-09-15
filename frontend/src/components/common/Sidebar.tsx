@@ -16,7 +16,6 @@ import {
   BarChart3,
   History,
   ChevronDown,
-  ChevronLeft,
   X,
   Info,
   DollarSign,
@@ -36,6 +35,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { GFSLogo } from './GFSLogo';
 import { api } from '../../services/api';
 
 import { LoanAgentSidebar } from './LoanAgentSidebar';
@@ -75,16 +75,9 @@ const AVAILABLE_ICONS: Record<string, any> = {
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  isExpanded?: boolean;
-  setIsExpanded?: (expanded: boolean | ((prev: boolean) => boolean)) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
-  isOpen,
-  onClose,
-  isExpanded = false,
-  setIsExpanded,
-}) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
   const location = useLocation();
@@ -113,6 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       fetchMyMenus();
     }
 
+    // Listen for menu updates from Superadmin Permission Manager
     const handleUpdate = () => fetchMyMenus();
     window.addEventListener('menuPermissionsUpdated', handleUpdate);
     return () => window.removeEventListener('menuPermissionsUpdated', handleUpdate);
@@ -163,23 +157,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setOpenSubMenus((prev) => (prev[menuKey] ? {} : { [menuKey]: true }));
   };
 
-  const handleToggleExpand = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (setIsExpanded) {
-      setIsExpanded((prev) => !prev);
-    }
-  };
-
-  const handleItemClick = () => {
-    onClose();
-  };
-
-  const handleParentClick = (key: string) => {
-    if (!isExpanded && setIsExpanded) {
-      setIsExpanded(true);
-      setOpenSubMenus({ [key]: true });
+  const handleLogoClick = () => {
+    const targetDashboard = '/superadmin/dashboard';
+    if (location.pathname === targetDashboard) {
+      window.location.reload();
     } else {
-      toggleSubMenu(key);
+      navigate(targetDashboard);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      onClose();
     }
   };
 
@@ -187,84 +172,79 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Render Role-Specific Sidebar for non-Super Admin roles
   if (user.role === 'LOAN_AGENT') {
-    return <LoanAgentSidebar isOpen={isOpen} onClose={onClose} isExpanded={isExpanded} setIsExpanded={setIsExpanded} />;
+    return <LoanAgentSidebar isOpen={isOpen} onClose={onClose} />;
   }
   if (user.role === 'INSURANCE_AGENT') {
-    return <InsuranceAgentSidebar isOpen={isOpen} onClose={onClose} isExpanded={isExpanded} setIsExpanded={setIsExpanded} />;
+    return <InsuranceAgentSidebar isOpen={isOpen} onClose={onClose} />;
   }
   if (user.role === 'INVESTMENT_AGENT') {
-    return <InvestmentAgentSidebar isOpen={isOpen} onClose={onClose} isExpanded={isExpanded} setIsExpanded={setIsExpanded} />;
+    return <InvestmentAgentSidebar isOpen={isOpen} onClose={onClose} />;
   }
   if (user.role === 'CUSTOMER') {
-    return <CustomerSidebar isOpen={isOpen} onClose={onClose} isExpanded={isExpanded} setIsExpanded={setIsExpanded} />;
+    return <CustomerSidebar isOpen={isOpen} onClose={onClose} />;
   }
 
-  const renderIcon = (iconName: string) => {
+  const renderIcon = (iconName: string, isActive: boolean) => {
     const IconComp = AVAILABLE_ICONS[iconName] || FileText;
-    return <IconComp className="w-[19px] h-[19px] shrink-0" />;
+    return (
+      <IconComp
+        className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 transition-colors ${
+          isActive ? 'text-white' : 'text-[#1d63ed]'
+        }`}
+      />
+    );
   };
 
   const getNavItemClasses = (isActive: boolean) =>
-    `w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium transition-all cursor-pointer ${
+    `flex items-center px-4 h-12 rounded-xl transition-all ${
       isActive
-        ? 'bg-[#1E4FD6] text-white font-semibold shadow-md shadow-blue-600/30'
-        : 'text-[#8FA0B8] hover:bg-[#16273D] hover:text-white'
+        ? 'bg-[#2377fc] text-white font-bold shadow-md shadow-blue-500/20'
+        : 'text-[#1e3a8a] hover:bg-blue-100/70 hover:text-[#0f2852]'
+    }`;
+
+  const getSubItemClasses = (isActive: boolean) =>
+    `block py-2 px-3 rounded-lg transition-colors font-medium ${
+      isActive ? 'text-blue-700 font-extrabold bg-blue-100/60' : 'text-slate-700 hover:text-blue-700 hover:bg-blue-50'
     }`;
 
   return (
     <>
       {/* Mobile Backdrop */}
       {isOpen && (
-        <div className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs lg:hidden" onClick={onClose} />
+        <div
+          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm lg:hidden"
+          onClick={onClose}
+        />
       )}
 
-      {/* Sidebar Container */}
+      {/* Sidebar Container: Light Soft Blue Background */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full bg-[#0E1A2B] text-[#8FA0B8] flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-[#1E2F45] shadow-md select-none ${
-          isOpen ? 'translate-x-0 w-[252px]' : '-translate-x-full lg:translate-x-0'
-        } ${isExpanded ? 'lg:w-[252px]' : 'lg:w-[76px]'}`}
+        className={`fixed top-0 left-0 z-50 h-full w-64 bg-[#e8f1fd] text-slate-800 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-blue-200/80 shadow-sm ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
       >
         <div className="flex flex-col h-full overflow-hidden">
-          {/* Sidebar Top: Brand & Collapse Toggle */}
-          <div className="pt-5 pb-3 px-3.5 flex items-center justify-between">
+          {/* Header Logo & Super Admin Crown Role Badge */}
+          <div className="pt-4 pb-4 px-5 flex flex-col items-center justify-center relative bg-[#e8f1fd]">
             <button
-              onClick={handleToggleExpand}
-              className="flex items-center gap-3 bg-none border-none p-0 text-left cursor-pointer min-w-0"
+              onClick={onClose}
+              className="absolute right-3 top-3 text-slate-500 hover:text-slate-900 lg:hidden"
             >
-              <div className="w-10 h-10 rounded-full bg-black border-[1.5px] border-[#B4862E] text-[#B4862E] font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
-                GFS
-              </div>
-              {isExpanded && (
-                <div className="flex flex-col truncate">
-                  <strong className="text-white text-[14.5px] font-bold tracking-tight">GFS</strong>
-                  <small className="text-[#8FA0B8] text-[10.5px] truncate">Loans, Insurance &amp; Investments</small>
-                </div>
-              )}
-            </button>
-
-            {isExpanded && (
-              <button
-                onClick={handleToggleExpand}
-                className="w-7 h-7 rounded-lg border border-[#26374F] bg-[#16273D] text-[#8FA0B8] hover:text-white hover:border-[#3b5172] flex items-center justify-center cursor-pointer shrink-0 transition-colors"
-                title="Collapse sidebar"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-            )}
-
-            <button onClick={onClose} className="text-slate-400 hover:text-white lg:hidden ml-auto">
               <X className="h-5 w-5" />
             </button>
-          </div>
 
-          {/* Portal Pill */}
-          <div className="mx-3 my-2 p-2.5 rounded-xl bg-white text-[#0E1A2B] text-xs font-semibold flex items-center gap-2.5 shadow-2xs">
-            <Crown className="w-4 h-4 text-[#1E4FD6] fill-blue-100 shrink-0" />
-            {isExpanded && <span className="truncate font-bold">Super Admin</span>}
+            {/* Clickable GFS Logo at the Top */}
+            <GFSLogo size="lg" variant="card" onClick={handleLogoClick} />
+
+            {/* Super Admin Role Badge */}
+            <div className="mt-3.5 px-4 py-1.5 rounded-full bg-white/90 text-[#1e3a8a] border border-blue-200/80 text-xs font-extrabold shadow-sm flex items-center gap-1.5 font-sans">
+              <Crown className="w-4 h-4 text-blue-600 fill-blue-100" />
+              <span>Super Admin</span>
+            </div>
           </div>
 
           {/* Dynamic Menu Navigation List */}
-          <nav className="flex-1 px-3 py-2 overflow-y-auto space-y-1.5 custom-scrollbar">
+          <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-1.5 text-[14.5px] font-semibold custom-scrollbar">
             {dynamicMenus.length > 0 ? (
               dynamicMenus.map((m) => {
                 const hasChildren = m.children && m.children.length > 0;
@@ -274,51 +254,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <NavLink
                       key={m.id}
                       to={m.url}
-                      onClick={handleItemClick}
-                      title={!isExpanded ? m.name : undefined}
+                      onClick={onClose}
                       className={({ isActive }) => getNavItemClasses(isActive)}
                     >
-                      {renderIcon(m.icon)}
-                      {isExpanded && <span className="truncate">{m.name}</span>}
+                      {({ isActive }) => (
+                        <>
+                          {renderIcon(m.icon, isActive)}
+                          <span className="truncate">{m.name}</span>
+                        </>
+                      )}
                     </NavLink>
                   );
                 }
 
+                // Collapsible Parent Menu Item
                 const isSubOpen = Boolean(openSubMenus[m.id]);
                 return (
                   <div key={m.id}>
                     <button
-                      onClick={() => handleParentClick(m.id)}
-                      title={!isExpanded ? m.name : undefined}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium transition-all cursor-pointer ${
-                        isSubOpen ? 'bg-[#16273D] text-white' : 'text-[#8FA0B8] hover:bg-[#16273D] hover:text-white'
+                      onClick={() => toggleSubMenu(m.id)}
+                      className={`w-full flex items-center justify-between px-4 h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/80 hover:text-[#0f2852] font-semibold ${
+                        isSubOpen ? 'bg-blue-100/60 text-[#0f2852]' : ''
                       }`}
                     >
-                      {renderIcon(m.icon)}
-                      {isExpanded && (
-                        <>
-                          <span className="truncate text-left flex-1">{m.name}</span>
-                          <ChevronDown
-                            className={`w-3.5 h-3.5 shrink-0 transition-transform ${
-                              isSubOpen ? 'rotate-180 text-white' : ''
-                            }`}
-                          />
-                        </>
-                      )}
+                      <div className="flex items-center truncate">
+                        {renderIcon(m.icon, false)}
+                        <span className="truncate">{m.name}</span>
+                      </div>
+                      <ChevronDown
+                        className={`h-4 w-4 text-[#1d63ed] ml-auto flex-shrink-0 transition-transform ${
+                          isSubOpen ? 'rotate-180 text-blue-700' : ''
+                        }`}
+                      />
                     </button>
 
-                    {isExpanded && isSubOpen && (
-                      <div className="pl-8 pr-1 py-1 space-y-1">
+                    {isSubOpen && (
+                      <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-blue-100 text-xs shadow-inner">
                         {m.children.map((c: any) => (
                           <NavLink
                             key={c.id}
                             to={c.url}
-                            onClick={handleItemClick}
-                            className={({ isActive }) =>
-                              `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                                isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                              }`
-                            }
+                            onClick={onClose}
+                            className={({ isActive }) => getSubItemClasses(isActive)}
                           >
                             {c.name}
                           </NavLink>
@@ -333,83 +310,63 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <>
                 <NavLink
                   to="/superadmin/dashboard"
-                  onClick={handleItemClick}
-                  title={!isExpanded ? 'Dashboard' : undefined}
+                  onClick={onClose}
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
-                  <LayoutDashboard className="w-[19px] h-[19px] shrink-0" />
-                  {isExpanded && <span className="truncate">Dashboard</span>}
+                  {({ isActive }) => (
+                    <>
+                      <LayoutDashboard className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                      <span>Dashboard</span>
+                    </>
+                  )}
                 </NavLink>
 
-                {/* Users Management */}
+                {/* Collapsible Users Management Menu */}
                 <div>
                   <button
-                    onClick={() => handleParentClick('users-parent')}
-                    title={!isExpanded ? 'Users Management' : undefined}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium transition-all cursor-pointer ${
-                      location.pathname.startsWith('/superadmin/users') || location.pathname.startsWith('/superadmin/agents') || location.pathname.startsWith('/superadmin/customers')
-                        ? 'bg-[#1E4FD6] text-white font-semibold shadow-md shadow-blue-600/30'
-                        : openSubMenus['users-parent']
-                        ? 'bg-[#16273D] text-white'
-                        : 'text-[#8FA0B8] hover:bg-[#16273D] hover:text-white'
+                    onClick={() => toggleSubMenu('users-parent')}
+                    className={`w-full flex items-center justify-between px-4 h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/80 hover:text-[#0f2852] font-semibold ${
+                      openSubMenus['users-parent'] ? 'bg-blue-100/60 text-[#0f2852]' : ''
                     }`}
                   >
-                    <Users className="w-[19px] h-[19px] shrink-0" />
-                    {isExpanded && (
-                      <>
-                        <span className="truncate text-left flex-1">Users Management</span>
-                        <ChevronDown
-                          className={`w-3.5 h-3.5 shrink-0 transition-transform ${
-                            openSubMenus['users-parent'] ? 'rotate-180 text-white' : ''
-                          }`}
-                        />
-                      </>
-                    )}
+                    <div className="flex items-center truncate">
+                      <Users className="h-[22px] w-[22px] mr-3.5 flex-shrink-0 text-[#1d63ed]" />
+                      <span className="truncate">Users Management</span>
+                    </div>
+                    <ChevronDown
+                      className={`h-4 w-4 text-[#1d63ed] ml-auto flex-shrink-0 transition-transform ${
+                        openSubMenus['users-parent'] ? 'rotate-180 text-blue-700' : ''
+                      }`}
+                    />
                   </button>
 
-                  {isExpanded && openSubMenus['users-parent'] && (
-                    <div className="pl-8 pr-1 py-1 space-y-1">
+                  {openSubMenus['users-parent'] && (
+                    <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-blue-100 text-xs shadow-inner">
                       <NavLink
                         to="/superadmin/users"
-                        onClick={handleItemClick}
-                        className={({ isActive }) =>
-                          `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                            isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                          }`
-                        }
+                        onClick={onClose}
+                        className={({ isActive }) => getSubItemClasses(isActive)}
                       >
                         All Portal Users
                       </NavLink>
                       <NavLink
                         to="/superadmin/users/create"
-                        onClick={handleItemClick}
-                        className={({ isActive }) =>
-                          `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                            isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                          }`
-                        }
+                        onClick={onClose}
+                        className={({ isActive }) => getSubItemClasses(isActive)}
                       >
                         Create / Invite User
                       </NavLink>
                       <NavLink
                         to="/superadmin/agents/manage"
-                        onClick={handleItemClick}
-                        className={({ isActive }) =>
-                          `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                            isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                          }`
-                        }
+                        onClick={onClose}
+                        className={({ isActive }) => getSubItemClasses(isActive)}
                       >
-                        Manage &amp; Invite Agents
+                        Manage & Invite Agents
                       </NavLink>
                       <NavLink
                         to="/superadmin/customers"
-                        onClick={handleItemClick}
-                        className={({ isActive }) =>
-                          `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                            isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                          }`
-                        }
+                        onClick={onClose}
+                        className={({ isActive }) => getSubItemClasses(isActive)}
                       >
                         Customers
                       </NavLink>
@@ -417,84 +374,65 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   )}
                 </div>
 
-                {/* Applications */}
+                {/* Collapsible Applications Menu */}
                 <div>
                   <button
-                    onClick={() => handleParentClick('applications')}
-                    title={!isExpanded ? 'Applications' : undefined}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium transition-all cursor-pointer ${
-                      location.pathname.startsWith('/superadmin/applications') || location.pathname.startsWith('/superadmin/create-application')
-                        ? 'bg-[#1E4FD6] text-white font-semibold shadow-md shadow-blue-600/30'
-                        : openSubMenus['applications']
-                        ? 'bg-[#16273D] text-white'
-                        : 'text-[#8FA0B8] hover:bg-[#16273D] hover:text-white'
+                    onClick={() => toggleSubMenu('applications')}
+                    className={`w-full flex items-center justify-between px-4 h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/80 hover:text-[#0f2852] font-semibold ${
+                      openSubMenus['applications'] ? 'bg-blue-100/60 text-[#0f2852]' : ''
                     }`}
                   >
-                    <FileText className="w-[19px] h-[19px] shrink-0" />
-                    {isExpanded && (
-                      <>
-                        <span className="truncate text-left flex-1">Applications</span>
-                        <ChevronDown
-                          className={`w-3.5 h-3.5 shrink-0 transition-transform ${
-                            openSubMenus['applications'] ? 'rotate-180 text-white' : ''
-                          }`}
-                        />
-                      </>
-                    )}
+                    <div className="flex items-center truncate">
+                      <FileText className="h-[22px] w-[22px] mr-3.5 flex-shrink-0 text-[#1d63ed]" />
+                      <span className="truncate">Applications</span>
+                    </div>
+                    <ChevronDown
+                      className={`h-4 w-4 text-[#1d63ed] ml-auto flex-shrink-0 transition-transform ${
+                        openSubMenus['applications'] ? 'rotate-180 text-blue-700' : ''
+                      }`}
+                    />
                   </button>
 
-                  {isExpanded && openSubMenus['applications'] && (
-                    <div className="pl-8 pr-1 py-1 space-y-1">
+                  {openSubMenus['applications'] && (
+                    <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-blue-100 text-xs shadow-inner">
                       <NavLink
                         to="/superadmin/applications/all"
-                        onClick={handleItemClick}
-                        className={({ isActive }) =>
-                          `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                            isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                          }`
-                        }
+                        onClick={onClose}
+                        className={({ isActive }) => getSubItemClasses(isActive)}
                       >
                         All Applications
                       </NavLink>
                       <NavLink
                         to="/superadmin/applications/loans"
-                        onClick={handleItemClick}
-                        className={({ isActive }) =>
-                          `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                            isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                          }`
-                        }
+                        onClick={onClose}
+                        className={({ isActive }) => getSubItemClasses(isActive)}
                       >
                         Loan Applications
                       </NavLink>
                       <NavLink
                         to="/superadmin/applications/insurance"
-                        onClick={handleItemClick}
-                        className={({ isActive }) =>
-                          `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                            isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                          }`
-                        }
+                        onClick={onClose}
+                        className={({ isActive }) => getSubItemClasses(isActive)}
                       >
                         Insurance Applications
                       </NavLink>
                       <NavLink
                         to="/superadmin/applications/investments"
-                        onClick={handleItemClick}
-                        className={({ isActive }) =>
-                          `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                            isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                          }`
-                        }
+                        onClick={onClose}
+                        className={({ isActive }) => getSubItemClasses(isActive)}
                       >
                         Investment Applications
                       </NavLink>
                       <NavLink
                         to="/superadmin/create-application"
-                        onClick={handleItemClick}
-                        className="block py-1.5 px-2.5 rounded-lg text-xs font-bold text-[#1E4FD6] bg-white hover:bg-slate-100 flex items-center gap-1 mt-1"
+                        onClick={onClose}
+                        className={({ isActive }) =>
+                          `block py-2 px-3 rounded-lg font-bold text-blue-700 hover:bg-blue-100/70 border-t border-blue-100 mt-1 pt-2 ${
+                            isActive ? 'bg-blue-100/80 font-extrabold text-blue-800' : ''
+                          }`
+                        }
                       >
-                        <PlusCircle className="h-3.5 w-3.5" /> + Create Application
+                        + Create Application
                       </NavLink>
                     </div>
                   )}
@@ -502,135 +440,116 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 <NavLink
                   to="/superadmin/documents"
-                  onClick={handleItemClick}
-                  title={!isExpanded ? 'Documents' : undefined}
+                  onClick={onClose}
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
-                  <FolderOpen className="w-[19px] h-[19px] shrink-0" />
-                  {isExpanded && <span className="truncate">Documents</span>}
+                  {({ isActive }) => (
+                    <>
+                      <FolderOpen className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                      <span>Documents</span>
+                    </>
+                  )}
                 </NavLink>
 
                 <NavLink
                   to="/superadmin/products/catalog"
-                  onClick={handleItemClick}
-                  title={!isExpanded ? 'Products & Services' : undefined}
+                  onClick={onClose}
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
-                  <Package className="w-[19px] h-[19px] shrink-0" />
-                  {isExpanded && <span className="truncate">Products &amp; Services</span>}
+                  {({ isActive }) => (
+                    <>
+                      <Package className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                      <span>Products & Services</span>
+                    </>
+                  )}
                 </NavLink>
 
                 <NavLink
                   to="/superadmin/permissions/menu-items"
-                  onClick={handleItemClick}
-                  title={!isExpanded ? 'Roles & Permissions' : undefined}
+                  onClick={onClose}
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
-                  <ShieldCheck className="w-[19px] h-[19px] shrink-0" />
-                  {isExpanded && <span className="truncate">Roles &amp; Permissions</span>}
+                  {({ isActive }) => (
+                    <>
+                      <ShieldCheck className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                      <span>Roles & Permissions</span>
+                    </>
+                  )}
                 </NavLink>
 
                 <NavLink
                   to="/superadmin/system/configurations"
-                  onClick={handleItemClick}
-                  title={!isExpanded ? 'System Management' : undefined}
+                  onClick={onClose}
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
-                  <Sliders className="w-[19px] h-[19px] shrink-0" />
-                  {isExpanded && <span className="truncate">System Management</span>}
+                  {({ isActive }) => (
+                    <>
+                      <Sliders className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                      <span>System Management</span>
+                    </>
+                  )}
                 </NavLink>
 
-                {/* Website & Portal */}
+                {/* Collapsible Website & Portal Management Menu */}
                 <div>
                   <button
-                    onClick={() => handleParentClick('website')}
-                    title={!isExpanded ? 'Website & Portal' : undefined}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium transition-all cursor-pointer ${
-                      location.pathname.startsWith('/superadmin/website-management')
-                        ? 'bg-[#1E4FD6] text-white font-semibold shadow-md shadow-blue-600/30'
-                        : openSubMenus['website']
-                        ? 'bg-[#16273D] text-white'
-                        : 'text-[#8FA0B8] hover:bg-[#16273D] hover:text-white'
+                    onClick={() => toggleSubMenu('website')}
+                    className={`w-full flex items-center justify-between px-4 h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/80 hover:text-[#0f2852] font-semibold ${
+                      openSubMenus['website'] ? 'bg-blue-100/60 text-[#0f2852]' : ''
                     }`}
                   >
-                    <Globe className="w-[19px] h-[19px] shrink-0" />
-                    {isExpanded && (
-                      <>
-                        <span className="truncate text-left flex-1">Website &amp; Portal</span>
-                        <ChevronDown
-                          className={`w-3.5 h-3.5 shrink-0 transition-transform ${
-                            openSubMenus['website'] ? 'rotate-180 text-white' : ''
-                          }`}
-                        />
-                      </>
-                    )}
+                    <div className="flex items-center truncate">
+                      <Globe className="h-[22px] w-[22px] mr-3.5 flex-shrink-0 text-[#1d63ed]" />
+                      <span className="truncate">Website & Portal</span>
+                    </div>
+                    <ChevronDown
+                      className={`h-4 w-4 text-[#1d63ed] ml-auto flex-shrink-0 transition-transform ${
+                        openSubMenus['website'] ? 'rotate-180 text-blue-700' : ''
+                      }`}
+                    />
                   </button>
 
-                  {isExpanded && openSubMenus['website'] && (
-                    <div className="pl-8 pr-1 py-1 space-y-1">
+                  {openSubMenus['website'] && (
+                    <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-blue-100 text-xs shadow-inner">
                       <NavLink
                         to="/superadmin/website-management/content"
-                        onClick={handleItemClick}
-                        className={({ isActive }) =>
-                          `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                            isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                          }`
-                        }
+                        onClick={onClose}
+                        className={({ isActive }) => getSubItemClasses(isActive)}
                       >
                         Website Content
                       </NavLink>
                       <NavLink
                         to="/superadmin/website-management/contact"
-                        onClick={handleItemClick}
-                        className={({ isActive }) =>
-                          `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                            isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                          }`
-                        }
+                        onClick={onClose}
+                        className={({ isActive }) => getSubItemClasses(isActive)}
                       >
                         Contact Info
                       </NavLink>
                       <NavLink
                         to="/superadmin/website-management/social"
-                        onClick={handleItemClick}
-                        className={({ isActive }) =>
-                          `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                            isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                          }`
-                        }
+                        onClick={onClose}
+                        className={({ isActive }) => getSubItemClasses(isActive)}
                       >
                         Social Media
                       </NavLink>
                       <NavLink
                         to="/superadmin/website-management/media"
-                        onClick={handleItemClick}
-                        className={({ isActive }) =>
-                          `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                            isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                          }`
-                        }
+                        onClick={onClose}
+                        className={({ isActive }) => getSubItemClasses(isActive)}
                       >
-                        Images &amp; Media
+                        Images & Media
                       </NavLink>
                       <NavLink
                         to="/superadmin/website-management/preview"
-                        onClick={handleItemClick}
-                        className={({ isActive }) =>
-                          `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                            isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                          }`
-                        }
+                        onClick={onClose}
+                        className={({ isActive }) => getSubItemClasses(isActive)}
                       >
                         Preview Changes
                       </NavLink>
                       <NavLink
                         to="/superadmin/website-management/history"
-                        onClick={handleItemClick}
-                        className={({ isActive }) =>
-                          `block py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors ${
-                            isActive ? 'text-white bg-[#16273D] font-bold' : 'text-[#8FA0B8] hover:text-white hover:bg-[#16273D]'
-                          }`
-                        }
+                        onClick={onClose}
+                        className={({ isActive }) => getSubItemClasses(isActive)}
                       >
                         Change History
                       </NavLink>
@@ -640,52 +559,67 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 <NavLink
                   to="/superadmin/updates/release-notes"
-                  onClick={handleItemClick}
-                  title={!isExpanded ? 'Updates & Versions' : undefined}
+                  onClick={onClose}
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
-                  <RefreshCw className="w-[19px] h-[19px] shrink-0" />
-                  {isExpanded && <span className="truncate">Updates &amp; Versions</span>}
+                  {({ isActive }) => (
+                    <>
+                      <RefreshCw className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                      <span>Updates & Versions</span>
+                    </>
+                  )}
                 </NavLink>
 
                 <NavLink
                   to="/superadmin/enquiries"
-                  onClick={handleItemClick}
-                  title={!isExpanded ? 'Enquiries / Complaints' : undefined}
+                  onClick={onClose}
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
-                  <MessageSquare className="w-[19px] h-[19px] shrink-0" />
-                  {isExpanded && <span className="truncate">Enquiries / Complaints</span>}
+                  {({ isActive }) => (
+                    <>
+                      <MessageSquare className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                      <span>Enquiries / Complaints</span>
+                    </>
+                  )}
                 </NavLink>
 
                 <NavLink
                   to="/superadmin/reports"
-                  onClick={handleItemClick}
-                  title={!isExpanded ? 'Reports' : undefined}
+                  onClick={onClose}
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
-                  <BarChart3 className="w-[19px] h-[19px] shrink-0" />
-                  {isExpanded && <span className="truncate">Reports</span>}
+                  {({ isActive }) => (
+                    <>
+                      <BarChart3 className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                      <span>Reports</span>
+                    </>
+                  )}
                 </NavLink>
 
                 <NavLink
                   to="/superadmin/audit-logs"
-                  onClick={handleItemClick}
-                  title={!isExpanded ? 'Audit Logs' : undefined}
+                  onClick={onClose}
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
-                  <History className="w-[19px] h-[19px] shrink-0" />
-                  {isExpanded && <span className="truncate">Audit Logs</span>}
+                  {({ isActive }) => (
+                    <>
+                      <History className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                      <span>Audit Logs</span>
+                    </>
+                  )}
                 </NavLink>
 
                 <NavLink
                   to="/superadmin/settings/portal"
-                  onClick={handleItemClick}
-                  title={!isExpanded ? 'Settings' : undefined}
+                  onClick={onClose}
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
-                  <Settings className="w-[19px] h-[19px] shrink-0" />
-                  {isExpanded && <span className="truncate">Settings</span>}
+                  {({ isActive }) => (
+                    <>
+                      <Settings className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
+                      <span>Settings</span>
+                    </>
+                  )}
                 </NavLink>
               </>
             )}
