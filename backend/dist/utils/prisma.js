@@ -6,10 +6,10 @@ const client_1 = require("@prisma/client");
 let prismaInstance = null;
 function getPrisma() {
     if (!prismaInstance) {
-        const directSupabaseUrl = 'postgresql://postgres:7893220502%40Gopi@db.wthrxtouwlhjwcfnhkgo.supabase.co:5432/postgres';
-        const activeUrl = (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('pooler.supabase.com') && !process.env.DATABASE_URL.includes('localhost'))
+        const fallbackSupabaseUrl = 'postgresql://postgres.wthrxtouwlhjwcfnhkgo:7893220502%40Gopi@aws-0-ap-southeast-2.pooler.supabase.com:5432/postgres';
+        const activeUrl = (process.env.DATABASE_URL && process.env.DATABASE_URL.trim() !== '' && !process.env.DATABASE_URL.includes('localhost'))
             ? process.env.DATABASE_URL
-            : directSupabaseUrl;
+            : fallbackSupabaseUrl;
         process.env.DATABASE_URL = activeUrl;
         process.env.DIRECT_URL = activeUrl;
         prismaInstance = new client_1.PrismaClient({

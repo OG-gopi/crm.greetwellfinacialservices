@@ -51,9 +51,14 @@ app.use('/uploads', (req, res) => {
     }
     return res.status(404).send('Document not found');
 });
-// Health check endpoints (both /health and /api/health)
-app.get(['/health', '/api/health'], (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health check endpoints (root /, /health, and /api/health)
+app.get(['/', '/health', '/api/health'], (req, res) => {
+    res.json({
+        status: 'ok',
+        success: true,
+        message: 'Greetwell Financial Services CRM Backend API Service Online',
+        timestamp: new Date().toISOString(),
+    });
 });
 // API Routes (mounted on both /api and root for Vercel serverless rewrite resilience)
 app.use('/api', routes_1.default);
