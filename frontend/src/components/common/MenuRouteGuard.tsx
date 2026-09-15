@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { AlertTriangle, Lock, ShieldAlert, ArrowLeft } from 'lucide-react';
+import { Lock, ArrowLeft } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -8,36 +8,69 @@ interface MenuRouteGuardProps {
   children: React.ReactNode;
 }
 
+// In-Memory Route Access Cache across page navigations
+const routeAccessCache = new Map<string, { allowed: boolean; message?: string }>();
+
 export const MenuRouteGuard: React.FC<MenuRouteGuardProps> = ({ children }) => {
   const location = useLocation();
   const { user } = useAuth();
-  const [checking, setChecking] = useState(true);
-  const [accessState, setAccessState] = useState<{ allowed: boolean; message?: string }>({ allowed: true });
+  const currentPath = location.pathname;
+
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isPublicOrAuth = !user || 
+    currentPath.startsWith('/login') || 
+    currentPath.startsWith('/register') || 
+    currentPath.startsWith('/invite') || 
+    currentPath.startsWith('/forgot-password') ||
+    currentPath.startsWith('/unauthorized');
+
+  const cacheKey = `${user?.role || 'anon'}:${currentPath}`;
+  const cachedAccess = routeAccessCache.get(cacheKey);
+
+  const [checking, setChecking] = useState<boolean>(() => {
+    if (isPublicOrAuth || isSuperAdmin || cachedAccess !== undefined) {
+      return false;
+    }
+    return true;
+  });
+
+  const [accessState, setAccessState] = useState<{ allowed: boolean; message?: string }>(() => {
+    if (isPublicOrAuth || isSuperAdmin) return { allowed: true };
+    if (cachedAccess) return cachedAccess;
+    return { allowed: true };
+  });
 
   useEffect(() => {
-    let isMounted = true;
-    
-    // Skip checking for public auth routes
-    if (!user || location.pathname.startsWith('/login') || location.pathname.startsWith('/customer/login') || location.pathname.startsWith('/agent/login')) {
+    if (isPublicOrAuth || isSuperAdmin) {
+      setAccessState({ allowed: true });
       setChecking(false);
       return;
     }
 
+    if (routeAccessCache.has(cacheKey)) {
+      setAccessState(routeAccessCache.get(cacheKey)!);
+      setChecking(false);
+      return;
+    }
+
+    let isMounted = true;
     setChecking(true);
-    api.get(`/menus/check-access?url=${encodeURIComponent(location.pathname)}`)
+
+    api.get(`/menus/check-access?url=${encodeURIComponent(currentPath)}`)
       .then((res) => {
         if (isMounted) {
-          setAccessState({ allowed: res.data.allowed, message: res.data.message });
+          const state = { allowed: res.data.allowed, message: res.data.message };
+          routeAccessCache.set(cacheKey, state);
+          setAccessState(state);
         }
       })
       .catch((err) => {
         if (isMounted) {
-          if (err.response?.status === 403) {
-            setAccessState({ allowed: false, message: err.response?.data?.message || 'This menu is currently unavailable.' });
-          } else {
-            // Default to allow on unmapped routes or connection error
-            setAccessState({ allowed: true });
-          }
+          const state = err.response?.status === 403
+            ? { allowed: false, message: err.response?.data?.message || 'This menu is currently unavailable.' }
+            : { allowed: true };
+          routeAccessCache.set(cacheKey, state);
+          setAccessState(state);
         }
       })
       .finally(() => {
@@ -47,13 +80,13 @@ export const MenuRouteGuard: React.FC<MenuRouteGuardProps> = ({ children }) => {
     return () => {
       isMounted = false;
     };
-  }, [location.pathname, user]);
+  }, [currentPath, user?.role, isSuperAdmin, isPublicOrAuth, cacheKey]);
 
   if (checking) {
     return (
-      <div className="flex items-center justify-center p-12 text-slate-500 text-xs font-semibold">
-        <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent mr-3" />
-        Verifying menu availability & permissions...
+      <div className="flex items-center justify-center p-8 text-slate-500 text-xs font-semibold">
+        <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent mr-2.5" />
+        Loading page...
       </div>
     );
   }
