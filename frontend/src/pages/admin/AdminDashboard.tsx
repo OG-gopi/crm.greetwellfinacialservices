@@ -45,8 +45,10 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { SearchableSelect } from '../../components/common/SearchableSelect';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import DashboardFooter from '../../components/common/DashboardFooter';
 
 export const AdminDashboard: React.FC = () => {
+
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -599,8 +601,12 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Dashboard Bottom-Right Dynamic Version Footer */}
+      <DashboardFooter />
     </div>
   );
 };
 
 export default AdminDashboard;
+

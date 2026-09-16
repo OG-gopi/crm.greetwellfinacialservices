@@ -5,8 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Link } from 'react-router-dom';
 import { SearchableSelect } from '../../components/common/SearchableSelect';
+import DashboardFooter from '../../components/common/DashboardFooter';
 
 export const CustomerDashboard: React.FC = () => {
+
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -344,6 +346,9 @@ export const CustomerDashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      <DashboardFooter />
     </div>
   );
 };
+

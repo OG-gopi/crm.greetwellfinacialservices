@@ -101,15 +101,11 @@ const MainLayout: React.FC = () => {
             </Suspense>
           </MenuRouteGuard>
         </main>
-        {/* Dashboard Bottom-Right Dynamic Version Badge */}
-        <div className="fixed bottom-3 right-4 z-40 bg-slate-900/90 text-white backdrop-blur-md border border-slate-700/80 shadow-lg px-2.5 py-1 rounded-full text-[10px] font-mono font-bold flex items-center gap-1.5 pointer-events-auto hover:bg-slate-900 transition-colors">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>{versionDisplay}</span>
-        </div>
       </div>
     </div>
   );
 };
+
 
 
 const RootRedirect: React.FC = () => {

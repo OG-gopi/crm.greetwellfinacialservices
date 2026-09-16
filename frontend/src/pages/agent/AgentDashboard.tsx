@@ -4,7 +4,10 @@ import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 
+import DashboardFooter from '../../components/common/DashboardFooter';
+
 export const AgentDashboard: React.FC = () => {
+
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -127,6 +130,9 @@ export const AgentDashboard: React.FC = () => {
           )}
         </div>
       </div>
+
+      <DashboardFooter />
     </div>
   );
 };
+
