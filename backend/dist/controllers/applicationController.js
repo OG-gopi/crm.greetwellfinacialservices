@@ -325,6 +325,15 @@ async function createApplication(req, res) {
             ipAddress: req.ip,
         });
         await (0, notificationService_1.notifySuperAdmins)('APPLICATION_SUBMITTED', 'New Application Submitted', `Application ${newApp.id} (${type}) submitted by ${user.firstName} ${user.lastName}.`, { module: 'APPLICATION', applicationId: newApp.id });
+        if (newApp.customer?.email) {
+            emailService_1.emailService.sendApplicationCreatedNotification({
+                customerEmail: newApp.customer.email,
+                customerName: `${newApp.customer.firstName} ${newApp.customer.lastName || ''}`.trim(),
+                applicationId: newApp.id,
+                type: newApp.type,
+                amount: newApp.amount ? Number(newApp.amount) : undefined,
+            }).catch((err) => console.error('Async application created email error:', err));
+        }
         // Dispatch WhatsApp Notification if customer phone exists
         const customerPhone = formData?.mobile || formData?.phone || newApp.customer?.phone;
         if (customerPhone && customerPhone !== 'N/A') {
@@ -418,6 +427,16 @@ async function assignApplication(req, res) {
             relatedEntity: 'APPLICATION',
             relatedEntityId: application.id,
         });
+        if (updatedApp.customer?.email && agent.email) {
+            emailService_1.emailService.sendAgentAssignedNotification({
+                customerEmail: updatedApp.customer.email,
+                customerName: `${updatedApp.customer.firstName} ${updatedApp.customer.lastName || ''}`.trim(),
+                agentEmail: agent.email,
+                agentName: `${agent.firstName} ${agent.lastName || ''}`.trim(),
+                serviceType: application.type,
+                assignedBy: req.user ? `${req.user.firstName} ${req.user.lastName || ''}`.trim() : 'Super Admin',
+            }).catch((err) => console.error('Async agent assigned email error:', err));
+        }
         return res.json({
             success: true,
             message: `Application assigned to Agent ${agent.firstName} ${agent.lastName} successfully.`,
@@ -486,7 +505,40 @@ async function updateApplicationStatus(req, res) {
             relatedEntity: 'APPLICATION',
             relatedEntityId: application.id,
         });
-        await emailService_1.emailService.sendApplicationStatusNotification(application.customer.email, application.id, status);
+        if (application.customer?.email) {
+            const customerName = `${application.customer.firstName} ${application.customer.lastName || ''}`.trim();
+            if (status === 'APPROVED') {
+                emailService_1.emailService.sendApplicationApprovedEmail({
+                    recipientEmail: application.customer.email,
+                    recipientName: customerName,
+                    applicationId: application.id,
+                    type: application.type,
+                    amount: application.amount ? Number(application.amount) : undefined,
+                    remarks: note,
+                }).catch((err) => console.error('Async application approved email error:', err));
+            }
+            else if (status === 'REJECTED') {
+                emailService_1.emailService.sendApplicationRejectedEmail({
+                    recipientEmail: application.customer.email,
+                    recipientName: customerName,
+                    applicationId: application.id,
+                    type: application.type,
+                    rejectionReason: note || 'Application specifications did not meet threshold requirements.',
+                }).catch((err) => console.error('Async application rejected email error:', err));
+            }
+            else {
+                emailService_1.emailService.sendApplicationStatusUpdatedEmail({
+                    recipientEmail: application.customer.email,
+                    recipientName: customerName,
+                    applicationId: application.id,
+                    type: application.type,
+                    previousStatus: application.status,
+                    newStatus: status,
+                    updatedBy: user ? `${user.firstName} ${user.lastName || ''}`.trim() : 'System',
+                    comments: note,
+                }).catch((err) => console.error('Async application status email error:', err));
+            }
+        }
         return res.json({
             success: true,
             message: `Status updated to ${status}.`,

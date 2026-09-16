@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Settings, Mail, Database, Layers, CheckCircle2, Shield, Play } from 'lucide-react';
 import { api } from '../../services/api';
 import { GFSLogo } from '../../components/common/GFSLogo';
+import { EmailLogs } from './EmailLogs';
 
 export const SystemSub: React.FC<{ subPage?: string }> = ({ subPage = 'configurations' }) => {
   const [emailTemplates, setEmailTemplates] = useState<any[]>([]);
@@ -80,18 +81,8 @@ export const SystemSub: React.FC<{ subPage?: string }> = ({ subPage = 'configura
             )}
           </div>
         </div>
-      ) : subPage === 'email-templates' ? (
-        <div className="bg-white rounded-xl border p-6 space-y-4 shadow-sm">
-          <h3 className="font-extrabold text-slate-900 text-sm border-b pb-3">Notification Email Templates</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {['Agent Invitation Email', 'Customer Welcome Email', 'Status Change Notification', 'Document Rejection Alert'].map((t, idx) => (
-              <div key={idx} className="p-4 rounded-xl border bg-slate-50 space-y-2">
-                <h4 className="font-bold text-slate-900">{t}</h4>
-                <p className="text-slate-600">Template subject and body placeholders configuration.</p>
-              </div>
-            ))}
-          </div>
-        </div>
+      ) : subPage === 'email-templates' || subPage === 'email-logs' ? (
+        <EmailLogs />
       ) : (
         <div className="bg-white rounded-xl border p-6 space-y-4 shadow-sm">
           <h3 className="font-extrabold text-slate-900 text-sm border-b pb-3">Global Portal Configurations</h3>

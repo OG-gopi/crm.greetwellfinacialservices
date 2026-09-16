@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { prisma } from '../utils/prisma';
 import { createAuditLog } from '../services/auditService';
 import { createNotification } from '../services/notificationService';
+import { emailService } from '../services/emailService';
 import { AuthRequest } from '../middleware/authMiddleware';
 
 export async function createNote(req: AuthRequest, res: Response) {
@@ -13,7 +14,10 @@ export async function createNote(req: AuthRequest, res: Response) {
       return res.status(400).json({ success: false, message: 'Application ID and note content are required.' });
     }
 
-    const application = await prisma.application.findUnique({ where: { id: applicationId } });
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: { customer: true },
+    });
     if (!application) {
       return res.status(404).json({ success: false, message: 'Application not found.' });
     }
@@ -49,6 +53,16 @@ export async function createNote(req: AuthRequest, res: Response) {
         relatedEntity: 'APPLICATION',
         relatedEntityId: applicationId,
       });
+
+      if (application.customer?.email) {
+        emailService.sendApplicationCommentNotification({
+          recipientEmail: application.customer.email,
+          recipientName: `${application.customer.firstName} ${application.customer.lastName || ''}`.trim(),
+          applicationId: application.id,
+          authorName: `${user.firstName} ${user.lastName || ''}`.trim(),
+          commentText: content,
+        }).catch((err) => console.error('Async application comment email error:', err));
+      }
     }
 
     return res.status(201).json({ success: true, message: 'Note added.', data: note });

@@ -620,4 +620,30 @@ model WebsiteChangeHistory {
   createdAt   DateTime @default(now())
 }
 
+model EmailDeliveryLog {
+  id              String   @id @default(uuid())
+  recipientEmail  String
+  recipientName   String?
+  senderEmail     String   @default("greetwell.notify@gmail.com")
+  subject         String
+  emailType       String   // VERIFICATION, FORGOT_PASSWORD, INVITATION, APP_STATUS_UPDATE, DOCUMENT_REQUEST, etc.
+  emailCategory   String   @default("TRANSACTIONAL") // TRANSACTIONAL, AUTH, APPLICATION, DOCUMENT, ENQUIRY, SYSTEM
+  relatedEntity   String?  // APPLICATION, DOCUMENT, USER, INVITATION, ENQUIRY
+  relatedEntityId String?
+  applicationId   String?
+  actionUrl       String?
+  status          String   @default("SENT") // PENDING, SENT, FAILED, RETRIED
+  failedReason    String?
+  retryCount      Int      @default(0)
+  sentAt          DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([recipientEmail])
+  @@index([emailType])
+  @@index([status])
+  @@index([applicationId])
+  @@index([createdAt])
+}
+
 

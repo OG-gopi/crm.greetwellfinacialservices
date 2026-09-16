@@ -14,6 +14,7 @@ const config_1 = require("../config");
 const prisma_1 = require("../utils/prisma");
 const auditService_1 = require("../services/auditService");
 const notificationService_1 = require("../services/notificationService");
+const emailService_1 = require("../services/emailService");
 // Configure Multer storage
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
@@ -109,7 +110,7 @@ async function verifyDocument(req, res) {
         }
         const document = await prisma_1.prisma.document.findUnique({
             where: { id },
-            include: { application: true },
+            include: { application: { include: { customer: true } } },
         });
         if (!document) {
             return res.status(404).json({ success: false, message: 'Document not found.' });
@@ -141,6 +142,27 @@ async function verifyDocument(req, res) {
             relatedEntity: 'APPLICATION',
             relatedEntityId: document.applicationId,
         });
+        if (document.application.customer?.email) {
+            const customerEmail = document.application.customer.email;
+            const customerName = `${document.application.customer.firstName} ${document.application.customer.lastName || ''}`.trim();
+            if (status === 'VERIFIED') {
+                emailService_1.emailService.sendDocumentApprovedEmail({
+                    customerEmail,
+                    customerName,
+                    documentTitle: document.title,
+                    applicationId: document.applicationId,
+                }).catch((err) => console.error('Async document approved email error:', err));
+            }
+            else {
+                emailService_1.emailService.sendDocumentRejectedEmail({
+                    customerEmail,
+                    customerName,
+                    documentTitle: document.title,
+                    applicationId: document.applicationId,
+                    rejectionReason: rejectionReason || 'Document clarity or compliance verification failed.',
+                }).catch((err) => console.error('Async document rejected email error:', err));
+            }
+        }
         return res.json({
             success: true,
             message: `Document status updated to ${status}.`,

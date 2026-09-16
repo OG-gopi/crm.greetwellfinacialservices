@@ -6,6 +6,7 @@ import { CONFIG } from '../config';
 import { prisma } from '../utils/prisma';
 import { createAuditLog } from '../services/auditService';
 import { createNotification } from '../services/notificationService';
+import { emailService } from '../services/emailService';
 import { AuthRequest } from '../middleware/authMiddleware';
 
 // Configure Multer storage
@@ -114,7 +115,7 @@ export async function verifyDocument(req: AuthRequest, res: Response) {
 
     const document = await prisma.document.findUnique({
       where: { id },
-      include: { application: true },
+      include: { application: { include: { customer: true } } },
     });
 
     if (!document) {
@@ -150,6 +151,27 @@ export async function verifyDocument(req: AuthRequest, res: Response) {
       relatedEntity: 'APPLICATION',
       relatedEntityId: document.applicationId,
     });
+
+    if (document.application.customer?.email) {
+      const customerEmail = document.application.customer.email;
+      const customerName = `${document.application.customer.firstName} ${document.application.customer.lastName || ''}`.trim();
+      if (status === 'VERIFIED') {
+        emailService.sendDocumentApprovedEmail({
+          customerEmail,
+          customerName,
+          documentTitle: document.title,
+          applicationId: document.applicationId,
+        }).catch((err) => console.error('Async document approved email error:', err));
+      } else {
+        emailService.sendDocumentRejectedEmail({
+          customerEmail,
+          customerName,
+          documentTitle: document.title,
+          applicationId: document.applicationId,
+          rejectionReason: rejectionReason || 'Document clarity or compliance verification failed.',
+        }).catch((err) => console.error('Async document rejected email error:', err));
+      }
+    }
 
     return res.json({
       success: true,

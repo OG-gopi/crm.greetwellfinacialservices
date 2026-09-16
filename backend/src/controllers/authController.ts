@@ -531,6 +531,12 @@ export async function acceptInviteSetupPassword(req: Request, res: Response) {
       data: { status: 'ACCEPTED' },
     });
 
+    emailService.sendInvitationAcceptedNotification({
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName || ''}`.trim(),
+      userRole: user.role,
+    }).catch((err) => console.error('Async invitation accepted email error:', err));
+
     const authToken = generateToken({
       userId: user.id,
       email: user.email,
@@ -602,7 +608,11 @@ export async function forgotPassword(req: Request, res: Response) {
       },
     });
 
-    await emailService.sendPasswordReset(user.email, resetToken);
+    emailService.sendForgotPassword({
+      email: user.email,
+      token: resetToken,
+      firstName: user.firstName,
+    }).catch((err) => console.error('Async forgot password email error:', err));
 
     return res.json({ success: true, message: 'If account exists, password reset email has been sent.' });
   } catch (err: any) {
@@ -640,6 +650,11 @@ export async function resetPassword(req: Request, res: Response) {
         resetPasswordExpires: null,
       },
     });
+
+    emailService.sendPasswordChanged({
+      email: user.email,
+      firstName: user.firstName,
+    }).catch((err) => console.error('Async password changed email error:', err));
 
     await createAuditLog({
       userId: user.id,

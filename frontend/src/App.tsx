@@ -22,6 +22,7 @@ const AgentManagement = lazy(() => import('./pages/admin/AgentManagement').then(
 const VerificationCenter = lazy(() => import('./pages/admin/VerificationCenter').then(m => ({ default: m.VerificationCenter })));
 const ProductCMS = lazy(() => import('./pages/admin/ProductCMS').then(m => ({ default: m.ProductCMS })));
 const AuditLogs = lazy(() => import('./pages/admin/AuditLogs').then(m => ({ default: m.AuditLogs })));
+const EmailLogs = lazy(() => import('./pages/admin/EmailLogs').then(m => ({ default: m.EmailLogs })));
 const SystemSettings = lazy(() => import('./pages/admin/SystemSettings').then(m => ({ default: m.SystemSettings })));
 
 const UsersManagementSub = lazy(() => import('./pages/admin/UsersManagementSub').then(m => ({ default: m.UsersManagementSub })));
@@ -251,6 +252,8 @@ export const App: React.FC = () => {
               {/* 14. Audit Logs */}
               <Route path="/superadmin/audit-logs" element={<AuditLogs />} />
               <Route path="/superadmin/audit-logs/search" element={<AuditLogs />} />
+              <Route path="/superadmin/email-logs" element={<EmailLogs />} />
+              <Route path="/superadmin/system/email-logs" element={<SystemSub subPage="email-logs" />} />
 
               {/* 15. Settings */}
               <Route path="/superadmin/settings" element={<SystemSettings />} />

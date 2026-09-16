@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getEmailTemplates, createEmailTemplate, getCustomFields, createCustomField, triggerBackup, getBackupHistory } from '../controllers/systemController';
+import { getEmailLogs, retryEmail } from '../controllers/emailLogController';
 import { authenticate, requireRole } from '../middleware/authMiddleware';
 
 const router = Router();
@@ -14,5 +15,9 @@ router.post('/fields', requireRole('SUPER_ADMIN'), createCustomField);
 
 router.get('/backups', requireRole('SUPER_ADMIN'), getBackupHistory);
 router.post('/backups/trigger', requireRole('SUPER_ADMIN'), triggerBackup);
+
+// Super Admin Email Delivery Audit & Retry Routes
+router.get('/email-logs', requireRole('SUPER_ADMIN'), getEmailLogs);
+router.post('/email-logs/:id/retry', requireRole('SUPER_ADMIN'), retryEmail);
 
 export default router;
