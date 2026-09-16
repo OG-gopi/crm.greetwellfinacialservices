@@ -1,62 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ToastProvider } from './context/ToastContext';
+import { VersionProvider, useVersion } from './context/VersionContext';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
 import { ProtectedRoleRoute } from './components/common/ProtectedRoleRoute';
 
-// Auth Pages
+// Fast Initial Auth Pages
 import { Login } from './pages/auth/Login';
-import { Register } from './pages/auth/Register';
-import { AcceptInvite } from './pages/auth/AcceptInvite';
-import { ForgotPassword } from './pages/auth/ForgotPassword';
-
-import { LoanAgentLogin } from './pages/auth/LoanAgentLogin';
-import { InsuranceAgentLogin } from './pages/auth/InsuranceAgentLogin';
-import { InvestmentAgentLogin } from './pages/auth/InvestmentAgentLogin';
-import { AgentLogin } from './pages/auth/AgentLogin';
-import { CustomerLogin } from './pages/auth/CustomerLogin';
 import { CustomerRegister } from './pages/auth/CustomerRegister';
+import { ForgotPassword } from './pages/auth/ForgotPassword';
+import { AcceptInvite } from './pages/auth/AcceptInvite';
 import { VerifyEmail } from './pages/auth/VerifyEmail';
 
-// Admin Base Pages & Subpages
-import { AdminDashboard } from './pages/admin/AdminDashboard';
-import { UserManagement } from './pages/admin/UserManagement';
-import { AgentManagement } from './pages/admin/AgentManagement';
-import { VerificationCenter } from './pages/admin/VerificationCenter';
-import { ProductCMS } from './pages/admin/ProductCMS';
-import { AuditLogs } from './pages/admin/AuditLogs';
-import { SystemSettings } from './pages/admin/SystemSettings';
+// Lazy Loaded Dashboards & Subpages for Ultra-Fast Initial Load
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const UserManagement = lazy(() => import('./pages/admin/UserManagement').then(m => ({ default: m.UserManagement })));
+const AgentManagement = lazy(() => import('./pages/admin/AgentManagement').then(m => ({ default: m.AgentManagement })));
+const VerificationCenter = lazy(() => import('./pages/admin/VerificationCenter').then(m => ({ default: m.VerificationCenter })));
+const ProductCMS = lazy(() => import('./pages/admin/ProductCMS').then(m => ({ default: m.ProductCMS })));
+const AuditLogs = lazy(() => import('./pages/admin/AuditLogs').then(m => ({ default: m.AuditLogs })));
+const SystemSettings = lazy(() => import('./pages/admin/SystemSettings').then(m => ({ default: m.SystemSettings })));
 
-import { UsersManagementSub } from './pages/admin/UsersManagementSub';
-import { AgentsSub } from './pages/admin/AgentsSub';
-import { CustomersSub } from './pages/admin/CustomersSub';
-import { ApplicationsSub } from './pages/admin/ApplicationsSub';
-import { DocumentsSub } from './pages/admin/DocumentsSub';
-import { ProductsSub } from './pages/admin/ProductsSub';
-import { PermissionsSub } from './pages/admin/PermissionsSub';
-import { SystemSub } from './pages/admin/SystemSub';
-import { UpdatesSub } from './pages/admin/UpdatesSub';
-import { ReportsSub } from './pages/admin/ReportsSub';
-import { EnquiriesSub } from './pages/admin/EnquiriesSub';
-import { WebsiteManagementSub } from './pages/admin/WebsiteManagementSub';
+const UsersManagementSub = lazy(() => import('./pages/admin/UsersManagementSub').then(m => ({ default: m.UsersManagementSub })));
+const AgentsSub = lazy(() => import('./pages/admin/AgentsSub').then(m => ({ default: m.AgentsSub })));
+const CustomersSub = lazy(() => import('./pages/admin/CustomersSub').then(m => ({ default: m.CustomersSub })));
+const ApplicationsSub = lazy(() => import('./pages/admin/ApplicationsSub').then(m => ({ default: m.ApplicationsSub })));
+const DocumentsSub = lazy(() => import('./pages/admin/DocumentsSub').then(m => ({ default: m.DocumentsSub })));
+const ProductsSub = lazy(() => import('./pages/admin/ProductsSub').then(m => ({ default: m.ProductsSub })));
+const PermissionsSub = lazy(() => import('./pages/admin/PermissionsSub').then(m => ({ default: m.PermissionsSub })));
+const SystemSub = lazy(() => import('./pages/admin/SystemSub').then(m => ({ default: m.SystemSub })));
+const UpdatesSub = lazy(() => import('./pages/admin/UpdatesSub').then(m => ({ default: m.UpdatesSub })));
+const ReportsSub = lazy(() => import('./pages/admin/ReportsSub').then(m => ({ default: m.ReportsSub })));
+const EnquiriesSub = lazy(() => import('./pages/admin/EnquiriesSub').then(m => ({ default: m.EnquiriesSub })));
+const WebsiteManagementSub = lazy(() => import('./pages/admin/WebsiteManagementSub').then(m => ({ default: m.WebsiteManagementSub })));
 
 // Agent Pages
-import { AgentDashboard } from './pages/agent/AgentDashboard';
-import { AgentApplications } from './pages/agent/AgentApplications';
-import { AgentTasks } from './pages/agent/AgentTasks';
-import { AgentCustomers } from './pages/agent/AgentCustomers';
+const AgentDashboard = lazy(() => import('./pages/agent/AgentDashboard').then(m => ({ default: m.AgentDashboard })));
+const AgentApplications = lazy(() => import('./pages/agent/AgentApplications').then(m => ({ default: m.AgentApplications })));
+const AgentTasks = lazy(() => import('./pages/agent/AgentTasks').then(m => ({ default: m.AgentTasks })));
+const AgentCustomers = lazy(() => import('./pages/agent/AgentCustomers').then(m => ({ default: m.AgentCustomers })));
 
 // Customer Pages
-import { CustomerDashboard } from './pages/customer/CustomerDashboard';
-import { CreateApplication } from './pages/customer/CreateApplication';
-import { CustomerDocuments } from './pages/customer/CustomerDocuments';
-import { CustomerProfile } from './pages/customer/CustomerProfile';
+const CustomerDashboard = lazy(() => import('./pages/customer/CustomerDashboard').then(m => ({ default: m.CustomerDashboard })));
+const CreateApplication = lazy(() => import('./pages/customer/CreateApplication').then(m => ({ default: m.CreateApplication })));
+const CustomerDocuments = lazy(() => import('./pages/customer/CustomerDocuments').then(m => ({ default: m.CustomerDocuments })));
+const CustomerProfile = lazy(() => import('./pages/customer/CustomerProfile').then(m => ({ default: m.CustomerProfile })));
 
 // Notification History Page
-import { NotificationHistory } from './pages/common/NotificationHistory';
+const NotificationHistory = lazy(() => import('./pages/common/NotificationHistory').then(m => ({ default: m.NotificationHistory })));
 
 import { MenuRouteGuard } from './components/common/MenuRouteGuard';
 
@@ -64,7 +58,15 @@ import { MenuRouteGuard } from './components/common/MenuRouteGuard';
 import { Unauthorized } from './pages/error/Unauthorized';
 import { NotFound } from './pages/error/NotFound';
 
+const PageLoader: React.FC = () => (
+  <div className="min-h-[400px] flex flex-col items-center justify-center p-8 text-slate-500 font-semibold text-xs">
+    <div className="h-8 w-8 animate-spin rounded-full border-3 border-blue-600 border-t-transparent mb-3" />
+    <span>Loading page component...</span>
+  </div>
+);
+
 const MainLayout: React.FC = () => {
+  const { versionDisplay } = useVersion();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('gfs_sidebar_collapsed') === 'true';
@@ -79,14 +81,14 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         isCollapsed={isCollapsed}
         onToggleCollapse={toggleCollapse}
       />
-      <div className="flex flex-1 flex-col overflow-hidden transition-all duration-300">
+      <div className="flex flex-1 flex-col overflow-hidden transition-all duration-300 relative">
         <Header
           onToggleSidebar={() => setSidebarOpen(true)}
           isCollapsed={isCollapsed}
@@ -94,13 +96,21 @@ const MainLayout: React.FC = () => {
         />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <MenuRouteGuard>
-            <Outlet />
+            <Suspense fallback={<PageLoader />}>
+              <Outlet />
+            </Suspense>
           </MenuRouteGuard>
         </main>
+        {/* Dashboard Bottom-Right Dynamic Version Badge */}
+        <div className="fixed bottom-3 right-4 z-40 bg-slate-900/90 text-white backdrop-blur-md border border-slate-700/80 shadow-lg px-2.5 py-1 rounded-full text-[10px] font-mono font-bold flex items-center gap-1.5 pointer-events-auto hover:bg-slate-900 transition-colors">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>{versionDisplay}</span>
+        </div>
       </div>
     </div>
   );
 };
+
 
 const RootRedirect: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -127,7 +137,9 @@ export const App: React.FC = () => {
     <AuthProvider>
       <ToastProvider>
         <NotificationProvider>
-          <Routes>
+          <VersionProvider>
+            <Routes>
+
           {/* Public Auth Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/superadmin/login" element={<Login />} />
@@ -343,9 +355,11 @@ export const App: React.FC = () => {
           {/* Catch-all 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </NotificationProvider>
-    </ToastProvider>
-  </AuthProvider>
+      </VersionProvider>
+    </NotificationProvider>
+  </ToastProvider>
+</AuthProvider>
+
 );
 };
 

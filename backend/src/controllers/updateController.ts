@@ -76,3 +76,140 @@ export async function createReleaseNote(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, message: err.message });
   }
 }
+
+export async function getPublicVersion(req: any, res: Response) {
+  try {
+    const versionSetting = await prisma.systemSetting.findUnique({ where: { key: 'VERSION' } });
+    const currentVersion = versionSetting ? versionSetting.value : '1.0.0';
+
+    const latestNotes = await prisma.releaseNote.findMany({
+      where: { status: 'PUBLISHED', visibility: 'ALL_USERS' },
+      orderBy: { releaseDate: 'desc' },
+      take: 5,
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        version: currentVersion,
+        displayVersion: `GFS Portal v${currentVersion}`,
+        releaseNotes: latestNotes,
+      },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+}
+
+export async function updateReleaseNote(req: AuthRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const { version, title, description, updateType, visibility, status } = req.body;
+    const user = req.user!;
+
+    const existing = await prisma.releaseNote.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Release note not found.' });
+    }
+
+    const updatedNote = await prisma.releaseNote.update({
+      where: { id },
+      data: {
+        ...(version && { version }),
+        ...(title && { title }),
+        ...(description && { description }),
+        ...(updateType && { updateType }),
+        ...(visibility && { visibility }),
+        ...(status && { status }),
+      },
+    });
+
+    if (version) {
+      await prisma.systemSetting.upsert({
+        where: { key: 'VERSION' },
+        update: { value: version, updatedByUserId: user.id },
+        create: { key: 'VERSION', value: version, updatedByUserId: user.id },
+      });
+    }
+
+    await createAuditLog({
+      userId: user.id,
+      userRole: user.role,
+      action: 'UPDATE_RELEASE_NOTE',
+      entityType: 'RELEASE_NOTE',
+      entityId: id,
+      description: `Updated release note v${updatedNote.version}: "${updatedNote.title}".`,
+      ipAddress: req.ip,
+    });
+
+    return res.json({ success: true, message: 'Release note updated successfully.', data: updatedNote });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+}
+
+export async function deleteReleaseNote(req: AuthRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const user = req.user!;
+
+    const existing = await prisma.releaseNote.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Release note not found.' });
+    }
+
+    await prisma.releaseNote.delete({ where: { id } });
+
+    await createAuditLog({
+      userId: user.id,
+      userRole: user.role,
+      action: 'DELETE_RELEASE_NOTE',
+      entityType: 'RELEASE_NOTE',
+      entityId: id,
+      description: `Deleted release note v${existing.version}: "${existing.title}".`,
+      ipAddress: req.ip,
+    });
+
+    return res.json({ success: true, message: 'Release note deleted successfully.' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+}
+
+export async function updateSystemVersion(req: AuthRequest, res: Response) {
+  try {
+    const { version } = req.body;
+    const user = req.user!;
+
+    if (!version || typeof version !== 'string' || !version.trim()) {
+      return res.status(400).json({ success: false, message: 'Valid version string is required.' });
+    }
+
+    const cleanVersion = version.trim();
+
+    const setting = await prisma.systemSetting.upsert({
+      where: { key: 'VERSION' },
+      update: { value: cleanVersion, updatedByUserId: user.id },
+      create: { key: 'VERSION', value: cleanVersion, updatedByUserId: user.id },
+    });
+
+    await createAuditLog({
+      userId: user.id,
+      userRole: user.role,
+      action: 'UPDATE_SYSTEM_VERSION',
+      entityType: 'SYSTEM_SETTING',
+      entityId: setting.id,
+      description: `Updated system version string to "${cleanVersion}".`,
+      ipAddress: req.ip,
+    });
+
+    return res.json({
+      success: true,
+      message: `System version updated to ${cleanVersion}.`,
+      data: { version: cleanVersion, displayVersion: `GFS Portal v${cleanVersion}` },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+}
+

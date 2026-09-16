@@ -19,12 +19,13 @@ import {
   Shield
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useVersion } from '../../context/VersionContext';
 import { api } from '../../services/api';
 import { GFSBrandHeader } from '../../components/common/GFSBrandHeader';
-import { PORTAL_VERSION_DISPLAY } from '../../config/version';
 
 export const Login: React.FC = () => {
   const { login } = useAuth();
+  const { versionDisplay } = useVersion();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -143,96 +144,96 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#051124] via-[#091a34] to-[#030914] flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans">
-      {/* Main Split-Card Container */}
-      <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl shadow-slate-950/60 overflow-hidden flex flex-col md:flex-row border border-slate-800/80 min-h-[580px]">
+    <div className="min-h-screen bg-gradient-to-br from-[#051124] via-[#091a34] to-[#030914] flex items-center justify-center p-3 sm:p-5 lg:p-6 font-sans">
+      {/* Main Split-Card Container - Compacted size */}
+      <div className="w-full max-w-4xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl shadow-slate-950/60 overflow-hidden flex flex-col md:flex-row border border-slate-800/80 min-h-[460px] sm:min-h-[500px]">
         
         {/* LEFT PANEL: Executive GFS Brand Showcase */}
-        <div className="w-full md:w-[42%] bg-[#08152b] text-white p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden shrink-0">
+        <div className="w-full md:w-[40%] bg-[#08152b] text-white p-6 lg:p-7 flex flex-col justify-between relative overflow-hidden shrink-0">
           {/* Subtle Radial Glow & Overlay */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
           {/* Top Brand Tag */}
           <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-amber-500/30 text-[11px] font-extrabold text-amber-400 uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-amber-500/30 text-[10px] font-extrabold text-amber-400 uppercase tracking-wider">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>Unified Portal Gateway</span>
             </div>
           </div>
 
           {/* Center Brand Pillars */}
-          <div className="relative z-10 my-auto py-8 space-y-6">
+          <div className="relative z-10 my-auto py-4 space-y-4">
             <div>
-              <h2 className="text-2xl lg:text-3xl font-black text-white tracking-tight leading-snug">
+              <h2 className="text-xl lg:text-2xl font-black text-white tracking-tight leading-snug">
                 Greetwell Financial Services
               </h2>
-              <p className="text-xs text-slate-300 font-medium mt-2 leading-relaxed">
+              <p className="text-[11px] text-slate-300 font-medium mt-1.5 leading-relaxed">
                 Single unified access portal for Super Admin, Agents, and Valued Customers.
               </p>
             </div>
 
-            <div className="space-y-3 pt-2">
-              <div className="flex items-start gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                <div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl">
-                  <Building2 className="w-4 h-4" />
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <div className="p-1.5 bg-blue-500/20 text-blue-400 rounded-lg">
+                  <Building2 className="w-3.5 h-3.5" />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white">Loans & Mortgages</h4>
-                  <p className="text-[11px] text-slate-400">Personal, Home & Business Loan Solutions</p>
+                  <p className="text-[10px] text-slate-400">Personal, Home & Business Loan Solutions</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
-                  <Shield className="w-4 h-4" />
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <div className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg">
+                  <Shield className="w-3.5 h-3.5" />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white">Comprehensive Insurance</h4>
-                  <p className="text-[11px] text-slate-400">Life, Health & Property Protection</p>
+                  <p className="text-[10px] text-slate-400">Life, Health & Property Protection</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                <div className="p-2 bg-amber-500/20 text-amber-400 rounded-xl">
-                  <Sparkles className="w-4 h-4" />
+              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <div className="p-1.5 bg-amber-500/20 text-amber-400 rounded-lg">
+                  <Sparkles className="w-3.5 h-3.5" />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white">Wealth & Investments</h4>
-                  <p className="text-[11px] text-slate-400">Mutual Funds, FDs & Smart Advisory</p>
+                  <p className="text-[10px] text-slate-400">Mutual Funds, FDs & Smart Advisory</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Bottom Security Footer */}
-          <div className="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+          <div className="relative z-10 pt-3 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-400 font-mono">
             <span className="flex items-center gap-1">
               <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> 256-Bit SSL Encrypted
             </span>
-            <span className="font-bold text-slate-300">GFS Portal v2.0</span>
+            <span className="font-bold text-slate-300">{versionDisplay}</span>
           </div>
         </div>
 
         {/* RIGHT PANEL: Clean Form Card */}
-        <div className="flex-1 bg-white text-slate-900 p-8 sm:p-10 lg:p-12 flex flex-col justify-between w-full z-10">
+        <div className="flex-1 bg-white text-slate-900 p-6 sm:p-7 lg:p-8 flex flex-col justify-between w-full z-10">
           <div className="max-w-md mx-auto w-full">
             {/* GFS Brand Header Logo */}
-            <GFSBrandHeader size="lg" variant="card" />
+            <GFSBrandHeader size="md" variant="card" />
 
             {/* Title & Description */}
-            <div className="text-center mt-4 mb-6">
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            <div className="text-center mt-2 mb-4">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                 Welcome Back
               </h1>
-              <p className="text-xs text-slate-500 font-medium mt-1">
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
                 Please enter your credentials to access your portal account
               </p>
             </div>
 
             {/* Verification Success Alert */}
             {verifiedSuccessMsg && (
-              <div className="mb-5 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2.5 shadow-sm">
+              <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 shadow-sm">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>{verifiedSuccessMsg}</span>
               </div>
@@ -240,15 +241,15 @@ export const Login: React.FC = () => {
 
             {/* Error Alert Banner */}
             {error && (
-              <div className="mb-5 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold text-center shadow-sm">
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold text-center shadow-sm">
                 {error}
               </div>
             )}
 
             {/* Login Form */}
-            <form className="space-y-4" onSubmit={handleSubmit}>
+            <form className="space-y-3" onSubmit={handleSubmit}>
               {/* Email / Mobile Number Field */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
                   Email Address / Mobile Number
                 </label>
@@ -261,14 +262,14 @@ export const Login: React.FC = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 focus:bg-white transition-all"
+                    className="block w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 focus:bg-white transition-all"
                     placeholder="Enter email or 10-digit mobile number"
                   />
                 </div>
               </div>
 
               {/* Password Field */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
                     Password
@@ -286,7 +287,7 @@ export const Login: React.FC = () => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 focus:bg-white transition-all"
+                    className="block w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 focus:bg-white transition-all"
                     placeholder="Enter your password"
                   />
                   <button
@@ -301,13 +302,13 @@ export const Login: React.FC = () => {
               </div>
 
               {/* Remember Me Checkbox */}
-              <div className="flex items-center pt-1">
+              <div className="flex items-center pt-0.5">
                 <label className="flex items-center text-xs font-medium text-slate-600 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 mr-2 cursor-pointer"
+                    className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 mr-2 cursor-pointer"
                   />
                   <span>Remember me on this browser</span>
                 </label>
@@ -317,7 +318,7 @@ export const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 px-4 rounded-xl shadow-md shadow-blue-900/20 font-extrabold text-white bg-[#08152b] hover:bg-[#050e1e] active:bg-[#030812] focus:outline-none transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                className="w-full py-3 px-4 rounded-xl shadow-md shadow-blue-900/20 font-extrabold text-white bg-[#08152b] hover:bg-[#050e1e] active:bg-[#030812] focus:outline-none transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
               >
                 {loading ? (
                   <>
@@ -335,7 +336,7 @@ export const Login: React.FC = () => {
             </form>
 
             {/* Customer Sign Up Option */}
-            <div className="mt-6 pt-5 border-t border-slate-100 text-center">
+            <div className="mt-4 pt-3 border-t border-slate-100 text-center">
               <p className="text-xs text-slate-500 font-medium">
                 New Customer?{' '}
                 <Link
@@ -348,19 +349,19 @@ export const Login: React.FC = () => {
             </div>
 
             {/* Back to Home Button */}
-            <div className="mt-3 text-center">
+            <div className="mt-2 text-center">
               <a
                 href="/"
                 onClick={handleBackToHome}
-                className="text-xs font-bold text-slate-600 hover:text-blue-700 transition-colors inline-flex items-center gap-1.5 py-1.5 px-3.5 rounded-xl hover:bg-slate-100"
+                className="text-xs font-bold text-slate-600 hover:text-blue-700 transition-colors inline-flex items-center gap-1.5 py-1 px-3 rounded-lg hover:bg-slate-100"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-3.5 w-3.5" />
                 <span>Back to Home</span>
               </a>
             </div>
 
             {/* Quick Fill Credentials Seed Helper */}
-            <div className="mt-3 text-center">
+            <div className="mt-2 text-center">
               <button
                 type="button"
                 onClick={() => setShowPresets(!showPresets)}
@@ -371,11 +372,11 @@ export const Login: React.FC = () => {
               </button>
 
               {showPresets && (
-                <div className="mt-2.5 p-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-left text-xs space-y-2 animate-in fade-in zoom-in-95 duration-150">
+                <div className="mt-2 p-2 rounded-xl bg-slate-50 border border-slate-200 text-left text-xs space-y-1.5 animate-in fade-in zoom-in-95 duration-150">
                   <button
                     type="button"
                     onClick={() => handleQuickLogin('gopikrishnabeesu@gmail.com', 'Data@1234')}
-                    className="w-full p-2 bg-slate-900 text-white rounded-xl font-mono text-[11px] flex justify-between items-center hover:bg-slate-800 transition-all"
+                    className="w-full p-2 bg-slate-900 text-white rounded-lg font-mono text-[11px] flex justify-between items-center hover:bg-slate-800 transition-all"
                   >
                     <span>Super Admin: gopikrishnabeesu@gmail.com</span>
                     <span className="text-amber-400 font-bold bg-amber-400/10 px-2 py-0.5 rounded">Fill</span>
@@ -384,7 +385,7 @@ export const Login: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleQuickLogin('loan.agent@greetwell.com', 'Agent@123456')}
-                    className="w-full p-2 bg-blue-900 text-white rounded-xl font-mono text-[11px] flex justify-between items-center hover:bg-blue-800 transition-all"
+                    className="w-full p-2 bg-blue-900 text-white rounded-lg font-mono text-[11px] flex justify-between items-center hover:bg-blue-800 transition-all"
                   >
                     <span>Loan Agent: loan.agent@greetwell.com</span>
                     <span className="text-blue-300 font-bold bg-blue-300/10 px-2 py-0.5 rounded">Fill</span>
@@ -393,7 +394,7 @@ export const Login: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleQuickLogin('john.doe@example.com', 'Customer@123456')}
-                    className="w-full p-2 bg-emerald-900 text-white rounded-xl font-mono text-[11px] flex justify-between items-center hover:bg-emerald-800 transition-all"
+                    className="w-full p-2 bg-emerald-900 text-white rounded-lg font-mono text-[11px] flex justify-between items-center hover:bg-emerald-800 transition-all"
                   >
                     <span>Customer: john.doe@example.com</span>
                     <span className="text-emerald-300 font-bold bg-emerald-300/10 px-2 py-0.5 rounded">Fill</span>
@@ -404,10 +405,10 @@ export const Login: React.FC = () => {
           </div>
 
           {/* Footer Line with Version */}
-          <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-medium max-w-md mx-auto w-full">
+          <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-medium max-w-md mx-auto w-full">
             <span>© {new Date().getFullYear()} Greetwell Financial Services.</span>
             <span className="font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
-              {PORTAL_VERSION_DISPLAY}
+              {versionDisplay}
             </span>
           </div>
         </div>
@@ -417,3 +418,4 @@ export const Login: React.FC = () => {
 };
 
 export default Login;
+

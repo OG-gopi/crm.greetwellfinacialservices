@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getWebsiteChangeHistory = exports.discardWebsiteDraft = exports.publishWebsiteChanges = exports.saveWebsiteDraft = exports.deleteWebsiteMedia = exports.updateWebsiteMedia = exports.createWebsiteMedia = exports.uploadWebsiteImage = exports.getAdminWebsiteContent = exports.getPublicWebsiteContent = exports.validateIndianPhone = exports.mediaUploadMiddleware = void 0;
+exports.getWebsiteChangeHistory = exports.discardWebsiteDraft = exports.publishWebsiteChanges = exports.saveWebsiteDraft = exports.deleteWebsiteMedia = exports.updateWebsiteMedia = exports.createWebsiteMedia = exports.uploadWebsiteImage = exports.getAdminWebsiteContent = exports.getPublicWebsiteContent = exports.clearPublicWebsiteCache = exports.validateIndianPhone = exports.mediaUploadMiddleware = void 0;
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
@@ -51,349 +51,50 @@ const validateIndianPhone = (phone) => {
     return digitsOnly.length >= 10 && digitsOnly.length <= 12;
 };
 exports.validateIndianPhone = validateIndianPhone;
+// Global In-Memory Caching for Instant (<15ms) Public API Responses
+let isSeeded = false;
+let cachedPublicData = null;
+const clearPublicWebsiteCache = () => {
+    cachedPublicData = null;
+};
+exports.clearPublicWebsiteCache = clearPublicWebsiteCache;
 // Seed default content & gallery media if DB is empty
 const seedDefaultsIfEmpty = async () => {
-    const contentCount = await prisma_1.prisma.websiteContent.count();
-    if (contentCount === 0) {
-        const defaultContents = [
-            { section: 'HERO', key: 'hero_title', label: 'Hero Title', draftValue: 'Empowering Your Financial Growth with Trust & Integrity', publishedValue: 'Empowering Your Financial Growth with Trust & Integrity' },
-            { section: 'HERO', key: 'hero_subtitle', label: 'Hero Subtitle', draftValue: 'Your one-stop destination for Loans, Insurance, and Smart Investment Solutions.', publishedValue: 'Your one-stop destination for Loans, Insurance, and Smart Investment Solutions.' },
-            { section: 'HERO', key: 'hero_cta', label: 'Hero Button Text', draftValue: 'Get Started Now', publishedValue: 'Get Started Now' },
-            { section: 'SERVICES', key: 'loan_desc', label: 'Loan Services Description', draftValue: 'Flexible personal, home, and commercial loans with competitive interest rates.', publishedValue: 'Flexible personal, home, and commercial loans with competitive interest rates.' },
-            { section: 'SERVICES', key: 'insurance_desc', label: 'Insurance Services Description', draftValue: 'Comprehensive life, health, property, and business coverage to protect what matters.', publishedValue: 'Comprehensive life, health, property, and business coverage to protect what matters.' },
-            { section: 'SERVICES', key: 'investment_desc', label: 'Investment Services Description', draftValue: 'High-yield mutual funds, fixed deposits, and wealth management solutions.', publishedValue: 'High-yield mutual funds, fixed deposits, and wealth management solutions.' },
-            { section: 'ABOUT', key: 'about_title', label: 'About Us Title', draftValue: 'About Greetwell Financial Services', publishedValue: 'About Greetwell Financial Services' },
-            { section: 'ABOUT', key: 'about_body', label: 'About Us Story', draftValue: 'Greetwell Financial Services is a trusted leader in providing tailored financial products. We bring together loans, insurance, and investments under one secure digital portal.', publishedValue: 'Greetwell Financial Services is a trusted leader in providing tailored financial products. We bring together loans, insurance, and investments under one secure digital portal.' },
-            { section: 'ABOUT', key: 'about_mission', label: 'Our Mission', draftValue: 'To empower individuals and businesses with accessible, transparent, and innovative financial services.', publishedValue: 'To empower individuals and businesses with accessible, transparent, and innovative financial services.' },
-            { section: 'ABOUT', key: 'about_vision', label: 'Our Vision', draftValue: "To be India's most client-centric and technologically advanced financial service portal.", publishedValue: "To be India's most client-centric and technologically advanced financial service portal." },
-            { section: 'FOOTER', key: 'footer_copyright', label: 'Footer Copyright Text', draftValue: '© 2026 Greetwell Financial Services. All rights reserved.', publishedValue: '© 2026 Greetwell Financial Services. All rights reserved.' },
-            { section: 'FOOTER', key: 'footer_disclaimer', label: 'Footer Disclaimer Text', draftValue: 'Greetwell Financial Services is a licensed distributor of loans, insurance, and investment products. All financial investments are subject to market risks.', publishedValue: 'Greetwell Financial Services is a licensed distributor of loans, insurance, and investment products. All financial investments are subject to market risks.' }
-        ];
-        for (const c of defaultContents) {
-            await prisma_1.prisma.websiteContent.create({ data: c });
-        }
-    }
-    const contactCount = await prisma_1.prisma.contactInfo.count();
-    if (contactCount === 0) {
-        const defaultContacts = [
-            { key: 'primary_phone', title: 'Primary Phone', draftValue: '+91 91211 47777', publishedValue: '+91 91211 47777', isActive: true, displayOrder: 1 },
-            { key: 'secondary_phone', title: 'Secondary Phone', draftValue: '+91 91211 47777', publishedValue: '+91 91211 47777', isActive: true, displayOrder: 2 },
-            { key: 'toll_free', title: 'Toll-Free Number', draftValue: '+91 91211 47777', publishedValue: '+91 91211 47777', isActive: true, displayOrder: 3 },
-            { key: 'whatsapp', title: 'WhatsApp Number', draftValue: '+91 91211 47777', publishedValue: '+91 91211 47777', isActive: true, displayOrder: 4 },
-            { key: 'email_general', title: 'General Enquiries Email', draftValue: 'gfsgreetwell@gmail.com', publishedValue: 'gfsgreetwell@gmail.com', isActive: true, displayOrder: 5 },
-            { key: 'email_support', title: 'Customer Support Email', draftValue: 'gfsgreetwell@gmail.com', publishedValue: 'gfsgreetwell@gmail.com', isActive: true, displayOrder: 6 },
-            { key: 'email_complaints', title: 'Complaints Email', draftValue: 'gfsgreetwell@gmail.com', publishedValue: 'gfsgreetwell@gmail.com', isActive: true, displayOrder: 7 },
-            { key: 'office_address', title: 'Corporate Headquarters', draftValue: 'PNO 71, Hno 1-36/1/2/6/A/P-71, Road No 6, Jawahar Colony, Chandanagar, Near Yelamma Temple, 500050', publishedValue: 'PNO 71, Hno 1-36/1/2/6/A/P-71, Road No 6, Jawahar Colony, Chandanagar, Near Yelamma Temple, 500050', isActive: true, displayOrder: 8 },
-            { key: 'business_hours', title: 'Business Operating Hours', draftValue: 'Mon - Sat: 9:30 AM - 6:30 PM (Sun Closed)', publishedValue: 'Mon - Sat: 9:30 AM - 6:30 PM (Sun Closed)', isActive: true, displayOrder: 9 }
-        ];
-        for (const item of defaultContacts) {
-            await prisma_1.prisma.contactInfo.create({ data: item });
-        }
-    }
-    const socialCount = await prisma_1.prisma.socialMediaAcc.count();
-    if (socialCount === 0) {
-        const defaultSocials = [
-            { platform: 'Facebook', url: 'https://facebook.com/greetwellfs', draftUrl: 'https://facebook.com/greetwellfs', isActive: true, draftIsActive: true, displayOrder: 1, icon: 'Facebook' },
-            { platform: 'Instagram', url: 'https://instagram.com/greetwellfs', draftUrl: 'https://instagram.com/greetwellfs', isActive: true, draftIsActive: true, displayOrder: 2, icon: 'Instagram' },
-            { platform: 'LinkedIn', url: 'https://linkedin.com/company/greetwellfinancial', draftUrl: 'https://linkedin.com/company/greetwellfinancial', isActive: true, draftIsActive: true, displayOrder: 3, icon: 'Linkedin' },
-            { platform: 'X/Twitter', url: 'https://x.com/greetwellfin', draftUrl: 'https://x.com/greetwellfin', isActive: true, draftIsActive: true, displayOrder: 4, icon: 'Twitter' },
-            { platform: 'YouTube', url: 'https://youtube.com/@greetwellfs', draftUrl: 'https://youtube.com/@greetwellfs', isActive: true, draftIsActive: true, displayOrder: 5, icon: 'Youtube' },
-            { platform: 'WhatsApp', url: 'https://wa.me/919121147777', draftUrl: 'https://wa.me/919121147777', isActive: true, draftIsActive: true, displayOrder: 6, icon: 'MessageCircle' },
-            { platform: 'Telegram', url: 'https://t.me/greetwellfinancial', draftUrl: 'https://t.me/greetwellfinancial', isActive: true, draftIsActive: true, displayOrder: 7, icon: 'Send' }
-        ];
-        for (const item of defaultSocials) {
-            await prisma_1.prisma.socialMediaAcc.create({ data: item });
-        }
-    }
-    // Check and restore original image assets in WebsiteMedia
-    const hasUnsplash = await prisma_1.prisma.websiteMedia.findFirst({
-        where: { draftUrl: { contains: 'unsplash.com' } }
-    });
-    const mediaCount = await prisma_1.prisma.websiteMedia.count();
-    if (mediaCount === 0 || hasUnsplash) {
-        if (hasUnsplash) {
-            await prisma_1.prisma.websiteMedia.deleteMany({});
-        }
-        const defaultMedia = [
-            // 1. Website Main Logo
-            {
-                key: 'website_logo',
-                title: 'Website Main Logo',
-                description: 'Official Greetwell Financial Services Brand Logo for Header',
-                section: 'Company Logo',
-                category: 'LOGOS',
-                displayType: 'BANNER',
-                draftUrl: '/uploads/media/logo.png',
-                publishedUrl: '/uploads/media/logo.png',
-                altText: 'Greetwell Financial Services Logo',
-                draftAltText: 'Greetwell Financial Services Logo',
-                displayOrder: 1,
-                status: 'PUBLISHED'
-            },
-            // 2. Footer Brand Logo
-            {
-                key: 'footer_logo',
-                title: 'Footer Brand Logo',
-                description: 'Official Greetwell Financial Services Logo for Footer & Dark Mode',
-                section: 'Footer',
-                category: 'LOGOS',
-                displayType: 'BANNER',
-                draftUrl: '/uploads/media/gfs-logo.png',
-                publishedUrl: '/uploads/media/gfs-logo.png',
-                altText: 'GFS Footer Logo',
-                draftAltText: 'GFS Footer Logo',
-                displayOrder: 2,
-                status: 'PUBLISHED'
-            },
-            // 3. Hero Section Banner Image
-            {
-                key: 'hero_banner',
-                title: 'Hero Section Banner Image',
-                description: 'Primary Landing Page Hero Banner Image',
-                section: 'Hero Banner',
-                category: 'HERO',
-                displayType: 'BANNER',
-                draftUrl: '/uploads/media/hero_donation_1.jpg',
-                publishedUrl: '/uploads/media/hero_donation_1.jpg',
-                altText: 'Empowering Financial Growth Hero Banner',
-                draftAltText: 'Empowering Financial Growth Hero Banner',
-                displayOrder: 3,
-                status: 'PUBLISHED'
-            },
-            // 4. Hero Additional Slides
-            {
-                key: 'hero_banner_2',
-                title: 'Community Empowerment Banner',
-                description: 'Secondary Hero Slide - Community Financial Growth',
-                section: 'Hero Banner',
-                category: 'HERO',
-                displayType: 'BANNER',
-                draftUrl: '/uploads/media/hero_donation_2.jpg',
-                publishedUrl: '/uploads/media/hero_donation_2.jpg',
-                altText: 'Community Empowerment',
-                draftAltText: 'Community Empowerment',
-                displayOrder: 4,
-                status: 'PUBLISHED'
-            },
-            {
-                key: 'hero_banner_3',
-                title: 'Financial Literacy Workshop',
-                description: 'Tertiary Hero Slide - Empowering Clients with Financial Advice',
-                section: 'Hero Banner',
-                category: 'HERO',
-                displayType: 'BANNER',
-                draftUrl: '/uploads/media/hero_donation_3.jpg',
-                publishedUrl: '/uploads/media/hero_donation_3.jpg',
-                altText: 'Financial Literacy Workshop',
-                draftAltText: 'Financial Literacy Workshop',
-                displayOrder: 5,
-                status: 'PUBLISHED'
-            },
-            {
-                key: 'hero_banner_4',
-                title: 'Client Advisory Group Session',
-                description: 'Quaternary Hero Slide - Professional Wealth Consulting',
-                section: 'Hero Banner',
-                category: 'HERO',
-                displayType: 'BANNER',
-                draftUrl: '/uploads/media/hero_donation_4.jpg',
-                publishedUrl: '/uploads/media/hero_donation_4.jpg',
-                altText: 'Client Advisory Session',
-                draftAltText: 'Client Advisory Session',
-                displayOrder: 6,
-                status: 'PUBLISHED'
-            },
-            // 5. About Us Section Image
-            {
-                key: 'about_banner',
-                title: 'About Us Section Image',
-                description: 'Greetwell Corporate Team & Executive Collaboration',
-                section: 'About Us',
-                category: 'ABOUT',
-                displayType: 'BANNER',
-                draftUrl: '/uploads/media/careers_team.png',
-                publishedUrl: '/uploads/media/careers_team.png',
-                altText: 'Greetwell Team Collaborating',
-                draftAltText: 'Greetwell Team Collaborating',
-                displayOrder: 7,
-                status: 'PUBLISHED'
-            },
-            // 6. Loans Service Card Banner
-            {
-                key: 'loan_banner',
-                title: 'Loans Service Card Banner',
-                description: 'Flexible Personal, Home, and Commercial Loan Solutions Banner',
-                section: 'Loans',
-                category: 'SERVICES',
-                displayType: 'CARD',
-                draftUrl: '/uploads/media/slider-1.png',
-                publishedUrl: '/uploads/media/slider-1.png',
-                altText: 'Loans Service Banner',
-                draftAltText: 'Loans Service Banner',
-                displayOrder: 8,
-                status: 'PUBLISHED'
-            },
-            // 7. Insurance Service Card Banner
-            {
-                key: 'insurance_banner',
-                title: 'Insurance Service Card Banner',
-                description: 'Comprehensive Health, Life, and General Insurance Coverage',
-                section: 'Insurance',
-                category: 'SERVICES',
-                displayType: 'CARD',
-                draftUrl: '/uploads/media/slider-2.png',
-                publishedUrl: '/uploads/media/slider-2.png',
-                altText: 'Insurance Service Banner',
-                draftAltText: 'Insurance Service Banner',
-                displayOrder: 9,
-                status: 'PUBLISHED'
-            },
-            // 8. Investment Service Card Banner
-            {
-                key: 'investment_banner',
-                title: 'Investment Service Card Banner',
-                description: 'High-Yield Mutual Funds, Fixed Deposits, and Chits Savings Scheme',
-                section: 'Investments',
-                category: 'SERVICES',
-                displayType: 'CARD',
-                draftUrl: '/uploads/media/slider-3.png',
-                publishedUrl: '/uploads/media/slider-3.png',
-                altText: 'Investment Service Banner',
-                draftAltText: 'Investment Service Banner',
-                displayOrder: 10,
-                status: 'PUBLISHED'
-            },
-            // 9. CSR ACTIVITIES Items
-            {
-                title: 'Certificate Presentation',
-                description: 'Special recognition certificate presented in office',
-                section: 'CSR Activities',
-                category: 'CSR ACTIVITIES',
-                displayType: 'CARD',
-                draftUrl: '/uploads/media/gallery_gfs_1.png',
-                publishedUrl: '/uploads/media/gallery_gfs_1.png',
-                altText: 'Certificate Presentation',
-                displayOrder: 11,
-                status: 'PUBLISHED'
-            },
-            {
-                title: 'Milaap 2025 Stage Connect',
-                description: 'Welcome stage connect program by HDFC ERGO',
-                section: 'CSR Activities',
-                category: 'CSR ACTIVITIES',
-                displayType: 'CARD',
-                draftUrl: '/uploads/media/gallery_gfs_4.jpg',
-                publishedUrl: '/uploads/media/gallery_gfs_4.jpg',
-                altText: 'Milaap 2025 Stage',
-                displayOrder: 12,
-                status: 'PUBLISHED'
-            },
-            {
-                title: 'Mysore Group Celebration',
-                description: 'Corporate social connect and team meet-up celebration',
-                section: 'CSR Activities',
-                category: 'CSR ACTIVITIES',
-                displayType: 'CARD',
-                draftUrl: '/uploads/media/gallery_gfs_10.jpg',
-                publishedUrl: '/uploads/media/gallery_gfs_10.jpg',
-                altText: 'Mysore Group Celebration',
-                displayOrder: 13,
-                status: 'PUBLISHED'
-            },
-            {
-                title: 'Mysore Palace Meet',
-                description: 'GFS delegates group photo at majestic Mysore Palace',
-                section: 'CSR Activities',
-                category: 'CSR ACTIVITIES',
-                displayType: 'CARD',
-                draftUrl: '/uploads/media/gallery_gfs_7.jpg',
-                publishedUrl: '/uploads/media/gallery_gfs_7.jpg',
-                altText: 'Mysore Palace Meet',
-                displayOrder: 14,
-                status: 'PUBLISHED'
-            },
-            // 10. RECOGNITION Items
-            {
-                title: 'Champion of Insurance',
-                description: 'Awarded Champion title at GFS Festival of Insurance',
-                section: 'Recognition',
-                category: 'RECOGNITION',
-                displayType: 'CARD',
-                draftUrl: '/uploads/media/gallery_gfs_2.jpg',
-                publishedUrl: '/uploads/media/gallery_gfs_2.jpg',
-                altText: 'Champion of Insurance',
-                displayOrder: 15,
-                status: 'PUBLISHED'
-            },
-            {
-                title: 'Appreciation Shield',
-                description: 'Certificate of Appreciation for outstanding performance',
-                section: 'Recognition',
-                category: 'RECOGNITION',
-                displayType: 'CARD',
-                draftUrl: '/uploads/media/gallery_gfs_3.jpg',
-                publishedUrl: '/uploads/media/gallery_gfs_3.jpg',
-                altText: 'Appreciation Shield',
-                displayOrder: 16,
-                status: 'PUBLISHED'
-            },
-            {
-                title: 'Executive Leadership Portrait',
-                description: 'Corporate executive portrait at Greetwell Financial',
-                section: 'Recognition',
-                category: 'RECOGNITION',
-                displayType: 'CARD',
-                draftUrl: '/uploads/media/gallery_gfs_5.jpg',
-                publishedUrl: '/uploads/media/gallery_gfs_5.jpg',
-                altText: 'Executive Leadership',
-                displayOrder: 17,
-                status: 'PUBLISHED'
-            },
-            {
-                title: 'Ruby Club 2023 Ceremony',
-                description: 'Stage presentation and honor at Ruby Club 2023',
-                section: 'Recognition',
-                category: 'RECOGNITION',
-                displayType: 'CARD',
-                draftUrl: '/uploads/media/gallery_gfs_6.jpg',
-                publishedUrl: '/uploads/media/gallery_gfs_6.jpg',
-                altText: 'Ruby Club 2023 Ceremony',
-                displayOrder: 18,
-                status: 'PUBLISHED'
-            },
-            {
-                title: 'Ruby Club Plaque',
-                description: 'Linga Prasad Goud honored with Plaque of Excellence',
-                section: 'Recognition',
-                category: 'RECOGNITION',
-                displayType: 'CARD',
-                draftUrl: '/uploads/media/gallery_gfs_8.jpg',
-                publishedUrl: '/uploads/media/gallery_gfs_8.jpg',
-                altText: 'Ruby Club Plaque',
-                displayOrder: 19,
-                status: 'PUBLISHED'
-            },
-            {
-                title: 'Audience Stage Honor',
-                description: 'Honored in front of delegates at Ruby Club 2023',
-                section: 'Recognition',
-                category: 'RECOGNITION',
-                displayType: 'CARD',
-                draftUrl: '/uploads/media/gallery_gfs_9.jpg',
-                publishedUrl: '/uploads/media/gallery_gfs_9.jpg',
-                altText: 'Audience Stage Honor',
-                displayOrder: 20,
-                status: 'PUBLISHED'
+    if (isSeeded)
+        return;
+    try {
+        const contentCount = await prisma_1.prisma.websiteContent.count();
+        if (contentCount === 0) {
+            const defaultContents = [
+                { section: 'HERO', key: 'hero_title', label: 'Hero Title', draftValue: 'Empowering Your Financial Growth with Trust & Integrity', publishedValue: 'Empowering Your Financial Growth with Trust & Integrity' },
+                { section: 'HERO', key: 'hero_subtitle', label: 'Hero Subtitle', draftValue: 'Your one-stop destination for Loans, Insurance, and Smart Investment Solutions.', publishedValue: 'Your one-stop destination for Loans, Insurance, and Smart Investment Solutions.' },
+                { section: 'HERO', key: 'hero_cta', label: 'Hero Button Text', draftValue: 'Get Started Now', publishedValue: 'Get Started Now' },
+                { section: 'SERVICES', key: 'loan_desc', label: 'Loan Services Description', draftValue: 'Flexible personal, home, and commercial loans with competitive interest rates.', publishedValue: 'Flexible personal, home, and commercial loans with competitive interest rates.' },
+                { section: 'SERVICES', key: 'insurance_desc', label: 'Insurance Services Description', draftValue: 'Comprehensive life, health, property, and business coverage to protect what matters.', publishedValue: 'Comprehensive life, health, property, and business coverage to protect what matters.' },
+                { section: 'SERVICES', key: 'investment_desc', label: 'Investment Services Description', draftValue: 'High-yield mutual funds, fixed deposits, and wealth management solutions.', publishedValue: 'High-yield mutual funds, fixed deposits, and wealth management solutions.' },
+                { section: 'ABOUT', key: 'about_title', label: 'About Us Title', draftValue: 'About Greetwell Financial Services', publishedValue: 'About Greetwell Financial Services' },
+                { section: 'ABOUT', key: 'about_body', label: 'About Us Story', draftValue: 'Greetwell Financial Services is a trusted leader in providing tailored financial products. We bring together loans, insurance, and investments under one secure digital portal.', publishedValue: 'Greetwell Financial Services is a trusted leader in providing tailored financial products. We bring together loans, insurance, and investments under one secure digital portal.' },
+                { section: 'ABOUT', key: 'about_mission', label: 'Our Mission', draftValue: 'To empower individuals and businesses with accessible, transparent, and innovative financial services.', publishedValue: 'To empower individuals and businesses with accessible, transparent, and innovative financial services.' },
+                { section: 'ABOUT', key: 'about_vision', label: 'Our Vision', draftValue: "To be India's most client-centric and technologically advanced financial service portal.", publishedValue: "To be India's most client-centric and technologically advanced financial service portal." },
+                { section: 'FOOTER', key: 'footer_copyright', label: 'Footer Copyright Text', draftValue: '© 2026 Greetwell Financial Services. All rights reserved.', publishedValue: '© 2026 Greetwell Financial Services. All rights reserved.' },
+                { section: 'FOOTER', key: 'footer_disclaimer', label: 'Footer Disclaimer Text', draftValue: 'Greetwell Financial Services is a licensed distributor of loans, insurance, and investment products. All financial investments are subject to market risks.', publishedValue: 'Greetwell Financial Services is a licensed distributor of loans, insurance, and investment products. All financial investments are subject to market risks.' }
+            ];
+            for (const c of defaultContents) {
+                await prisma_1.prisma.websiteContent.create({ data: c });
             }
-        ];
-        for (const item of defaultMedia) {
-            await prisma_1.prisma.websiteMedia.create({ data: item });
         }
+        isSeeded = true;
+    }
+    catch (e) {
+        console.warn('Seeding check notice:', e);
     }
 };
 // GET /api/website/public (Public - Returns active published content, contact, socials, media grouped by section)
 const getPublicWebsiteContent = async (req, res) => {
     try {
+        if (cachedPublicData) {
+            return res.status(200).json(cachedPublicData);
+        }
         await seedDefaultsIfEmpty();
         const contents = await prisma_1.prisma.websiteContent.findMany();
         const contacts = await prisma_1.prisma.contactInfo.findMany({
@@ -915,6 +616,7 @@ exports.saveWebsiteDraft = saveWebsiteDraft;
 // POST /api/website/admin/publish (Super Admin - Publish Draft Changes to Live)
 const publishWebsiteChanges = async (req, res) => {
     try {
+        (0, exports.clearPublicWebsiteCache)();
         const actorUser = req.user;
         const contents = await prisma_1.prisma.websiteContent.findMany();
         for (const c of contents) {
