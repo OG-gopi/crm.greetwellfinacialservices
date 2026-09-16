@@ -59,6 +59,10 @@ model User {
   enquiryMessages       EnquiryMessage[] @relation("EnquiryMessageSender")
   enquiryHistoryLogs    EnquiryHistory[] @relation("EnquiryHistoryUser")
   reportsCreated        Report[]         @relation("ReportCreator")
+
+  @@index([role])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Invitation {
@@ -124,6 +128,13 @@ model Application {
   requirements        ApplicationRequirement[]
   tasks               Task[]
   notes               Note[]
+
+  @@index([customerId])
+  @@index([assignedAgentId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([type, status])
 }
 
 model Document {
@@ -145,6 +156,10 @@ model Document {
   verifiedAt        DateTime?
   rejectionReason   String?
   createdAt         DateTime      @default(now())
+
+  @@index([applicationId])
+  @@index([uploadedByUserId])
+  @@index([status])
 }
 
 model ApplicationRequirement {
@@ -177,6 +192,10 @@ model Task {
   dueDate         DateTime?
   completedAt     DateTime?
   createdAt       DateTime    @default(now())
+
+  @@index([assignedToUserId])
+  @@index([applicationId])
+  @@index([status])
 }
 
 model Note {
@@ -211,6 +230,9 @@ model Notification {
   isRead          Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @default(now()) @updatedAt
+
+  @@index([recipientUserId, isRead])
+  @@index([createdAt])
 }
 
 model AuditLog {
@@ -225,6 +247,10 @@ model AuditLog {
   ipAddress   String?
   metadata    String?  // JSON string
   timestamp   DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
+  @@index([action])
 }
 
 model LoanProduct {
@@ -413,6 +439,11 @@ model Enquiry {
 
   messages             EnquiryMessage[]
   history              EnquiryHistory[]
+
+  @@index([raisedByUserId])
+  @@index([assignedAgentId])
+  @@index([status])
+  @@index([category])
 }
 
 model EnquiryMessage {
