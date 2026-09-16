@@ -224,7 +224,7 @@ async function createEnquiry(req, res) {
         });
         await (0, notificationService_1.notifySuperAdmins)('NEW_ENQUIRY', `New Enquiry Ticket (${enquiry.id})`, `New enquiry ticket ${enquiry.id} (${category}) submitted by ${user.firstName} ${user.lastName || ''}.`, { module: 'ENQUIRY', relatedEntityId: enquiry.id });
         // Send email acknowledgement
-        emailService_1.emailService.sendEnquiryCreatedNotification({
+        await emailService_1.emailService.sendEnquiryCreatedNotification({
             email: user.email,
             userName: `${user.firstName} ${user.lastName || ''}`,
             enquiryId: enquiry.id,
@@ -308,7 +308,7 @@ async function addEnquiryMessage(req, res) {
         }
         // Send email notification to owner if replied by Admin/Agent
         if (user.id !== enquiry.raisedByUserId && enquiry.raisedByUser?.email) {
-            emailService_1.emailService.sendEnquiryReplyNotification({
+            await emailService_1.emailService.sendEnquiryReplyNotification({
                 email: enquiry.raisedByUser.email,
                 userName: `${enquiry.raisedByUser.firstName} ${enquiry.raisedByUser.lastName || ''}`,
                 enquiryId: enquiry.id,
@@ -412,7 +412,7 @@ async function updateEnquiryStatus(req, res) {
                 relatedEntityId: enquiry.id,
             });
             if (status === 'AWAITING_INFORMATION') {
-                emailService_1.emailService.sendEnquiryInfoRequestedNotification({
+                await emailService_1.emailService.sendEnquiryInfoRequestedNotification({
                     email: ownerEmail,
                     userName: ownerName,
                     enquiryId: enquiry.id,
@@ -421,7 +421,7 @@ async function updateEnquiryStatus(req, res) {
                 }).catch((err) => console.error('Failed to send info request email:', err));
             }
             else if (status === 'RESOLVED') {
-                emailService_1.emailService.sendEnquiryResolvedNotification({
+                await emailService_1.emailService.sendEnquiryResolvedNotification({
                     email: ownerEmail,
                     userName: ownerName,
                     enquiryId: enquiry.id,
@@ -430,7 +430,7 @@ async function updateEnquiryStatus(req, res) {
                 }).catch((err) => console.error('Failed to send resolution email:', err));
             }
             else if (status === 'CLOSED') {
-                emailService_1.emailService.sendEnquiryClosedNotification({
+                await emailService_1.emailService.sendEnquiryClosedNotification({
                     email: ownerEmail,
                     userName: ownerName,
                     enquiryId: enquiry.id,

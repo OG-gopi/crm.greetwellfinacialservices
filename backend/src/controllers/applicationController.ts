@@ -351,13 +351,13 @@ export async function createApplication(req: AuthRequest, res: Response) {
     );
 
     if (newApp.customer?.email) {
-      emailService.sendApplicationCreatedNotification({
+      await emailService.sendApplicationCreatedNotification({
         customerEmail: newApp.customer.email,
         customerName: `${newApp.customer.firstName} ${newApp.customer.lastName || ''}`.trim(),
         applicationId: newApp.id,
         type: newApp.type,
         amount: newApp.amount ? Number(newApp.amount) : undefined,
-      }).catch((err) => console.error('Async application created email error:', err));
+      }).catch((err) => console.error('Application created email error:', err));
     }
 
     // Dispatch WhatsApp Notification if customer phone exists
@@ -470,14 +470,14 @@ export async function assignApplication(req: AuthRequest, res: Response) {
     });
 
     if (updatedApp.customer?.email && agent.email) {
-      emailService.sendAgentAssignedNotification({
+      await emailService.sendAgentAssignedNotification({
         customerEmail: updatedApp.customer.email,
         customerName: `${updatedApp.customer.firstName} ${updatedApp.customer.lastName || ''}`.trim(),
         agentEmail: agent.email,
         agentName: `${agent.firstName} ${agent.lastName || ''}`.trim(),
         serviceType: application.type,
         assignedBy: req.user ? `${req.user.firstName} ${req.user.lastName || ''}`.trim() : 'Super Admin',
-      }).catch((err) => console.error('Async agent assigned email error:', err));
+      }).catch((err) => console.error('Agent assigned email error:', err));
     }
 
     return res.json({
@@ -560,24 +560,24 @@ export async function updateApplicationStatus(req: AuthRequest, res: Response) {
     if (application.customer?.email) {
       const customerName = `${application.customer.firstName} ${application.customer.lastName || ''}`.trim();
       if (status === 'APPROVED') {
-        emailService.sendApplicationApprovedEmail({
+        await emailService.sendApplicationApprovedEmail({
           recipientEmail: application.customer.email,
           recipientName: customerName,
           applicationId: application.id,
           type: application.type,
           amount: application.amount ? Number(application.amount) : undefined,
           remarks: note,
-        }).catch((err) => console.error('Async application approved email error:', err));
+        }).catch((err) => console.error('Application approved email error:', err));
       } else if (status === 'REJECTED') {
-        emailService.sendApplicationRejectedEmail({
+        await emailService.sendApplicationRejectedEmail({
           recipientEmail: application.customer.email,
           recipientName: customerName,
           applicationId: application.id,
           type: application.type,
           rejectionReason: note || 'Application specifications did not meet threshold requirements.',
-        }).catch((err) => console.error('Async application rejected email error:', err));
+        }).catch((err) => console.error('Application rejected email error:', err));
       } else {
-        emailService.sendApplicationStatusUpdatedEmail({
+        await emailService.sendApplicationStatusUpdatedEmail({
           recipientEmail: application.customer.email,
           recipientName: customerName,
           applicationId: application.id,
@@ -586,7 +586,7 @@ export async function updateApplicationStatus(req: AuthRequest, res: Response) {
           newStatus: status,
           updatedBy: user ? `${user.firstName} ${user.lastName || ''}`.trim() : 'System',
           comments: note,
-        }).catch((err) => console.error('Async application status email error:', err));
+        }).catch((err) => console.error('Application status email error:', err));
       }
     }
 

@@ -35,9 +35,31 @@ class EmailService {
             }
         }
     }
+    getTransporter() {
+        const user = process.env.GMAIL_USER || process.env.SMTP_USER || config_1.CONFIG.SMTP.USER || 'greetwell.notify@gmail.com';
+        const pass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASSWORD || config_1.CONFIG.SMTP.PASS || '';
+        const host = process.env.SMTP_HOST || config_1.CONFIG.SMTP.HOST || 'smtp.gmail.com';
+        const port = parseInt(process.env.SMTP_PORT || String(config_1.CONFIG.SMTP.PORT || 465), 10);
+        const isSecure = port === 465;
+        if (user && pass) {
+            try {
+                return nodemailer_1.default.createTransport({
+                    host,
+                    port,
+                    secure: isSecure,
+                    auth: { user, pass },
+                    tls: { rejectUnauthorized: false },
+                });
+            }
+            catch (err) {
+                console.error('❌ Failed to create SMTP transporter:', err);
+            }
+        }
+        return this.transporter;
+    }
     /**
      * Primary transactional email dispatcher with automated Database Logging (`EmailDeliveryLog`).
-     * Non-blocking: returns boolean status and never crashes calling database workflows.
+     * Returns boolean status and handles errors cleanly.
      */
     async sendMail(options) {
         const { to, recipientName, subject, html, emailType, emailCategory = 'TRANSACTIONAL', relatedEntity, relatedEntityId, applicationId, actionUrl, } = options;
@@ -72,9 +94,15 @@ class EmailService {
         // 2. Dispatch email via Nodemailer or Log Fallback in Development
         let isSuccess = false;
         let failureReason = null;
-        if (this.transporter && process.env.NODE_ENV !== 'test') {
+        const smtpPass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASSWORD || config_1.CONFIG.SMTP.PASS;
+        const activeTransporter = this.getTransporter();
+        if (!smtpPass && process.env.NODE_ENV === 'production') {
+            failureReason = 'Gmail App Password is not set (GMAIL_APP_PASSWORD / SMTP_PASSWORD environment variable is missing in Vercel settings).';
+            console.warn(`⚠️ [SMTP CONFIG WARNING] ${failureReason}`);
+        }
+        else if (activeTransporter && process.env.NODE_ENV !== 'test') {
             try {
-                await this.transporter.sendMail({
+                await activeTransporter.sendMail({
                     from: config_1.CONFIG.SMTP.FROM,
                     to: cleanTo,
                     subject,
@@ -86,7 +114,6 @@ class EmailService {
             catch (err) {
                 failureReason = err?.message || String(err);
                 console.error(`❌ [SMTP ERROR] To: ${cleanTo} | Subject: "${subject}" | Error:`, failureReason);
-                console.log(`📧 [DEV EMAIL SERVICE FALLBACK LOGGED] To: ${cleanTo} | Subject: ${subject}`);
             }
         }
         else {

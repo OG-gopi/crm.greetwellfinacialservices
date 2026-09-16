@@ -50,13 +50,13 @@ async function createNote(req, res) {
                 relatedEntityId: applicationId,
             });
             if (application.customer?.email) {
-                emailService_1.emailService.sendApplicationCommentNotification({
+                await emailService_1.emailService.sendApplicationCommentNotification({
                     recipientEmail: application.customer.email,
                     recipientName: `${application.customer.firstName} ${application.customer.lastName || ''}`.trim(),
                     applicationId: application.id,
                     authorName: `${user.firstName} ${user.lastName || ''}`.trim(),
                     commentText: content,
-                }).catch((err) => console.error('Async application comment email error:', err));
+                }).catch((err) => console.error('Application comment email error:', err));
             }
         }
         return res.status(201).json({ success: true, message: 'Note added.', data: note });

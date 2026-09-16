@@ -55,13 +55,13 @@ export async function createNote(req: AuthRequest, res: Response) {
       });
 
       if (application.customer?.email) {
-        emailService.sendApplicationCommentNotification({
+        await emailService.sendApplicationCommentNotification({
           recipientEmail: application.customer.email,
           recipientName: `${application.customer.firstName} ${application.customer.lastName || ''}`.trim(),
           applicationId: application.id,
           authorName: `${user.firstName} ${user.lastName || ''}`.trim(),
           commentText: content,
-        }).catch((err) => console.error('Async application comment email error:', err));
+        }).catch((err) => console.error('Application comment email error:', err));
       }
     }
 

@@ -156,20 +156,20 @@ export async function verifyDocument(req: AuthRequest, res: Response) {
       const customerEmail = document.application.customer.email;
       const customerName = `${document.application.customer.firstName} ${document.application.customer.lastName || ''}`.trim();
       if (status === 'VERIFIED') {
-        emailService.sendDocumentApprovedEmail({
+        await emailService.sendDocumentApprovedEmail({
           customerEmail,
           customerName,
           documentTitle: document.title,
           applicationId: document.applicationId,
-        }).catch((err) => console.error('Async document approved email error:', err));
+        }).catch((err) => console.error('Document approved email error:', err));
       } else {
-        emailService.sendDocumentRejectedEmail({
+        await emailService.sendDocumentRejectedEmail({
           customerEmail,
           customerName,
           documentTitle: document.title,
           applicationId: document.applicationId,
           rejectionReason: rejectionReason || 'Document clarity or compliance verification failed.',
-        }).catch((err) => console.error('Async document rejected email error:', err));
+        }).catch((err) => console.error('Document rejected email error:', err));
       }
     }
 

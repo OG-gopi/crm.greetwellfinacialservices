@@ -187,15 +187,15 @@ async function registerCustomer(req, res) {
             email: newCustomer.email,
             role: newCustomer.role,
         });
-        // Optionally dispatch welcome notification asynchronously without blocking registration
-        emailService_1.emailService.sendCustomerRegistrationVerification({
+        // Dispatch welcome notification
+        await emailService_1.emailService.sendCustomerRegistrationVerification({
             email: cleanEmail,
             token: verificationToken,
             firstName: firstName.trim(),
             lastName: lastName ? lastName.trim() : undefined,
             customerIdCode,
             serviceTypes: parsedServiceTypes,
-        }).catch((err) => console.error('Async welcome email notice error:', err));
+        }).catch((err) => console.error('Welcome email notice error:', err));
         await (0, auditService_1.createAuditLog)({
             userId: newCustomer.id,
             userRole: 'CUSTOMER',
@@ -485,11 +485,11 @@ async function acceptInviteSetupPassword(req, res) {
             where: { id: invitation.id },
             data: { status: 'ACCEPTED' },
         });
-        emailService_1.emailService.sendInvitationAcceptedNotification({
+        await emailService_1.emailService.sendInvitationAcceptedNotification({
             userEmail: user.email,
             userName: `${user.firstName} ${user.lastName || ''}`.trim(),
             userRole: user.role,
-        }).catch((err) => console.error('Async invitation accepted email error:', err));
+        }).catch((err) => console.error('Invitation accepted email error:', err));
         const authToken = (0, jwt_1.generateToken)({
             userId: user.id,
             email: user.email,
@@ -549,11 +549,11 @@ async function forgotPassword(req, res) {
                 resetPasswordExpires: resetExpires,
             },
         });
-        emailService_1.emailService.sendForgotPassword({
+        await emailService_1.emailService.sendForgotPassword({
             email: user.email,
             token: resetToken,
             firstName: user.firstName,
-        }).catch((err) => console.error('Async forgot password email error:', err));
+        }).catch((err) => console.error('Forgot password email error:', err));
         return res.json({ success: true, message: 'If account exists, password reset email has been sent.' });
     }
     catch (err) {
@@ -585,10 +585,10 @@ async function resetPassword(req, res) {
                 resetPasswordExpires: null,
             },
         });
-        emailService_1.emailService.sendPasswordChanged({
+        await emailService_1.emailService.sendPasswordChanged({
             email: user.email,
             firstName: user.firstName,
-        }).catch((err) => console.error('Async password changed email error:', err));
+        }).catch((err) => console.error('Password changed email error:', err));
         await (0, auditService_1.createAuditLog)({
             userId: user.id,
             userRole: user.role,

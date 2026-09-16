@@ -241,7 +241,7 @@ export async function createEnquiry(req: AuthRequest, res: Response) {
     );
 
     // Send email acknowledgement
-    emailService.sendEnquiryCreatedNotification({
+    await emailService.sendEnquiryCreatedNotification({
       email: user.email,
       userName: `${user.firstName} ${user.lastName || ''}`,
       enquiryId: enquiry.id,
@@ -337,7 +337,7 @@ export async function addEnquiryMessage(req: AuthRequest, res: Response) {
 
     // Send email notification to owner if replied by Admin/Agent
     if (user.id !== enquiry.raisedByUserId && enquiry.raisedByUser?.email) {
-      emailService.sendEnquiryReplyNotification({
+      await emailService.sendEnquiryReplyNotification({
         email: enquiry.raisedByUser.email,
         userName: `${enquiry.raisedByUser.firstName} ${enquiry.raisedByUser.lastName || ''}`,
         enquiryId: enquiry.id,
@@ -457,7 +457,7 @@ export async function updateEnquiryStatus(req: AuthRequest, res: Response) {
       });
 
       if (status === 'AWAITING_INFORMATION') {
-        emailService.sendEnquiryInfoRequestedNotification({
+        await emailService.sendEnquiryInfoRequestedNotification({
           email: ownerEmail,
           userName: ownerName,
           enquiryId: enquiry.id,
@@ -465,7 +465,7 @@ export async function updateEnquiryStatus(req: AuthRequest, res: Response) {
           message: resolutionComment || 'Additional details or documents requested by support.',
         }).catch((err) => console.error('Failed to send info request email:', err));
       } else if (status === 'RESOLVED') {
-        emailService.sendEnquiryResolvedNotification({
+        await emailService.sendEnquiryResolvedNotification({
           email: ownerEmail,
           userName: ownerName,
           enquiryId: enquiry.id,
@@ -473,7 +473,7 @@ export async function updateEnquiryStatus(req: AuthRequest, res: Response) {
           resolutionMessage: resolutionComment || 'Your ticket has been marked as resolved.',
         }).catch((err) => console.error('Failed to send resolution email:', err));
       } else if (status === 'CLOSED') {
-        emailService.sendEnquiryClosedNotification({
+        await emailService.sendEnquiryClosedNotification({
           email: ownerEmail,
           userName: ownerName,
           enquiryId: enquiry.id,
