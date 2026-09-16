@@ -36,17 +36,18 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor for automatic unauth handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Clear token and redirect to login if session expired (unless on auth endpoints)
+      // Clear tokens and redirect to login if session expired (unless on auth endpoints)
       const currentPath = window.location.pathname;
       if (!currentPath.includes('/login') && !currentPath.includes('/register') && !currentPath.includes('/invite')) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        sessionStorage.removeItem('gfs_session_active');
+        const msg = encodeURIComponent('Your session expired due to inactivity. Please log in again.');
+        window.location.href = `/login?message=${msg}`;
       }
     }
     return Promise.reject(error);

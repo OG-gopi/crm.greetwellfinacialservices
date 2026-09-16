@@ -36,22 +36,27 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [verifiedSuccessMsg, setVerifiedSuccessMsg] = useState('');
-  const [showPresets, setShowPresets] = useState(false);
 
-  // Check URL search parameters for prefilled email & email verification status
+  // Check URL search parameters & location state for messages, prefilled email & email verification status
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const emailParam = params.get('email');
     const verifiedParam = params.get('verified');
+    const messageParam = params.get('message');
+    const stateMessage = (location.state as any)?.message;
 
     if (emailParam) {
       setEmail(emailParam);
     }
 
-    if (verifiedParam === 'true') {
+    if (messageParam) {
+      setVerifiedSuccessMsg(messageParam);
+    } else if (stateMessage) {
+      setVerifiedSuccessMsg(stateMessage);
+    } else if (verifiedParam === 'true') {
       setVerifiedSuccessMsg('Email address verified successfully! Please enter your password to sign in.');
     }
-  }, [location.search]);
+  }, [location.search, location.state]);
 
   const formatLoginError = (err: any): string => {
     if (!err.response) {
@@ -128,11 +133,6 @@ export const Login: React.FC = () => {
     }
   };
 
-  const handleQuickLogin = (presetEmail: string, presetPass: string) => {
-    setEmail(presetEmail);
-    setPassword(presetPass);
-    setShowPresets(false);
-  };
 
   const handleBackToHome = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -358,49 +358,6 @@ export const Login: React.FC = () => {
                 <ArrowLeft className="h-3.5 w-3.5" />
                 <span>Back to Home</span>
               </a>
-            </div>
-
-            {/* Quick Fill Credentials Seed Helper */}
-            <div className="mt-2 text-center">
-              <button
-                type="button"
-                onClick={() => setShowPresets(!showPresets)}
-                className="text-[11px] font-bold text-slate-400 hover:text-slate-700 transition-colors inline-flex items-center gap-1"
-              >
-                <Sparkles className="h-3 w-3 text-amber-500" />
-                {showPresets ? 'Hide Demo Presets' : 'Quick Fill Demo Credentials'}
-              </button>
-
-              {showPresets && (
-                <div className="mt-2 p-2 rounded-xl bg-slate-50 border border-slate-200 text-left text-xs space-y-1.5 animate-in fade-in zoom-in-95 duration-150">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('gopikrishnabeesu@gmail.com', 'Data@1234')}
-                    className="w-full p-2 bg-slate-900 text-white rounded-lg font-mono text-[11px] flex justify-between items-center hover:bg-slate-800 transition-all"
-                  >
-                    <span>Super Admin: gopikrishnabeesu@gmail.com</span>
-                    <span className="text-amber-400 font-bold bg-amber-400/10 px-2 py-0.5 rounded">Fill</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('loan.agent@greetwell.com', 'Agent@123456')}
-                    className="w-full p-2 bg-blue-900 text-white rounded-lg font-mono text-[11px] flex justify-between items-center hover:bg-blue-800 transition-all"
-                  >
-                    <span>Loan Agent: loan.agent@greetwell.com</span>
-                    <span className="text-blue-300 font-bold bg-blue-300/10 px-2 py-0.5 rounded">Fill</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('john.doe@example.com', 'Customer@123456')}
-                    className="w-full p-2 bg-emerald-900 text-white rounded-lg font-mono text-[11px] flex justify-between items-center hover:bg-emerald-800 transition-all"
-                  >
-                    <span>Customer: john.doe@example.com</span>
-                    <span className="text-emerald-300 font-bold bg-emerald-300/10 px-2 py-0.5 rounded">Fill</span>
-                  </button>
-                </div>
-              )}
             </div>
           </div>
 

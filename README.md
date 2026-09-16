@@ -30,15 +30,9 @@ A COMPLETE, production-style, end-to-end Financial Services Management Portal bu
 
 ---
 
-## 🔑 Default Development Credentials
+## 🔑 Security Note
 
-| Role | Email | Password | Allowed Dashboards & Modules |
-| :--- | :--- | :--- | :--- |
-| **Super Admin** | `admin@greetwell.com` | `Admin@123456` | Full Control (`/admin/*`) |
-| **Loan Agent** | `loan.agent@greetwell.com` | `Agent@123456` | Loan Portal (`/loan-agent/*`) |
-| **Insurance Agent** | `insurance.agent@greetwell.com` | `Agent@123456` | Insurance Portal (`/insurance-agent/*`) |
-| **Investment Agent**| `investment.agent@greetwell.com` | `Agent@123456` | Investment Portal (`/investment-agent/*`) |
-| **Customer** | `john.doe@example.com` | `Customer@123456` | Customer Portal (`/customer/*`) |
+User credentials should be managed securely via your database environment configuration. Password hashes are generated dynamically during initial seed initialization.
 
 ---
 

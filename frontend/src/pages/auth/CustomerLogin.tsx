@@ -51,10 +51,6 @@ export const CustomerLogin: React.FC = () => {
     }
   };
 
-  const handleQuickLogin = (presetEmail: string, presetPass: string) => {
-    setEmail(presetEmail);
-    setPassword(presetPass);
-  };
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 sm:p-6 lg:p-10 font-sans">
@@ -191,31 +187,7 @@ export const CustomerLogin: React.FC = () => {
               </p>
             </div>
 
-            {/* Quick Demo Preset Helper */}
-            <div className="mt-3 text-center">
-              <button
-                type="button"
-                onClick={() => setShowPresets(!showPresets)}
-                className="text-[11px] font-bold text-slate-400 hover:text-slate-700 transition-colors inline-flex items-center gap-1"
-              >
-                <Sparkles className="h-3 w-3 text-blue-500" />
-                {showPresets ? 'Hide Demo Account' : 'Fill Demo Customer Credentials'}
-              </button>
-
-              {showPresets && (
-                <div className="mt-2 p-2 rounded-lg bg-slate-50 border border-slate-200 text-left text-xs">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('john.doe@example.com', 'Customer@123456')}
-                    className="w-full p-2 bg-[#0265dc] text-white rounded font-mono text-[11px] flex justify-between items-center"
-                  >
-                    <span>john.doe@example.com</span>
-                    <span className="text-blue-200 font-bold">Auto Fill</span>
-                  </button>
-                </div>
-              )}
             </div>
-          </div>
 
           {/* Footer Line Matching Reference */}
           <div className="pt-6 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-medium">
