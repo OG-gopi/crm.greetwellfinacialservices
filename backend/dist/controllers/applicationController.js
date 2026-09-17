@@ -274,11 +274,13 @@ async function createApplication(req, res) {
             }
         }
         const appId = await (0, appId_1.generateApplicationId)(type);
+        const isAgentUser = ['LOAN_AGENT', 'INSURANCE_AGENT', 'INVESTMENT_AGENT'].includes(user.role);
         const newApp = await prisma_1.prisma.application.create({
             data: {
                 id: appId,
                 customerId: targetCustomerId,
                 createdById: user.id,
+                assignedAgentId: isAgentUser ? user.id : null,
                 type,
                 status: 'SUBMITTED',
                 priority,
@@ -290,6 +292,7 @@ async function createApplication(req, res) {
             include: {
                 customer: { select: { firstName: true, lastName: true, email: true, phone: true, customerIdCode: true } },
                 createdBy: { select: { firstName: true, lastName: true, email: true, role: true, customerIdCode: true, agentIdCode: true, superAdminIdCode: true } },
+                assignedAgent: { select: { id: true, firstName: true, lastName: true, email: true, role: true, agentIdCode: true } },
             },
         });
         // Create Document records if customer attached documents during application creation

@@ -63,9 +63,9 @@ import { Unauthorized } from './pages/error/Unauthorized';
 import { NotFound } from './pages/error/NotFound';
 
 const PageLoader: React.FC = () => (
-  <div className="min-h-[400px] flex flex-col items-center justify-center p-8 text-slate-500 font-semibold text-xs">
-    <div className="h-8 w-8 animate-spin rounded-full border-3 border-blue-600 border-t-transparent mb-3" />
-    <span>Loading page component...</span>
+  <div className="fixed inset-0 z-[9999] bg-[#070d19]/90 backdrop-blur-md flex flex-col items-center justify-center p-8 text-slate-100 font-semibold text-xs">
+    <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber-400 border-t-transparent mb-3 shadow-lg shadow-amber-400/20" />
+    <span className="text-amber-300 font-extrabold tracking-widest uppercase">Loading Portal Module...</span>
   </div>
 );
 

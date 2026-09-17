@@ -289,11 +289,14 @@ export async function createApplication(req: AuthRequest, res: Response) {
 
     const appId = await generateApplicationId(type);
 
+    const isAgentUser = ['LOAN_AGENT', 'INSURANCE_AGENT', 'INVESTMENT_AGENT'].includes(user.role);
+
     const newApp = await prisma.application.create({
       data: {
         id: appId,
         customerId: targetCustomerId,
         createdById: user.id,
+        assignedAgentId: isAgentUser ? user.id : null,
         type,
         status: 'SUBMITTED',
         priority,
@@ -305,6 +308,7 @@ export async function createApplication(req: AuthRequest, res: Response) {
       include: {
         customer: { select: { firstName: true, lastName: true, email: true, phone: true, customerIdCode: true } },
         createdBy: { select: { firstName: true, lastName: true, email: true, role: true, customerIdCode: true, agentIdCode: true, superAdminIdCode: true } },
+        assignedAgent: { select: { id: true, firstName: true, lastName: true, email: true, role: true, agentIdCode: true } },
       },
     });
 

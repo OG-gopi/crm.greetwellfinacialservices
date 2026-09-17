@@ -103,14 +103,29 @@ export const CreateApplication: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
+  const agentRoleDomain: ApplicationType | null =
+    user?.role === 'LOAN_AGENT' ? 'LOAN' : user?.role === 'INSURANCE_AGENT' ? 'INSURANCE' : user?.role === 'INVESTMENT_AGENT' ? 'INVESTMENT' : null;
+
   const urlType = searchParams.get('type');
-  const initialType: ApplicationType =
-    urlType === 'INSURANCE' ? 'INSURANCE' : urlType === 'INVESTMENT' ? 'INVESTMENT' : 'LOAN';
+  const initialType: ApplicationType = agentRoleDomain
+    ? agentRoleDomain
+    : urlType === 'INSURANCE'
+    ? 'INSURANCE'
+    : urlType === 'INVESTMENT'
+    ? 'INVESTMENT'
+    : 'LOAN';
 
   const [deskId, setDeskId] = useState<ApplicationType>(initialType);
   const [selectedProduct, setSelectedProduct] = useState<ProductItem>(
     DESKS[initialType].products[0]
   );
+
+  useEffect(() => {
+    if (agentRoleDomain && deskId !== agentRoleDomain) {
+      setDeskId(agentRoleDomain);
+      setSelectedProduct(DESKS[agentRoleDomain].products[0]);
+    }
+  }, [agentRoleDomain]);
 
   // Target Customer Selection for Staff Roles (SuperAdmin & Agents)
   const isStaffRole = ['SUPER_ADMIN', 'LOAN_AGENT', 'INSURANCE_AGENT', 'INVESTMENT_AGENT'].includes(user?.role || '');
@@ -392,11 +407,18 @@ export const CreateApplication: React.FC = () => {
 
       {/* Step 1: Desk Selector Row */}
       <div className="space-y-3">
-        <label className="text-xs font-bold uppercase tracking-wider text-[#5C6B82]">
-          Step 1: Select Portal Desk
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold uppercase tracking-wider text-[#5C6B82]">
+            Step 1: Select Portal Desk
+          </label>
+          {agentRoleDomain && (
+            <span className="text-xs font-extrabold px-3 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300">
+              Domain Locked to {agentRoleDomain === 'LOAN' ? 'Loans' : agentRoleDomain === 'INSURANCE' ? 'Insurance' : 'Investments'} Desk Agent Workspace
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {(Object.keys(DESKS) as ApplicationType[]).map((key) => {
+          {(agentRoleDomain ? [agentRoleDomain] : (Object.keys(DESKS) as ApplicationType[])).map((key) => {
             const desk = DESKS[key];
             const DeskIcon = desk.icon;
             const isActive = deskId === key;
@@ -404,8 +426,10 @@ export const CreateApplication: React.FC = () => {
               <button
                 key={key}
                 type="button"
-                onClick={() => handleDeskChange(key)}
-                className={`p-5 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col items-center sm:items-start text-center sm:text-left ${
+                onClick={() => !agentRoleDomain && handleDeskChange(key)}
+                className={`p-5 rounded-2xl border-2 text-left transition-all ${
+                  agentRoleDomain ? 'cursor-default' : 'cursor-pointer'
+                } flex flex-col items-center sm:items-start text-center sm:text-left ${
                   isActive
                     ? 'border-[#0E8F6F] bg-[#E8F6F1] shadow-md shadow-emerald-600/10'
                     : 'border-[#E2E7EE] bg-white hover:border-slate-300 hover:bg-slate-50/50'
