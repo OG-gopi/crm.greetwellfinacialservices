@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Sparkles,
   ChevronDown,
+  ChevronRight,
   X,
   LogOut,
   UserCheck,
@@ -31,6 +32,13 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCol
   const navigate = useNavigate();
 
   const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
+
+  const handleNavItemClick = () => {
+    onClose();
+    if (onToggleCollapse && !isCollapsed) {
+      onToggleCollapse();
+    }
+  };
 
   useEffect(() => {
     if (
@@ -79,10 +87,21 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCol
 
       {/* Sidebar Container: Light Blue Background */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full bg-[#e8f1fd] text-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-blue-200/80 shadow-sm ${
+        className={`fixed top-0 left-0 z-50 h-full bg-[#e8f1fd] text-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-blue-200/80 shadow-sm relative ${
           isCollapsed ? 'lg:w-20 w-64' : 'w-64'
         } ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
+        {onToggleCollapse && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="hidden lg:flex absolute -right-3 top-6 z-20 w-6 h-6 rounded-full bg-blue-600 text-white shadow-md items-center justify-center hover:bg-blue-700 transition-all cursor-pointer border-2 border-white"
+            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isCollapsed ? '' : 'rotate-180'}`} />
+          </button>
+        )}
+
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header Logo & Customer Desk Role Badge */}
           <div className="pt-4 pb-4 px-3 flex flex-col items-center justify-center relative bg-[#e8f1fd]">
@@ -103,7 +122,7 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCol
             {/* 1. Dashboard */}
             <NavLink
               to="/customer/dashboard"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="Dashboard"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${
@@ -148,7 +167,7 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCol
                 <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-blue-100 text-xs shadow-inner">
                   <NavLink
                     to="/customer/applications"
-                    onClick={onClose}
+                    onClick={handleNavItemClick}
                     className={({ isActive }) =>
                       `block py-2 px-3 rounded-lg transition-colors font-medium ${
                         isActive ? 'text-blue-700 font-extrabold bg-blue-100/60' : 'text-slate-700 hover:text-blue-700 hover:bg-blue-50'
@@ -160,7 +179,7 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCol
                   {hasLoans && (
                     <NavLink
                       to="/customer/applications?type=LOAN"
-                      onClick={onClose}
+                      onClick={handleNavItemClick}
                       className={({ isActive }) =>
                         `block py-2 px-3 rounded-lg transition-colors font-medium ${
                           isActive ? 'text-blue-700 font-extrabold bg-blue-100/60' : 'text-slate-700 hover:text-blue-700 hover:bg-blue-50'
@@ -173,7 +192,7 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCol
                   {hasInsurance && (
                     <NavLink
                       to="/customer/applications?type=INSURANCE"
-                      onClick={onClose}
+                      onClick={handleNavItemClick}
                       className={({ isActive }) =>
                         `block py-2 px-3 rounded-lg transition-colors font-medium ${
                           isActive ? 'text-blue-700 font-extrabold bg-blue-100/60' : 'text-slate-700 hover:text-blue-700 hover:bg-blue-50'
@@ -186,7 +205,7 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCol
                   {hasInvestments && (
                     <NavLink
                       to="/customer/applications?type=INVESTMENT"
-                      onClick={onClose}
+                      onClick={handleNavItemClick}
                       className={({ isActive }) =>
                         `block py-2 px-3 rounded-lg transition-colors font-medium ${
                           isActive ? 'text-blue-700 font-extrabold bg-blue-100/60' : 'text-slate-700 hover:text-blue-700 hover:bg-blue-50'
@@ -198,7 +217,7 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCol
                   )}
                   <NavLink
                     to="/customer/create-application"
-                    onClick={onClose}
+                    onClick={handleNavItemClick}
                     className="block py-2 px-3 rounded-lg font-bold text-emerald-700 hover:bg-emerald-50 border-t border-blue-100 mt-1 pt-2 flex items-center gap-1"
                   >
                     <PlusCircle className="h-3.5 w-3.5" /> + New Application
@@ -210,7 +229,7 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCol
             {/* 3. Documents */}
             <NavLink
               to="/customer/documents"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="My Documents"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${
@@ -233,7 +252,7 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCol
             {/* 4. Enquiries */}
             <NavLink
               to="/customer/enquiries"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="Help & Enquiries"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${
@@ -256,7 +275,7 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCol
             {/* 5. Platform Updates */}
             <NavLink
               to="/customer/updates"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="Platform Updates"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${
@@ -279,7 +298,7 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCol
             {/* 6. Profile */}
             <NavLink
               to="/profile"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="My Profile"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${

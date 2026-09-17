@@ -16,6 +16,7 @@ import {
   BarChart3,
   History,
   ChevronDown,
+  ChevronRight,
   X,
   Info,
   DollarSign,
@@ -162,6 +163,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
     setOpenSubMenus((prev) => (prev[menuKey] ? {} : { [menuKey]: true }));
   };
 
+  const handleNavItemClick = () => {
+    onClose();
+    if (onToggleCollapse && !isCollapsed) {
+      onToggleCollapse();
+    }
+  };
+
   const handleLogoClick = () => {
     const targetDashboard = '/superadmin/dashboard';
     if (location.pathname === targetDashboard) {
@@ -226,10 +234,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
 
       {/* Sidebar Container: Light Soft Blue Background */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full bg-[#e8f1fd] text-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-blue-200/80 shadow-sm ${
+        className={`fixed top-0 left-0 z-50 h-full bg-[#e8f1fd] text-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-blue-200/80 shadow-sm relative ${
           isCollapsed ? 'lg:w-20 w-64' : 'w-64'
         } ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
+        {onToggleCollapse && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="hidden lg:flex absolute -right-3 top-6 z-20 w-6 h-6 rounded-full bg-blue-600 text-white shadow-md items-center justify-center hover:bg-blue-700 transition-all cursor-pointer border-2 border-white"
+            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isCollapsed ? '' : 'rotate-180'}`} />
+          </button>
+        )}
+
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header Logo & Super Admin Crown Role Badge */}
           <div className="pt-4 pb-4 px-3 flex flex-col items-center justify-center relative bg-[#e8f1fd]">
@@ -266,7 +285,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                     <NavLink
                       key={m.id}
                       to={m.url}
-                      onClick={onClose}
+                      onClick={handleNavItemClick}
                       title={m.name}
                       className={({ isActive }) => getNavItemClasses(isActive)}
                     >
@@ -312,7 +331,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                           <NavLink
                             key={c.id}
                             to={c.url}
-                            onClick={onClose}
+                            onClick={handleNavItemClick}
                             className={({ isActive }) => getSubItemClasses(isActive)}
                           >
                             {c.name}

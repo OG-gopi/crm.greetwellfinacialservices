@@ -72,16 +72,10 @@ const PageLoader: React.FC = () => (
 const MainLayout: React.FC = () => {
   const { versionDisplay } = useVersion();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
-    return localStorage.getItem('gfs_sidebar_collapsed') === 'true';
-  });
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(true);
 
   const toggleCollapse = () => {
-    setIsCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem('gfs_sidebar_collapsed', String(next));
-      return next;
-    });
+    setIsCollapsed((prev) => !prev);
   };
 
   return (

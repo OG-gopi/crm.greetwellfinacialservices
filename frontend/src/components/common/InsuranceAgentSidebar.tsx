@@ -10,6 +10,7 @@ import {
   UserCheck,
   AlertCircle,
   ChevronDown,
+  ChevronRight,
   X,
   LogOut,
   PlusCircle,
@@ -32,6 +33,13 @@ export const InsuranceAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose,
   const navigate = useNavigate();
 
   const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
+
+  const handleNavItemClick = () => {
+    onClose();
+    if (onToggleCollapse && !isCollapsed) {
+      onToggleCollapse();
+    }
+  };
 
   useEffect(() => {
     if (location.pathname.startsWith('/insurance-agent/customers')) {
@@ -77,10 +85,21 @@ export const InsuranceAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose,
 
       {/* Sidebar Container: Light Lavender Background */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full bg-[#f3edfd] text-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-purple-200/80 shadow-sm ${
+        className={`fixed top-0 left-0 z-50 h-full bg-[#f3edfd] text-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-purple-200/80 shadow-sm relative ${
           isCollapsed ? 'lg:w-20 w-64' : 'w-64'
         } ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
+        {onToggleCollapse && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="hidden lg:flex absolute -right-3 top-6 z-20 w-6 h-6 rounded-full bg-purple-600 text-white shadow-md items-center justify-center hover:bg-purple-700 transition-all cursor-pointer border-2 border-white"
+            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isCollapsed ? '' : 'rotate-180'}`} />
+          </button>
+        )}
+
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header Logo & Insurance Agent Desk Role Badge */}
           <div className="pt-4 pb-4 px-3 flex flex-col items-center justify-center relative bg-[#f3edfd]">
@@ -101,7 +120,7 @@ export const InsuranceAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose,
             {/* 1. Dashboard */}
             <NavLink
               to="/insurance-agent/dashboard"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="Dashboard"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${
@@ -146,7 +165,7 @@ export const InsuranceAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose,
                 <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-purple-100 text-xs shadow-inner">
                   <NavLink
                     to="/insurance-agent/customers"
-                    onClick={onClose}
+                    onClick={handleNavItemClick}
                     className={({ isActive }) =>
                       `block py-2 px-3 rounded-lg transition-colors font-medium ${
                         isActive ? 'text-purple-700 font-extrabold bg-purple-100/60' : 'text-slate-700 hover:text-purple-700 hover:bg-purple-50'
@@ -184,7 +203,7 @@ export const InsuranceAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose,
                 <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-purple-100 text-xs shadow-inner">
                   <NavLink
                     to="/insurance-agent/applications"
-                    onClick={onClose}
+                    onClick={handleNavItemClick}
                     className={({ isActive }) =>
                       `block py-2 px-3 rounded-lg transition-colors font-medium ${
                         isActive ? 'text-purple-700 font-extrabold bg-purple-100/60' : 'text-slate-700 hover:text-purple-700 hover:bg-purple-50'
@@ -195,7 +214,7 @@ export const InsuranceAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose,
                   </NavLink>
                   <NavLink
                     to="/insurance-agent/create-application?type=INSURANCE"
-                    onClick={onClose}
+                    onClick={handleNavItemClick}
                     className="block py-2 px-3 rounded-lg font-bold text-purple-700 hover:bg-purple-100/70 border-t border-purple-100 mt-1 pt-2 flex items-center gap-1"
                   >
                     <PlusCircle className="h-3.5 w-3.5" /> + New Policy
@@ -229,7 +248,7 @@ export const InsuranceAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose,
                 <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-purple-100 text-xs shadow-inner">
                   <NavLink
                     to="/insurance-agent/documents"
-                    onClick={onClose}
+                    onClick={handleNavItemClick}
                     className={({ isActive }) =>
                       `block py-2 px-3 rounded-lg transition-colors font-medium ${
                         isActive ? 'text-purple-700 font-extrabold bg-purple-100/60' : 'text-slate-700 hover:text-purple-700 hover:bg-purple-50'
@@ -245,7 +264,7 @@ export const InsuranceAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose,
             {/* 5. Tasks */}
             <NavLink
               to="/insurance-agent/tasks"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="Pending Tasks"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${
@@ -268,7 +287,7 @@ export const InsuranceAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose,
             {/* 6. Reports */}
             <NavLink
               to="/insurance-agent/reports"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="Policy Reports"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${
@@ -291,7 +310,7 @@ export const InsuranceAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose,
             {/* 7. Profile */}
             <NavLink
               to="/profile"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="My Profile"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${
@@ -314,7 +333,7 @@ export const InsuranceAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose,
             {/* 8. Enquiries */}
             <NavLink
               to="/insurance-agent/enquiries"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="Support & Claims"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${

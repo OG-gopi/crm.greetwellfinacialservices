@@ -10,6 +10,7 @@ import {
   UserCheck,
   AlertCircle,
   ChevronDown,
+  ChevronRight,
   X,
   LogOut,
   PlusCircle,
@@ -32,6 +33,13 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCo
   const navigate = useNavigate();
 
   const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
+
+  const handleNavItemClick = () => {
+    onClose();
+    if (onToggleCollapse && !isCollapsed) {
+      onToggleCollapse();
+    }
+  };
 
   useEffect(() => {
     if (location.pathname.startsWith('/loan-agent/customers')) {
@@ -77,10 +85,21 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCo
 
       {/* Sidebar Container: Light Mint Background */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full bg-[#e8f7f2] text-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-emerald-200/80 shadow-sm ${
+        className={`fixed top-0 left-0 z-50 h-full bg-[#e8f7f2] text-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-emerald-200/80 shadow-sm relative ${
           isCollapsed ? 'lg:w-20 w-64' : 'w-64'
         } ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
+        {onToggleCollapse && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="hidden lg:flex absolute -right-3 top-6 z-20 w-6 h-6 rounded-full bg-emerald-600 text-white shadow-md items-center justify-center hover:bg-emerald-700 transition-all cursor-pointer border-2 border-white"
+            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isCollapsed ? '' : 'rotate-180'}`} />
+          </button>
+        )}
+
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header Logo & Loan Agent Desk Role Badge */}
           <div className="pt-4 pb-4 px-3 flex flex-col items-center justify-center relative bg-[#e8f7f2]">
@@ -101,7 +120,7 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCo
             {/* 1. Dashboard */}
             <NavLink
               to="/loan-agent/dashboard"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="Dashboard"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${
@@ -146,7 +165,7 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCo
                 <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-emerald-100 text-xs shadow-inner">
                   <NavLink
                     to="/loan-agent/customers"
-                    onClick={onClose}
+                    onClick={handleNavItemClick}
                     className={({ isActive }) =>
                       `block py-2 px-3 rounded-lg transition-colors font-medium ${
                         isActive ? 'text-emerald-700 font-extrabold bg-emerald-100/60' : 'text-slate-700 hover:text-emerald-700 hover:bg-emerald-50'
@@ -184,7 +203,7 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCo
                 <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-emerald-100 text-xs shadow-inner">
                   <NavLink
                     to="/loan-agent/applications"
-                    onClick={onClose}
+                    onClick={handleNavItemClick}
                     className={({ isActive }) =>
                       `block py-2 px-3 rounded-lg transition-colors font-medium ${
                         isActive ? 'text-emerald-700 font-extrabold bg-emerald-100/60' : 'text-slate-700 hover:text-emerald-700 hover:bg-emerald-50'
@@ -195,7 +214,7 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCo
                   </NavLink>
                   <NavLink
                     to="/loan-agent/applications?type=LOAN"
-                    onClick={onClose}
+                    onClick={handleNavItemClick}
                     className={({ isActive }) =>
                       `block py-2 px-3 rounded-lg transition-colors font-medium ${
                         isActive ? 'text-emerald-700 font-extrabold bg-emerald-100/60' : 'text-slate-700 hover:text-emerald-700 hover:bg-emerald-50'
@@ -206,7 +225,7 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCo
                   </NavLink>
                   <NavLink
                     to="/loan-agent/create-application?type=LOAN"
-                    onClick={onClose}
+                    onClick={handleNavItemClick}
                     className="block py-2 px-3 rounded-lg font-bold text-emerald-700 hover:bg-emerald-100/70 border-t border-emerald-100 mt-1 pt-2 flex items-center gap-1"
                   >
                     <PlusCircle className="h-3.5 w-3.5" /> + Create Loan App
@@ -240,7 +259,7 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCo
                 <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-emerald-100 text-xs shadow-inner">
                   <NavLink
                     to="/loan-agent/documents"
-                    onClick={onClose}
+                    onClick={handleNavItemClick}
                     className={({ isActive }) =>
                       `block py-2 px-3 rounded-lg transition-colors font-medium ${
                         isActive ? 'text-emerald-700 font-extrabold bg-emerald-100/60' : 'text-slate-700 hover:text-emerald-700 hover:bg-emerald-50'
@@ -256,7 +275,7 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCo
             {/* 5. Tasks */}
             <NavLink
               to="/loan-agent/tasks"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="Pending Tasks"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${
@@ -279,7 +298,7 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCo
             {/* 6. Reports */}
             <NavLink
               to="/loan-agent/reports"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="Loan Reports"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${
@@ -302,7 +321,7 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCo
             {/* 7. Profile */}
             <NavLink
               to="/profile"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="My Profile"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${
@@ -325,7 +344,7 @@ export const LoanAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCo
             {/* 8. Enquiries */}
             <NavLink
               to="/loan-agent/enquiries"
-              onClick={onClose}
+              onClick={handleNavItemClick}
               title="Support & Enquiries"
               className={({ isActive }) =>
                 `flex items-center h-12 rounded-xl transition-all ${
