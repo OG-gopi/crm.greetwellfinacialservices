@@ -821,7 +821,7 @@ class EmailService {
     agentName?: string;
   }): Promise<boolean> {
     const { customerEmail, customerName, applicationId, type, amount, agentEmail, agentName } = options;
-    const viewUrl = `${CONFIG.APP_URL}/customer/applications`;
+    const viewUrl = `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
 
     const subject = `Application ${applicationId} Successfully Created - GFS ${type}`;
     const html = this.renderBrandTemplate({
@@ -856,6 +856,7 @@ class EmailService {
     // Notify agent if assigned
     if (agentEmail && agentEmail.trim()) {
       const agentSubject = `New Application Assigned: ${applicationId} (${customerName})`;
+      const agentViewUrl = `${CONFIG.FRONTEND_URL}/email-login?redirect=/loan-agent/applications&applicationId=${encodeURIComponent(applicationId)}`;
       const agentHtml = this.renderBrandTemplate({
         titleHeader: 'NEW APPLICATION ASSIGNMENT',
         recipientName: agentName || 'Agent',
@@ -868,7 +869,7 @@ class EmailService {
           { label: 'Service Type', value: type },
           { label: 'Requested Amount', value: amount ? `₹${amount.toLocaleString('en-IN')}` : 'N/A' },
         ],
-        ctaButton: { label: 'Review Application in Agent Desk →', url: `${CONFIG.APP_URL}/loan-agent/applications` },
+        ctaButton: { label: 'Review Application in Agent Desk →', url: agentViewUrl },
       });
 
       await this.sendMail({
@@ -881,7 +882,7 @@ class EmailService {
         relatedEntity: 'APPLICATION',
         relatedEntityId: applicationId,
         applicationId,
-        actionUrl: `${CONFIG.APP_URL}/loan-agent/applications`,
+        actionUrl: agentViewUrl,
       });
     }
 
@@ -912,8 +913,8 @@ class EmailService {
     } = options;
 
     const actionUrl = isCustomer
-      ? `${CONFIG.APP_URL}/customer/applications`
-      : `${CONFIG.APP_URL}/superadmin/applications/all`;
+      ? `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`
+      : `${CONFIG.FRONTEND_URL}/email-login?redirect=/superadmin/applications&applicationId=${encodeURIComponent(applicationId)}`;
 
     const formattedPrev = previousStatus.replace(/_/g, ' ');
     const formattedNew = newStatus.replace(/_/g, ' ');
@@ -963,7 +964,7 @@ class EmailService {
     remarks?: string;
   }): Promise<boolean> {
     const { recipientEmail, recipientName, applicationId, type, amount, remarks } = options;
-    const viewUrl = `${CONFIG.APP_URL}/customer/applications`;
+    const viewUrl = `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
 
     const subject = `Congratulations! Application ${applicationId} Has Been Approved 🎉`;
     const html = this.renderBrandTemplate({
@@ -1004,7 +1005,7 @@ class EmailService {
     rejectionReason: string;
   }): Promise<boolean> {
     const { recipientEmail, recipientName, applicationId, type, rejectionReason } = options;
-    const viewUrl = `${CONFIG.APP_URL}/customer/applications`;
+    const viewUrl = `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
 
     const subject = `Update regarding Application ${applicationId} - GFS`;
     const html = this.renderBrandTemplate({
@@ -1045,7 +1046,9 @@ class EmailService {
     isCustomer?: boolean;
   }): Promise<boolean> {
     const { recipientEmail, recipientName, applicationId, authorName, commentText, isCustomer = true } = options;
-    const actionUrl = isCustomer ? `${CONFIG.APP_URL}/customer/applications` : `${CONFIG.APP_URL}/loan-agent/applications`;
+    const actionUrl = isCustomer
+      ? `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`
+      : `${CONFIG.FRONTEND_URL}/email-login?redirect=/loan-agent/applications&applicationId=${encodeURIComponent(applicationId)}`;
 
     const subject = `New Note / Comment Added on Application ${applicationId}`;
     const html = this.renderBrandTemplate({
@@ -1085,7 +1088,7 @@ class EmailService {
     dueDate?: Date;
   }): Promise<boolean> {
     const { customerEmail, customerName, applicationId, requestedDocumentNames, reason, dueDate } = options;
-    const uploadUrl = `${CONFIG.APP_URL}/customer/documents`;
+    const uploadUrl = `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/documents&applicationId=${encodeURIComponent(applicationId)}`;
     const docListStr = requestedDocumentNames.join(', ');
     const formattedDueDate = dueDate ? dueDate.toLocaleDateString('en-US', { dateStyle: 'medium' }) : 'As soon as possible';
 

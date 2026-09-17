@@ -19,6 +19,7 @@ export const MenuRouteGuard: React.FC<MenuRouteGuardProps> = ({ children }) => {
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const isPublicOrAuth = !user || 
     currentPath.startsWith('/login') || 
+    currentPath.startsWith('/email-login') || 
     currentPath.startsWith('/register') || 
     currentPath.startsWith('/invite') || 
     currentPath.startsWith('/forgot-password') ||
