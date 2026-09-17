@@ -445,7 +445,7 @@ class EmailService {
     otp?: string;
   }): Promise<boolean> {
     const { email, token, firstName, otp } = options;
-    const resetUrl = `${CONFIG.APP_URL}/forgot-password?token=${token}`;
+    const resetUrl = `${CONFIG.FRONTEND_URL}/set-password?token=${token}`;
     const recipientName = firstName || 'Valued User';
 
     const subject = `Password Reset Request - Greetwell Financial Services`;

@@ -668,7 +668,7 @@ export async function verifyApplicationData(req: AuthRequest, res: Response) {
 export async function createApplicationRequest(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
-    const { title, description, isRequired = true } = req.body;
+    const { title, description, isRequired = true, dueDate } = req.body;
     const user = req.user!;
 
     if (!title || !title.trim()) {
@@ -694,6 +694,7 @@ export async function createApplicationRequest(req: AuthRequest, res: Response) 
         title: title.trim(),
         description: description ? description.trim() : null,
         isRequired: Boolean(isRequired),
+        dueDate: dueDate ? new Date(dueDate) : null,
         status: 'OPEN',
       },
     });
@@ -703,6 +704,19 @@ export async function createApplicationRequest(req: AuthRequest, res: Response) 
       where: { id },
       data: { status: targetStatus },
     });
+
+    // Send targeted email notification to application customer owner
+    if (application.customer?.email) {
+      const customerName = `${application.customer.firstName} ${application.customer.lastName || ''}`.trim();
+      await emailService.sendDocumentRequestedEmail({
+        customerEmail: application.customer.email,
+        customerName,
+        applicationId: id,
+        requestedDocumentNames: [title],
+        reason: description,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+      }).catch((err) => console.error('Document requested email error:', err));
+    }
 
     await createNotification({
       recipientUserId: application.customerId,
@@ -783,6 +797,51 @@ export async function replyToApplicationRequest(req: AuthRequest, res: Response)
         status: 'CUSTOMER_REPLIED',
       },
     });
+
+    if (replyDocUrl) {
+      const fileName = replyDocUrl.split('/').pop() || requirement.title;
+      await prisma.document.create({
+        data: {
+          applicationId: requirement.applicationId,
+          title: requirement.title,
+          fileName: fileName,
+          fileUrl: replyDocUrl,
+          fileSize: 1024 * 100,
+          mimeType: replyDocUrl.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+          uploadedByUserId: user.id,
+          status: 'PENDING',
+        },
+      }).catch((err) => console.error('Auto document record creation notice:', err?.message));
+
+      const customerName = `${user.firstName} ${user.lastName || ''}`.trim();
+      const targetAgentEmail = requirement.application.assignedAgent?.email;
+
+      if (targetAgentEmail) {
+        await emailService.sendDocumentUploadedNotification({
+          recipientEmail: targetAgentEmail,
+          recipientName: `${requirement.application.assignedAgent!.firstName} ${requirement.application.assignedAgent!.lastName || ''}`.trim(),
+          customerName,
+          applicationId: requirement.applicationId,
+          documentTitle: requirement.title,
+          fileName,
+        }).catch((err) => console.error('Document uploaded email error:', err));
+      } else {
+        // If no assigned agent, notify SuperAdmins
+        await emailService.notifySuperAdmins({
+          subject: `Document Uploaded by ${customerName} (${requirement.applicationId})`,
+          titleHeader: 'NEW DOCUMENT UPLOADED',
+          mainParagraphs: [
+            `Customer <strong>${customerName}</strong> uploaded document <strong>"${requirement.title}"</strong> for Application <strong>${requirement.applicationId}</strong>.`,
+          ],
+          detailsCard: [
+            { label: 'Application ID', value: requirement.applicationId },
+            { label: 'Document Title', value: requirement.title },
+            { label: 'File Name', value: fileName },
+          ],
+          applicationId: requirement.applicationId,
+        });
+      }
+    }
 
     if (requirement.application.assignedAgentId) {
       await createNotification({

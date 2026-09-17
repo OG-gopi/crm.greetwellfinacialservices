@@ -15,6 +15,7 @@ import { ForgotPassword } from './pages/auth/ForgotPassword';
 import { AcceptInvite } from './pages/auth/AcceptInvite';
 import { VerifyEmail } from './pages/auth/VerifyEmail';
 import { EmailLogin } from './pages/auth/EmailLogin';
+import { SetPassword } from './pages/auth/SetPassword';
 
 // Lazy Loaded Dashboards & Subpages for Ultra-Fast Initial Load
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -141,6 +142,7 @@ export const App: React.FC = () => {
           {/* Public Auth Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/email-login" element={<EmailLogin />} />
+          <Route path="/set-password" element={<SetPassword />} />
           <Route path="/superadmin/login" element={<Login />} />
           <Route path="/register" element={<CustomerRegister />} />
           <Route path="/verify-email/:token" element={<VerifyEmail />} />

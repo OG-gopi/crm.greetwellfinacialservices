@@ -20,6 +20,7 @@ export const MenuRouteGuard: React.FC<MenuRouteGuardProps> = ({ children }) => {
   const isPublicOrAuth = !user || 
     currentPath.startsWith('/login') || 
     currentPath.startsWith('/email-login') || 
+    currentPath.startsWith('/set-password') || 
     currentPath.startsWith('/register') || 
     currentPath.startsWith('/invite') || 
     currentPath.startsWith('/forgot-password') ||

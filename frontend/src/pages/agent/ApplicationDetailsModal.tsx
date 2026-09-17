@@ -34,6 +34,7 @@ import { Application, DocumentItem, NoteItem, TaskItem } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { SearchableSelect } from '../../components/common/SearchableSelect';
+import { DocumentRequestModal } from '../../components/common/DocumentRequestModal';
 
 interface ApplicationDetailsModalProps {
   applicationId: string | null;
@@ -123,6 +124,7 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
   const [uploadFile, setUploadFile] = useState<File | null>(null);
 
   // New Request state (Admin/Agent)
+  const [isDocRequestModalOpen, setIsDocRequestModalOpen] = useState(false);
   const [requestTitle, setRequestTitle] = useState('');
   const [requestDesc, setRequestDesc] = useState('');
   const [creatingRequest, setCreatingRequest] = useState(false);
@@ -779,6 +781,28 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
             {/* TAB 4: DOCUMENTS */}
             {activeTab === 'DOCUMENTS' && (
               <div className="space-y-5">
+                {/* Admin/Agent Quick Action: Request Document Modal */}
+                {user?.role !== 'CUSTOMER' && (
+                  <div className="bg-gradient-to-r from-[#10233F] via-slate-900 to-[#0A1830] border border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
+                    <div>
+                      <h4 className="font-extrabold text-sm text-[#E8C877] uppercase tracking-wider flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-[#B8862E]" /> Need Specific Documents from Customer?
+                      </h4>
+                      <p className="text-xs text-slate-300 mt-1">
+                        Send an official document request email & notification to customer with automated status update.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsDocRequestModalOpen(true)}
+                      className="px-5 py-2.5 bg-[#B8862E] hover:bg-[#A5761F] text-white font-extrabold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer shadow-md whitespace-nowrap"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Request Document Proof</span>
+                    </button>
+                  </div>
+                )}
+
                 {/* Upload Form */}
                 <form onSubmit={handleUploadDocument} className="bg-white border border-slate-200/80 rounded-2xl p-5 space-y-3 shadow-sm">
                   <h4 className="font-extrabold text-slate-900 text-xs uppercase flex items-center gap-2">
@@ -1172,6 +1196,20 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
             </div>
           </div>
         </div>
+      )}
+
+      {/* DOCUMENT REQUEST MODAL */}
+      {app && (
+        <DocumentRequestModal
+          isOpen={isDocRequestModalOpen}
+          onClose={() => setIsDocRequestModalOpen(false)}
+          applicationId={app.id}
+          customerName={customerFullName}
+          onRequestSuccess={() => {
+            fetchDetails(app.id);
+            if (onStatusUpdated) onStatusUpdated();
+          }}
+        />
       )}
 
     </div>
