@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
+import { resolveRoleRedirectPath } from '../../utils/navigation';
 
 export const EmailLogin: React.FC = () => {
   const { login, isAuthenticated, user } = useAuth();
@@ -38,44 +39,13 @@ export const EmailLogin: React.FC = () => {
     }
   }, [emailParam, email]);
 
-  // Role-based destination resolver
-  const resolveTargetDestination = (userRole: string) => {
-    let target = '/';
-
-    switch (userRole) {
-      case 'SUPER_ADMIN':
-        target = applicationId ? `/superadmin/applications` : '/superadmin/dashboard';
-        break;
-      case 'LOAN_AGENT':
-        target = applicationId ? `/loan-agent/applications` : '/loan-agent/dashboard';
-        break;
-      case 'INSURANCE_AGENT':
-        target = applicationId ? `/insurance-agent/applications` : '/insurance-agent/dashboard';
-        break;
-      case 'INVESTMENT_AGENT':
-        target = applicationId ? `/investment-agent/applications` : '/investment-agent/dashboard';
-        break;
-      case 'CUSTOMER':
-      default:
-        target = redirectParam.startsWith('/customer') ? redirectParam : '/customer/applications';
-        break;
-    }
-
-    if (applicationId) {
-      const separator = target.includes('?') ? '&' : '?';
-      target = `${target}${separator}id=${encodeURIComponent(applicationId)}`;
-    }
-
-    return target;
-  };
-
   // Auto-redirect if already logged in
   useEffect(() => {
     if (isAuthenticated && user) {
-      const destination = resolveTargetDestination(user.role);
+      const destination = resolveRoleRedirectPath(user.role, redirectParam, applicationId);
       navigate(destination, { replace: true });
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, redirectParam, applicationId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +67,7 @@ export const EmailLogin: React.FC = () => {
         const { token, user: loggedUser } = res.data.data;
         login(token, loggedUser);
 
-        const targetDestination = resolveTargetDestination(loggedUser.role);
+        const targetDestination = resolveRoleRedirectPath(loggedUser.role, redirectParam, applicationId);
         navigate(targetDestination, { replace: true });
       } else {
         setError(res.data.message || 'Login failed. Please check your credentials.');

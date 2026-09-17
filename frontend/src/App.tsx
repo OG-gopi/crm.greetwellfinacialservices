@@ -1,5 +1,5 @@
 import React, { useState, lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ToastProvider } from './context/ToastContext';
@@ -7,6 +7,7 @@ import { VersionProvider, useVersion } from './context/VersionContext';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
 import { ProtectedRoleRoute } from './components/common/ProtectedRoleRoute';
+import { resolveRoleRedirectPath } from './utils/navigation';
 
 // Fast Initial Auth Pages
 import { Login } from './pages/auth/Login';
@@ -111,6 +112,20 @@ const MainLayout: React.FC = () => {
 
 
 
+const AgentRouteResolver: React.FC = () => {
+  const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
+
+  const currentPathWithSearch = `${location.pathname}${location.search}`;
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to={`/email-login?redirect=${encodeURIComponent(currentPathWithSearch)}`} replace />;
+  }
+
+  const targetPath = resolveRoleRedirectPath(user.role, currentPathWithSearch);
+  return <Navigate to={targetPath} replace />;
+};
+
 const RootRedirect: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   if (!isAuthenticated || !user) return <Navigate to="/login" replace />;
@@ -157,6 +172,10 @@ export const App: React.FC = () => {
           <Route path="/investment-agent/login" element={<Login />} />
           <Route path="/customer/login" element={<Login />} />
           <Route path="/customer/register" element={<CustomerRegister />} />
+
+          {/* Generic Agent Route Resolver */}
+          <Route path="/agent/*" element={<AgentRouteResolver />} />
+          <Route path="/agent" element={<AgentRouteResolver />} />
 
           {/* Root Redirect */}
           <Route path="/" element={<RootRedirect />} />

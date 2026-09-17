@@ -22,6 +22,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useVersion } from '../../context/VersionContext';
 import { api } from '../../services/api';
 import { GFSBrandHeader } from '../../components/common/GFSBrandHeader';
+import { resolveRoleRedirectPath } from '../../utils/navigation';
 
 export const Login: React.FC = () => {
   const { login } = useAuth();
@@ -105,26 +106,12 @@ export const Login: React.FC = () => {
         const { token, user } = res.data.data;
         login(token, user);
 
-        // Role-Based Automatic Redirection
-        switch (user.role) {
-          case 'SUPER_ADMIN':
-            navigate('/superadmin/dashboard', { replace: true });
-            break;
-          case 'LOAN_AGENT':
-            navigate('/loan-agent/dashboard', { replace: true });
-            break;
-          case 'INSURANCE_AGENT':
-            navigate('/insurance-agent/dashboard', { replace: true });
-            break;
-          case 'INVESTMENT_AGENT':
-            navigate('/investment-agent/dashboard', { replace: true });
-            break;
-          case 'CUSTOMER':
-            navigate('/customer/dashboard', { replace: true });
-            break;
-          default:
-            navigate('/', { replace: true });
-        }
+        const params = new URLSearchParams(location.search);
+        const redirectParam = params.get('redirect') || '';
+        const applicationId = params.get('applicationId') || '';
+
+        const targetDestination = resolveRoleRedirectPath(user.role, redirectParam, applicationId);
+        navigate(targetDestination, { replace: true });
       }
     } catch (err: any) {
       setError(formatLoginError(err));

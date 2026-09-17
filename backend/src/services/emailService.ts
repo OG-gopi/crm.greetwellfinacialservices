@@ -728,7 +728,7 @@ class EmailService {
         { label: 'Advisor Contact', value: agentEmail },
         { label: 'Service Domain', value: serviceType },
       ],
-      ctaButton: { label: 'View Customer Dashboard →', url: `${CONFIG.APP_URL}/customer/dashboard` },
+      ctaButton: { label: 'View Customer Dashboard →', url: `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/dashboard` },
     });
 
     await this.sendMail({
@@ -738,7 +738,7 @@ class EmailService {
       html: custHtml,
       emailType: 'AGENT_ASSIGNED_CUSTOMER',
       emailCategory: 'TRANSACTIONAL',
-      actionUrl: `${CONFIG.APP_URL}/customer/dashboard`,
+      actionUrl: `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/dashboard`,
     });
 
     // Notice to Agent
@@ -754,7 +754,7 @@ class EmailService {
         { label: 'Customer Email', value: customerEmail },
         { label: 'Service Domain', value: serviceType },
       ],
-      ctaButton: { label: 'View Customer Profile →', url: `${CONFIG.APP_URL}/agent/customers` },
+      ctaButton: { label: 'View Customer Profile →', url: `${CONFIG.FRONTEND_URL}/email-login?redirect=/agent/customers` },
     });
 
     await this.sendMail({
@@ -764,7 +764,7 @@ class EmailService {
       html: agentHtml,
       emailType: 'AGENT_ASSIGNED_AGENT',
       emailCategory: 'TRANSACTIONAL',
-      actionUrl: `${CONFIG.APP_URL}/agent/customers`,
+      actionUrl: `${CONFIG.FRONTEND_URL}/email-login?redirect=/agent/customers`,
     });
 
     return true;
@@ -793,7 +793,7 @@ class EmailService {
         { label: 'New Advisor Email', value: newAgentEmail },
         { label: 'Service Domain', value: serviceType },
       ],
-      ctaButton: { label: 'Go to Customer Portal →', url: `${CONFIG.APP_URL}/customer/dashboard` },
+      ctaButton: { label: 'Go to Customer Portal →', url: `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/dashboard` },
     });
 
     return this.sendMail({
@@ -803,7 +803,7 @@ class EmailService {
       html,
       emailType: 'CUSTOMER_REASSIGNED',
       emailCategory: 'TRANSACTIONAL',
-      actionUrl: `${CONFIG.APP_URL}/customer/dashboard`,
+      actionUrl: `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/dashboard`,
     });
   }
 

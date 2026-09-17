@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types';
 import { GFSLogo } from './GFSLogo';
@@ -10,6 +10,7 @@ interface ProtectedRoleRouteProps {
 
 export const ProtectedRoleRoute: React.FC<ProtectedRoleRouteProps> = ({ allowedRoles }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -24,7 +25,8 @@ export const ProtectedRoleRoute: React.FC<ProtectedRoleRouteProps> = ({ allowedR
   }
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
+    const currentPath = `${location.pathname}${location.search}`;
+    return <Navigate to={`/email-login?redirect=${encodeURIComponent(currentPath)}`} replace />;
   }
 
   if (!allowedRoles.includes(user.role)) {
