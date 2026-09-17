@@ -251,52 +251,43 @@ class EmailService {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Greetwell Financial Services</title>
       </head>
-      <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b;">
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f1f5f9; padding: 24px 0;">
+      <body style="margin: 0; padding: 12px; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f1f5f9; padding: 10px 0;">
           <tr>
             <td align="center">
-              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background-color: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);">
                 
                 <!-- BRAND HEADER -->
                 <tr>
-                  <td style="background-color: #091526; padding: 24px 30px; text-align: center; border-bottom: 3px solid #C99A3E;">
-                    <table border="0" cellpadding="0" cellspacing="0" width="100%">
-                      <tr>
-                        <td align="center">
-                          <div style="display: inline-block; padding: 8px 18px; border-radius: 10px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(201, 154, 62, 0.4);">
-                            <span style="color: #E8C877; font-size: 20px; font-weight: 900; letter-spacing: 2px; font-family: Arial, sans-serif;">GREETWELL</span>
-                            <span style="color: #ffffff; font-size: 9px; font-weight: 800; display: block; letter-spacing: 1.5px; margin-top: 3px;">FINANCIAL SERVICES</span>
-                          </div>
-                          <div style="color: #94a3b8; font-size: 9.5px; font-weight: 700; letter-spacing: 2px; margin-top: 8px; text-transform: uppercase;">
-                            LOANS &nbsp;•&nbsp; INSURANCE &nbsp;•&nbsp; INVESTMENTS
-                          </div>
-                          <div style="color: #E8C877; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; margin-top: 10px; text-transform: uppercase;">
-                            ${titleHeader}
-                          </div>
-                        </td>
-                      </tr>
-                    </table>
+                  <td style="background-color: #0b1320; padding: 12px 16px; text-align: center; border-bottom: 2px solid #C99A3E;">
+                    <img src="${CONFIG.FRONTEND_URL}/logo.png" alt="Greetwell Financial Services" style="max-height: 48px; width: auto; display: block; margin: 0 auto;" />
+                    <div style="color: #94a3b8; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; margin-top: 4px; text-transform: uppercase;">
+                      LOANS &nbsp;•&nbsp; INSURANCE &nbsp;•&nbsp; INVESTMENTS
+                    </div>
+                    <div style="color: #E8C877; font-size: 10.5px; font-weight: 700; letter-spacing: 1px; margin-top: 4px; text-transform: uppercase;">
+                      ${titleHeader}
+                    </div>
                   </td>
                 </tr>
 
                 <!-- BODY CONTENT -->
                 <tr>
-                  <td style="padding: 30px; background-color: #ffffff;">
-                    <h2 style="color: #0f172a; font-size: 18px; font-weight: 800; margin-top: 0; margin-bottom: 16px;">
+                  <td style="padding: 14px 20px; background-color: #ffffff;">
+                    <h2 style="color: #0f172a; font-size: 15px; font-weight: 700; margin-top: 0; margin-bottom: 8px;">
                       Hello ${recipientName},
                     </h2>
 
-                    ${mainParagraphs.map(p => `<p style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 16px;">${p}</p>`).join('')}
+                    ${mainParagraphs.map(p => `<p style="font-size: 12.5px; line-height: 1.45; color: #334155; margin: 4px 0 8px 0;">${p}</p>`).join('')}
 
                     ${detailsCard && detailsCard.length > 0 ? `
-                      <div style="background-color: #f8fafc; border-radius: 12px; padding: 18px; border: 1px solid #cbd5e1; margin: 20px 0;">
+                      <div style="background-color: #f8fafc; border-radius: 6px; padding: 8px 12px; border: 1px solid #e2e8f0; margin: 8px 0;">
                         <table border="0" cellpadding="0" cellspacing="0" width="100%">
                           ${detailsCard.map((item, idx) => `
                             <tr>
-                              <td style="padding: 6px 0; font-size: 12px; font-weight: 800; color: #64748b; text-transform: uppercase; font-family: monospace; width: 40%; ${idx < detailsCard.length - 1 ? 'border-bottom: 1px solid #f1f5f9;' : ''}">
+                              <td style="padding: 3px 0; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; font-family: monospace; width: 40%; ${idx < detailsCard.length - 1 ? 'border-bottom: 1px solid #f1f5f9;' : ''}">
                                 ${item.label}:
                               </td>
-                              <td style="padding: 6px 0; font-size: 13.5px; font-weight: 800; color: ${item.color || '#0f172a'}; ${idx < detailsCard.length - 1 ? 'border-bottom: 1px solid #f1f5f9;' : ''}">
+                              <td style="padding: 3px 0; font-size: 12px; font-weight: 700; color: ${item.color || '#0f172a'}; ${idx < detailsCard.length - 1 ? 'border-bottom: 1px solid #f1f5f9;' : ''}">
                                 ${item.value}
                               </td>
                             </tr>
@@ -306,20 +297,20 @@ class EmailService {
                     ` : ''}
 
                     ${alertBox ? `
-                      <div style="background-color: ${alertBg}; border-left: 4px solid ${alertBorder}; padding: 14px 16px; border-radius: 8px; margin: 20px 0;">
-                        <p style="font-size: 13px; color: ${alertTextColor}; margin: 0; line-height: 1.5; font-weight: 600;">
+                      <div style="background-color: ${alertBg}; border-left: 3px solid ${alertBorder}; padding: 8px 12px; border-radius: 6px; margin: 8px 0;">
+                        <p style="font-size: 12px; color: ${alertTextColor}; margin: 0; line-height: 1.45; font-weight: 600;">
                           ${alertBox.text}
                         </p>
                       </div>
                     ` : ''}
 
                     ${ctaButton ? `
-                      <div style="text-align: center; margin: 28px 0;">
-                        <a href="${ctaButton.url}" style="background-color: ${btnBg}; color: #ffffff; padding: 14px 32px; font-size: 14px; font-weight: 800; text-decoration: none; border-radius: 10px; display: inline-block; box-shadow: 0 4px 12px rgba(29, 99, 237, 0.3);">
+                      <div style="text-align: center; margin: 12px 0 4px 0;">
+                        <a href="${ctaButton.url}" style="background-color: ${btnBg}; color: #ffffff; padding: 10px 24px; font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 6px; display: inline-block;">
                           ${ctaButton.label}
                         </a>
                       </div>
-                      <p style="font-size: 11px; color: #94a3b8; line-height: 1.5; text-align: center; margin-bottom: 0;">
+                      <p style="font-size: 11px; color: #94a3b8; line-height: 1.4; text-align: center; margin: 6px 0 0 0;">
                         If the button above does not work, copy and paste this link into your browser:<br/>
                         <a href="${ctaButton.url}" style="color: #1d63ed; word-break: break-all;">${ctaButton.url}</a>
                       </p>
@@ -329,14 +320,11 @@ class EmailService {
 
                 <!-- FOOTER -->
                 <tr>
-                  <td style="background-color: #f8fafc; padding: 20px 30px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 11px; color: #64748b;">
-                    <p style="font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">Greetwell Financial Services (GFS)</p>
-                    <p style="margin: 0 0 8px 0; color: #64748b;">Loans • Insurance • Investment Management Services</p>
-                    <p style="margin: 0 0 8px 0; color: #94a3b8;">
-                      This is an automated notification from Greetwell Financial Services Portal. Please do not reply directly to this email.
-                    </p>
-                    ${footerText ? `<p style="margin: 4px 0; color: #475569; font-weight: 600;">${footerText}</p>` : ''}
-                    <p style="margin: 8px 0 0 0; color: #cbd5e1;">&copy; ${new Date().getFullYear()} Greetwell Financial Services. All rights reserved.</p>
+                  <td style="background-color: #f8fafc; padding: 8px 16px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 10px; color: #64748b;">
+                    <p style="font-weight: 700; color: #0f172a; margin: 0 0 2px 0;">Greetwell Financial Services (GFS)</p>
+                    <p style="margin: 0 0 4px 0; color: #64748b;">Loans • Insurance • Investment Services</p>
+                    ${footerText ? `<p style="margin: 2px 0; color: #475569; font-weight: 600;">${footerText}</p>` : ''}
+                    <p style="margin: 2px 0 0 0; color: #94a3b8;">&copy; ${new Date().getFullYear()} Greetwell Financial Services</p>
                   </td>
                 </tr>
 

@@ -6,7 +6,8 @@ dotenv.config();
 
 const isVercel = !!(process.env.VERCEL || process.env.NOW_BUILD || process.env.CI);
 const vercelDomain = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
-const defaultAppUrl = process.env.APP_URL || (vercelDomain ? `https://${vercelDomain}` : 'http://localhost:3001');
+const defaultFrontendUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' || vercelDomain ? 'https://crm-greetwellfinacialservicescrmg.vercel.app' : 'http://localhost:3000');
+const defaultAppUrl = process.env.APP_URL || defaultFrontendUrl;
 const defaultApiUrl = process.env.API_URL || (vercelDomain ? `https://${vercelDomain}/api` : 'http://localhost:5000/api');
 
 export const CONFIG = {
@@ -14,6 +15,7 @@ export const CONFIG = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   JWT_SECRET: process.env.JWT_SECRET || 'greetwell_financial_super_secret_jwt_key_2026_prod',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+  FRONTEND_URL: defaultFrontendUrl,
   APP_URL: defaultAppUrl,
   API_URL: defaultApiUrl,
   UPLOAD_DIR: isVercel ? path.join(os.tmpdir(), 'uploads') : path.resolve(__dirname, '../../uploads'),
