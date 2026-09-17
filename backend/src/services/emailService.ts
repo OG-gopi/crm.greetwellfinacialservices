@@ -886,6 +886,22 @@ class EmailService {
       });
     }
 
+    // Always notify SuperAdmins of new application creations
+    await this.notifySuperAdmins({
+      subject: `New ${type} Application Created (${applicationId})`,
+      titleHeader: 'NEW APPLICATION SUBMITTED',
+      mainParagraphs: [
+        `A new <strong>${type} Application (ID: ${applicationId})</strong> was submitted by customer <strong>${customerName}</strong>.`,
+      ],
+      detailsCard: [
+        { label: 'Application ID', value: applicationId, color: '#1d63ed' },
+        { label: 'Customer Name', value: customerName },
+        { label: 'Application Type', value: type },
+        { label: 'Amount', value: amount ? `₹${amount.toLocaleString('en-IN')}` : 'N/A' },
+      ],
+      applicationId,
+    });
+
     return true;
   }
 
@@ -941,7 +957,7 @@ class EmailService {
       ctaButton: { label: 'View Application Status →', url: actionUrl },
     });
 
-    return this.sendMail({
+    const isSuccess = await this.sendMail({
       to: recipientEmail,
       recipientName,
       subject,
@@ -953,6 +969,41 @@ class EmailService {
       applicationId,
       actionUrl,
     });
+
+    // Notify SuperAdmins & Assigned Agent
+    await this.notifySuperAdmins({
+      subject: `Application ${applicationId} Status Changed to ${formattedNew}`,
+      titleHeader: 'APPLICATION STATUS CHANGE ALERT',
+      mainParagraphs: [
+        `Application <strong>${applicationId} (${type})</strong> status was changed from ${formattedPrev} to <strong>${formattedNew}</strong> by ${updatedBy}.`,
+      ],
+      detailsCard: [
+        { label: 'Application ID', value: applicationId },
+        { label: 'New Status', value: formattedNew, color: statusColor },
+        { label: 'Updated By', value: updatedBy },
+      ],
+      alertBox: comments ? { text: `Remarks: "${comments}"`, type: 'info' } : undefined,
+      applicationId,
+      excludeEmail: recipientEmail,
+    });
+
+    await this.notifyAssignedAgent({
+      applicationId,
+      subject: `Application ${applicationId} Status Changed to ${formattedNew}`,
+      titleHeader: 'ASSIGNED APPLICATION STATUS ALERT',
+      mainParagraphs: [
+        `Application <strong>${applicationId} (${type})</strong> assigned to your workspace status was updated to <strong>${formattedNew}</strong> by ${updatedBy}.`,
+      ],
+      detailsCard: [
+        { label: 'Application ID', value: applicationId },
+        { label: 'New Status', value: formattedNew, color: statusColor },
+        { label: 'Updated By', value: updatedBy },
+      ],
+      alertBox: comments ? { text: `Remarks: "${comments}"`, type: 'info' } : undefined,
+      excludeEmail: recipientEmail,
+    });
+
+    return isSuccess;
   }
 
   async sendApplicationApprovedEmail(options: {
@@ -1108,7 +1159,7 @@ class EmailService {
       ctaButton: { label: 'Upload Requested Documents Now →', url: uploadUrl, color: '#d97706' },
     });
 
-    return this.sendMail({
+    const isSuccess = await this.sendMail({
       to: customerEmail,
       recipientName: customerName,
       subject,
@@ -1120,6 +1171,38 @@ class EmailService {
       applicationId,
       actionUrl: uploadUrl,
     });
+
+    await this.notifySuperAdmins({
+      subject: `Documents Requested for Application ${applicationId}`,
+      titleHeader: 'DOCUMENT REQUESTED ALERT',
+      mainParagraphs: [
+        `Documents (<strong>${docListStr}</strong>) were requested from <strong>${customerName}</strong> for Application <strong>${applicationId}</strong>.`,
+      ],
+      detailsCard: [
+        { label: 'Application ID', value: applicationId },
+        { label: 'Document(s)', value: docListStr },
+        { label: 'Due Date', value: formattedDueDate },
+      ],
+      alertBox: reason ? { text: `Reason: "${reason}"`, type: 'warning' } : undefined,
+      applicationId,
+    });
+
+    await this.notifyAssignedAgent({
+      applicationId,
+      subject: `Documents Requested for Application ${applicationId}`,
+      titleHeader: 'ASSIGNED APPLICATION DOCUMENT REQUEST',
+      mainParagraphs: [
+        `Documents (<strong>${docListStr}</strong>) were requested from <strong>${customerName}</strong> for Application <strong>${applicationId}</strong>.`,
+      ],
+      detailsCard: [
+        { label: 'Application ID', value: applicationId },
+        { label: 'Document(s)', value: docListStr },
+        { label: 'Due Date', value: formattedDueDate },
+      ],
+      alertBox: reason ? { text: `Reason: "${reason}"`, type: 'warning' } : undefined,
+    });
+
+    return isSuccess;
   }
 
   async sendDocumentUploadedNotification(options: {
@@ -1131,7 +1214,7 @@ class EmailService {
     fileName: string;
   }): Promise<boolean> {
     const { recipientEmail, recipientName, customerName, applicationId, documentTitle, fileName } = options;
-    const reviewUrl = `${CONFIG.APP_URL}/superadmin/documents`;
+    const reviewUrl = `${CONFIG.FRONTEND_URL}/email-login?redirect=/superadmin/documents&applicationId=${encodeURIComponent(applicationId)}`;
 
     const subject = `New Document Uploaded by ${customerName} (${applicationId})`;
     const html = this.renderBrandTemplate({
@@ -1149,7 +1232,7 @@ class EmailService {
       ctaButton: { label: 'Review Uploaded Documents →', url: reviewUrl },
     });
 
-    return this.sendMail({
+    const isSuccess = await this.sendMail({
       to: recipientEmail,
       recipientName,
       subject,
@@ -1160,6 +1243,38 @@ class EmailService {
       applicationId,
       actionUrl: reviewUrl,
     });
+
+    await this.notifySuperAdmins({
+      subject: `New Document Uploaded by ${customerName} (${applicationId})`,
+      titleHeader: 'NEW DOCUMENT PROOF UPLOADED',
+      mainParagraphs: [
+        `Customer <strong>${customerName}</strong> uploaded document <strong>"${documentTitle}"</strong> for Application <strong>${applicationId}</strong>.`,
+      ],
+      detailsCard: [
+        { label: 'Application ID', value: applicationId },
+        { label: 'Document Title', value: documentTitle },
+        { label: 'File Name', value: fileName },
+      ],
+      applicationId,
+      excludeEmail: recipientEmail,
+    });
+
+    await this.notifyAssignedAgent({
+      applicationId,
+      subject: `New Document Uploaded by ${customerName} (${applicationId})`,
+      titleHeader: 'ASSIGNED APPLICATION DOCUMENT UPLOADED',
+      mainParagraphs: [
+        `Customer <strong>${customerName}</strong> uploaded document <strong>"${documentTitle}"</strong> for Application <strong>${applicationId}</strong>.`,
+      ],
+      detailsCard: [
+        { label: 'Application ID', value: applicationId },
+        { label: 'Document Title', value: documentTitle },
+        { label: 'File Name', value: fileName },
+      ],
+      excludeEmail: recipientEmail,
+    });
+
+    return isSuccess;
   }
 
   async sendDocumentApprovedEmail(options: {
@@ -1462,6 +1577,118 @@ class EmailService {
       relatedEntityId: entityId,
       actionUrl: targetUrl,
     });
+  }
+
+  /**
+   * Helper method to send email notifications to all active SUPER_ADMIN users
+   */
+  async notifySuperAdmins(options: {
+    subject: string;
+    titleHeader: string;
+    mainParagraphs: string[];
+    detailsCard?: { label: string; value: string; color?: string }[];
+    alertBox?: { text: string; type?: 'info' | 'success' | 'warning' | 'error' };
+    ctaButtonLabel?: string;
+    applicationId?: string;
+    excludeEmail?: string;
+  }): Promise<void> {
+    try {
+      const superAdmins = await prisma.user.findMany({
+        where: { role: 'SUPER_ADMIN', status: 'ACTIVE' },
+        select: { email: true, firstName: true, lastName: true },
+      });
+
+      if (!superAdmins || superAdmins.length === 0) return;
+
+      const { subject, titleHeader, mainParagraphs, detailsCard, alertBox, ctaButtonLabel, applicationId, excludeEmail } = options;
+      const redirectPath = applicationId ? `/superadmin/applications` : `/superadmin/dashboard`;
+      const url = `${CONFIG.FRONTEND_URL}/email-login?redirect=${encodeURIComponent(redirectPath)}${applicationId ? `&applicationId=${encodeURIComponent(applicationId)}` : ''}`;
+
+      for (const admin of superAdmins) {
+        if (excludeEmail && admin.email.toLowerCase() === excludeEmail.toLowerCase()) continue;
+        const name = `${admin.firstName} ${admin.lastName || ''}`.trim();
+        const html = this.renderBrandTemplate({
+          titleHeader,
+          recipientName: name,
+          mainParagraphs,
+          detailsCard,
+          alertBox,
+          ctaButton: { label: ctaButtonLabel || 'Open SuperAdmin Desk →', url },
+        });
+
+        await this.sendMail({
+          to: admin.email,
+          recipientName: name,
+          subject: `[SuperAdmin Alert] ${subject}`,
+          html,
+          emailType: 'SUPER_ADMIN_ALERT',
+          emailCategory: 'SYSTEM',
+          applicationId,
+          actionUrl: url,
+        }).catch((err) => console.error(`SuperAdmin notification error (${admin.email}):`, err));
+      }
+    } catch (err) {
+      console.error('Failed to notify SuperAdmins via email:', err);
+    }
+  }
+
+  /**
+   * Helper method to send email notifications to the assigned agent for an application
+   */
+  async notifyAssignedAgent(options: {
+    applicationId: string;
+    subject: string;
+    titleHeader: string;
+    mainParagraphs: string[];
+    detailsCard?: { label: string; value: string; color?: string }[];
+    alertBox?: { text: string; type?: 'info' | 'success' | 'warning' | 'error' };
+    ctaButtonLabel?: string;
+    excludeEmail?: string;
+  }): Promise<void> {
+    try {
+      if (!options.applicationId) return;
+
+      const app = await prisma.application.findUnique({
+        where: { id: options.applicationId },
+        include: {
+          assignedAgent: { select: { email: true, firstName: true, lastName: true, role: true } },
+        },
+      });
+
+      if (!app || !app.assignedAgent || !app.assignedAgent.email) return;
+
+      const agent = app.assignedAgent;
+      if (options.excludeEmail && agent.email.toLowerCase() === options.excludeEmail.toLowerCase()) return;
+
+      const agentName = `${agent.firstName} ${agent.lastName || ''}`.trim();
+      let agentRoute = '/loan-agent/applications';
+      if (agent.role === 'INSURANCE_AGENT') agentRoute = '/insurance-agent/applications';
+      if (agent.role === 'INVESTMENT_AGENT') agentRoute = '/investment-agent/applications';
+
+      const url = `${CONFIG.FRONTEND_URL}/email-login?redirect=${encodeURIComponent(agentRoute)}&applicationId=${encodeURIComponent(options.applicationId)}`;
+
+      const html = this.renderBrandTemplate({
+        titleHeader: options.titleHeader,
+        recipientName: agentName,
+        mainParagraphs: options.mainParagraphs,
+        detailsCard: options.detailsCard,
+        alertBox: options.alertBox,
+        ctaButton: { label: options.ctaButtonLabel || 'Review Application in Agent Desk →', url },
+      });
+
+      await this.sendMail({
+        to: agent.email,
+        recipientName: agentName,
+        subject: `[Agent Alert] ${options.subject}`,
+        html,
+        emailType: 'ASSIGNED_AGENT_ALERT',
+        emailCategory: 'APPLICATION',
+        applicationId: options.applicationId,
+        actionUrl: url,
+      }).catch((err) => console.error(`Assigned agent notification error (${agent.email}):`, err));
+    } catch (err) {
+      console.error('Failed to notify assigned agent via email:', err);
+    }
   }
 }
 
