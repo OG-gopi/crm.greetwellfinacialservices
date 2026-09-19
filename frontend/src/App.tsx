@@ -62,6 +62,7 @@ import { MenuRouteGuard } from './components/common/MenuRouteGuard';
 import { Unauthorized } from './pages/error/Unauthorized';
 import { NotFound } from './pages/error/NotFound';
 
+import { Breadcrumb } from './components/common/Breadcrumb';
 import { PageSkeleton } from './components/common/Skeletons';
 
 const MainLayout: React.FC = () => {
@@ -74,21 +75,22 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
+    <div className="flex h-screen bg-slate-50 overflow-hidden relative w-full">
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         isCollapsed={isCollapsed}
         onToggleCollapse={toggleCollapse}
       />
-      <div className="flex flex-1 flex-col overflow-hidden transition-all duration-300 relative">
+      <div className="flex flex-1 flex-col overflow-hidden transition-all duration-300 relative min-w-0 w-full">
         <Header
           onToggleSidebar={() => setSidebarOpen(true)}
           isCollapsed={isCollapsed}
           onToggleCollapse={toggleCollapse}
         />
-        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 max-w-full">
-          <div className="max-w-[1920px] mx-auto w-full">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 max-w-full min-w-0">
+          <div className="max-w-[1920px] mx-auto w-full min-w-0">
+            <Breadcrumb />
             <MenuRouteGuard>
               <Suspense fallback={<PageSkeleton />}>
                 <Outlet />

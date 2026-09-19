@@ -1600,9 +1600,16 @@ class EmailService {
       const redirectPath = applicationId ? `/superadmin/applications` : `/superadmin/dashboard`;
       const url = `${CONFIG.FRONTEND_URL}/login?redirect=${encodeURIComponent(redirectPath)}${applicationId ? `&applicationId=${encodeURIComponent(applicationId)}` : ''}`;
 
+      const sentEmails = new Set<string>();
+
       for (const admin of superAdmins) {
-        if (excludeEmail && admin.email.toLowerCase() === excludeEmail.toLowerCase()) continue;
-        const name = `${admin.firstName} ${admin.lastName || ''}`.trim();
+        if (!admin.email || !admin.email.trim()) continue;
+        const cleanEmail = admin.email.trim().toLowerCase();
+        if (excludeEmail && cleanEmail === excludeEmail.trim().toLowerCase()) continue;
+        if (sentEmails.has(cleanEmail)) continue;
+
+        sentEmails.add(cleanEmail);
+        const name = `${admin.firstName} ${admin.lastName || ''}`.trim() || 'Super Admin';
         const html = this.renderBrandTemplate({
           titleHeader,
           recipientName: name,
@@ -1612,16 +1619,18 @@ class EmailService {
           ctaButton: { label: ctaButtonLabel || 'Open SuperAdmin Desk →', url },
         });
 
+        const formattedSubject = subject.startsWith('[GFS]') ? subject : `[GFS] ${subject}`;
+
         await this.sendMail({
-          to: admin.email,
+          to: cleanEmail,
           recipientName: name,
-          subject: `[SuperAdmin Alert] ${subject}`,
+          subject: formattedSubject,
           html,
           emailType: 'SUPER_ADMIN_ALERT',
           emailCategory: 'SYSTEM',
           applicationId,
           actionUrl: url,
-        }).catch((err) => console.error(`SuperAdmin notification error (${admin.email}):`, err));
+        }).catch((err) => console.error(`SuperAdmin notification error (${cleanEmail}):`, err));
       }
     } catch (err) {
       console.error('Failed to notify SuperAdmins via email:', err);
