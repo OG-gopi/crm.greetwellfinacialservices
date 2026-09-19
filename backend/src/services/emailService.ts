@@ -305,15 +305,11 @@ class EmailService {
                     ` : ''}
 
                     ${ctaButton ? `
-                      <div style="text-align: center; margin: 12px 0 4px 0;">
-                        <a href="${ctaButton.url}" style="background-color: ${btnBg}; color: #ffffff; padding: 10px 24px; font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 6px; display: inline-block;">
+                      <div style="text-align: center; margin: 16px 0 8px 0;">
+                        <a href="${ctaButton.url}" style="background-color: ${btnBg}; color: #ffffff; padding: 12px 28px; font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 6px; display: inline-block;">
                           ${ctaButton.label}
                         </a>
                       </div>
-                      <p style="font-size: 11px; color: #94a3b8; line-height: 1.4; text-align: center; margin: 6px 0 0 0;">
-                        If the button above does not work, copy and paste this link into your browser:<br/>
-                        <a href="${ctaButton.url}" style="color: #1d63ed; word-break: break-all;">${ctaButton.url}</a>
-                      </p>
                     ` : ''}
                   </td>
                 </tr>

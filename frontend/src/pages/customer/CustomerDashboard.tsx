@@ -6,9 +6,9 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { Link } from 'react-router-dom';
 import { SearchableSelect } from '../../components/common/SearchableSelect';
 import DashboardFooter from '../../components/common/DashboardFooter';
+import { CardSkeleton, TableSkeleton } from '../../components/common/Skeletons';
 
 export const CustomerDashboard: React.FC = () => {
-
   const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -48,14 +48,6 @@ export const CustomerDashboard: React.FC = () => {
       setEstimatedMonthly(0);
     }
   }, [calcAmount, calcRate, calcTerm]);
-
-  if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-      </div>
-    );
-  }
 
   const { metrics, recentApps } = data || {};
 
@@ -210,35 +202,41 @@ export const CustomerDashboard: React.FC = () => {
         {/* Stats Summary Cards */}
         <div className={`${hasLoans ? 'lg:col-span-2' : 'lg:col-span-3'} space-y-4`}>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">My Submissions</p>
-                <p className="text-2xl font-black text-slate-900 mt-1">{metrics?.myApplications || 0}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-blue-50 text-blue-600">
-                <FileText className="h-6 w-6" />
-              </div>
-            </div>
+            {loading ? (
+              <CardSkeleton count={3} />
+            ) : (
+              <>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">My Submissions</p>
+                    <p className="text-2xl font-black text-slate-900 mt-1">{metrics?.myApplications || 0}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-blue-50 text-blue-600">
+                    <FileText className="h-6 w-6" />
+                  </div>
+                </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending Docs</p>
-                <p className="text-2xl font-black text-amber-600 mt-1">{metrics?.pendingDocs || 0}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
-                <FolderOpen className="h-6 w-6" />
-              </div>
-            </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending Docs</p>
+                    <p className="text-2xl font-black text-amber-600 mt-1">{metrics?.pendingDocs || 0}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
+                    <FolderOpen className="h-6 w-6" />
+                  </div>
+                </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Unread Alerts</p>
-                <p className="text-2xl font-black text-purple-600 mt-1">{metrics?.unreadNotifications || 0}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-purple-50 text-purple-600">
-                <Bell className="h-6 w-6" />
-              </div>
-            </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Unread Alerts</p>
+                    <p className="text-2xl font-black text-purple-600 mt-1">{metrics?.unreadNotifications || 0}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-purple-50 text-purple-600">
+                    <Bell className="h-6 w-6" />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Applications Table */}
@@ -252,36 +250,48 @@ export const CustomerDashboard: React.FC = () => {
               </Link>
             </div>
 
-            <div className="space-y-3">
-              {recentApps?.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-500">
-                  You have not submitted any applications yet. Click "Create Application" to begin.
-                </div>
-              ) : (
-                recentApps?.map((app: any) => (
-                  <div key={app.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-blue-700 text-sm">{app.id}</span>
-                        <StatusBadge status={app.status} />
-                      </div>
-                      <p className="text-slate-700 font-bold mt-1">{app.type} Application • {app.purpose}</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        Assigned Agent: {app.assignedAgent ? `${app.assignedAgent.firstName} ${app.assignedAgent.lastName}` : 'Pending Agent Assignment'}
-                      </p>
-                    </div>
-                    <div className="text-right flex sm:flex-col items-center sm:items-end justify-between">
-                      <span className="font-black text-emerald-600 text-sm">
-                        {app.amount ? `$${app.amount.toLocaleString()}` : ''}
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        {new Date(app.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
+            {loading ? (
+              <TableSkeleton rows={3} columns={4} />
+            ) : (
+              <div className="space-y-3">
+                {recentApps?.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-slate-500">
+                    You have not submitted any applications yet. Click "Create Application" to begin.
                   </div>
-                ))
-              )}
-            </div>
+                ) : (
+                  recentApps?.map((app: any) => (
+                    <div key={app.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-blue-700 text-sm">{app.id}</span>
+                          <StatusBadge status={app.status} />
+                        </div>
+                        <p className="text-slate-700 font-bold mt-1">{app.type} Application • {app.purpose || 'Standard Submission'}</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Assigned Advisor: {app.assignedAgent ? `${app.assignedAgent.firstName} ${app.assignedAgent.lastName}` : 'Pending Advisor Assignment'}
+                        </p>
+                      </div>
+                      <div className="text-right flex sm:flex-col items-center sm:items-end justify-between gap-2">
+                        {app.amount && (
+                          <span className="font-black text-emerald-600 text-sm">
+                            ₹{app.amount.toLocaleString('en-IN')}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {new Date(app.createdAt).toLocaleDateString()}
+                        </span>
+                        <Link
+                          to={`/customer/applications?id=${app.id}`}
+                          className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-[11px]"
+                        >
+                          View Details
+                        </Link>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         </div>
 

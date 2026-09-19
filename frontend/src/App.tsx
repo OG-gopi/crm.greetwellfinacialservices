@@ -62,12 +62,7 @@ import { MenuRouteGuard } from './components/common/MenuRouteGuard';
 import { Unauthorized } from './pages/error/Unauthorized';
 import { NotFound } from './pages/error/NotFound';
 
-const PageLoader: React.FC = () => (
-  <div className="fixed inset-0 z-[9999] bg-[#070d19]/90 backdrop-blur-md flex flex-col items-center justify-center p-8 text-slate-100 font-semibold text-xs">
-    <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber-400 border-t-transparent mb-3 shadow-lg shadow-amber-400/20" />
-    <span className="text-amber-300 font-extrabold tracking-widest uppercase">Loading Portal Module...</span>
-  </div>
-);
+import { PageSkeleton } from './components/common/Skeletons';
 
 const MainLayout: React.FC = () => {
   const { versionDisplay } = useVersion();
@@ -92,12 +87,14 @@ const MainLayout: React.FC = () => {
           isCollapsed={isCollapsed}
           onToggleCollapse={toggleCollapse}
         />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <MenuRouteGuard>
-            <Suspense fallback={<PageLoader />}>
-              <Outlet />
-            </Suspense>
-          </MenuRouteGuard>
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8 max-w-full">
+          <div className="max-w-[1920px] mx-auto w-full">
+            <MenuRouteGuard>
+              <Suspense fallback={<PageSkeleton />}>
+                <Outlet />
+              </Suspense>
+            </MenuRouteGuard>
+          </div>
         </main>
       </div>
     </div>
