@@ -110,7 +110,7 @@ const AgentRouteResolver: React.FC = () => {
   const currentPathWithSearch = `${location.pathname}${location.search}`;
 
   if (!isAuthenticated || !user) {
-    return <Navigate to={`/email-login?redirect=${encodeURIComponent(currentPathWithSearch)}`} replace />;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(currentPathWithSearch)}`} replace />;
   }
 
   const targetPath = resolveRoleRedirectPath(user.role, currentPathWithSearch);

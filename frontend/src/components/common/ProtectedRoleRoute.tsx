@@ -26,7 +26,7 @@ export const ProtectedRoleRoute: React.FC<ProtectedRoleRouteProps> = ({ allowedR
 
   if (!isAuthenticated || !user) {
     const currentPath = `${location.pathname}${location.search}`;
-    return <Navigate to={`/email-login?redirect=${encodeURIComponent(currentPath)}`} replace />;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(currentPath)}`} replace />;
   }
 
   if (!allowedRoles.includes(user.role)) {

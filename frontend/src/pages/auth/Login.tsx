@@ -25,7 +25,7 @@ import { GFSBrandHeader } from '../../components/common/GFSBrandHeader';
 import { resolveRoleRedirectPath } from '../../utils/navigation';
 
 export const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, isAuthenticated, user, isLoading } = useAuth();
   const { versionDisplay } = useVersion();
   const navigate = useNavigate();
   const location = useLocation();
@@ -37,6 +37,18 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [verifiedSuccessMsg, setVerifiedSuccessMsg] = useState('');
+
+  // Auto-redirect if user already has an active valid session
+  useEffect(() => {
+    if (isAuthenticated && user && !isLoading) {
+      const params = new URLSearchParams(location.search);
+      const redirectParam = params.get('redirect') || '';
+      const applicationId = params.get('applicationId') || '';
+
+      const targetDestination = resolveRoleRedirectPath(user.role, redirectParam, applicationId);
+      navigate(targetDestination, { replace: true });
+    }
+  }, [isAuthenticated, user, isLoading, location.search, navigate]);
 
   // Check URL search parameters & location state for messages, prefilled email & email verification status
   useEffect(() => {

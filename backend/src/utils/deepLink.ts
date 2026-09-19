@@ -65,7 +65,7 @@ export function generateEmailDeepLink(options: EmailDeepLinkOptions): string {
       break;
   }
 
-  let finalUrl = `${baseUrl}/email-login?redirect=${encodeURIComponent(redirectPath)}`;
+  let finalUrl = `${baseUrl}/login?redirect=${encodeURIComponent(redirectPath)}`;
   if (resourceId) {
     finalUrl += `&applicationId=${encodeURIComponent(resourceId)}`;
   }

@@ -724,7 +724,7 @@ class EmailService {
         { label: 'Advisor Contact', value: agentEmail },
         { label: 'Service Domain', value: serviceType },
       ],
-      ctaButton: { label: 'View Customer Dashboard →', url: `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/dashboard` },
+      ctaButton: { label: 'View Customer Dashboard →', url: `${CONFIG.FRONTEND_URL}/login?redirect=/customer/dashboard` },
     });
 
     await this.sendMail({
@@ -734,7 +734,7 @@ class EmailService {
       html: custHtml,
       emailType: 'AGENT_ASSIGNED_CUSTOMER',
       emailCategory: 'TRANSACTIONAL',
-      actionUrl: `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/dashboard`,
+      actionUrl: `${CONFIG.FRONTEND_URL}/login?redirect=/customer/dashboard`,
     });
 
     // Notice to Agent
@@ -750,7 +750,7 @@ class EmailService {
         { label: 'Customer Email', value: customerEmail },
         { label: 'Service Domain', value: serviceType },
       ],
-      ctaButton: { label: 'View Customer Profile →', url: `${CONFIG.FRONTEND_URL}/email-login?redirect=/agent/customers` },
+      ctaButton: { label: 'View Customer Profile →', url: `${CONFIG.FRONTEND_URL}/login?redirect=/agent/customers` },
     });
 
     await this.sendMail({
@@ -760,7 +760,7 @@ class EmailService {
       html: agentHtml,
       emailType: 'AGENT_ASSIGNED_AGENT',
       emailCategory: 'TRANSACTIONAL',
-      actionUrl: `${CONFIG.FRONTEND_URL}/email-login?redirect=/agent/customers`,
+      actionUrl: `${CONFIG.FRONTEND_URL}/login?redirect=/agent/customers`,
     });
 
     return true;
@@ -789,7 +789,7 @@ class EmailService {
         { label: 'New Advisor Email', value: newAgentEmail },
         { label: 'Service Domain', value: serviceType },
       ],
-      ctaButton: { label: 'Go to Customer Portal →', url: `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/dashboard` },
+      ctaButton: { label: 'Go to Customer Portal →', url: `${CONFIG.FRONTEND_URL}/login?redirect=/customer/dashboard` },
     });
 
     return this.sendMail({
@@ -799,7 +799,7 @@ class EmailService {
       html,
       emailType: 'CUSTOMER_REASSIGNED',
       emailCategory: 'TRANSACTIONAL',
-      actionUrl: `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/dashboard`,
+      actionUrl: `${CONFIG.FRONTEND_URL}/login?redirect=/customer/dashboard`,
     });
   }
 
@@ -817,7 +817,7 @@ class EmailService {
     agentName?: string;
   }): Promise<boolean> {
     const { customerEmail, customerName, applicationId, type, amount, agentEmail, agentName } = options;
-    const viewUrl = `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
+    const viewUrl = `${CONFIG.FRONTEND_URL}/login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
 
     const subject = `Application ${applicationId} Successfully Created - GFS ${type}`;
     const html = this.renderBrandTemplate({
@@ -852,7 +852,7 @@ class EmailService {
     // Notify agent if assigned
     if (agentEmail && agentEmail.trim()) {
       const agentSubject = `New Application Assigned: ${applicationId} (${customerName})`;
-      const agentViewUrl = `${CONFIG.FRONTEND_URL}/email-login?redirect=/loan-agent/applications&applicationId=${encodeURIComponent(applicationId)}`;
+      const agentViewUrl = `${CONFIG.FRONTEND_URL}/login?redirect=/loan-agent/applications&applicationId=${encodeURIComponent(applicationId)}`;
       const agentHtml = this.renderBrandTemplate({
         titleHeader: 'NEW APPLICATION ASSIGNMENT',
         recipientName: agentName || 'Agent',
@@ -925,8 +925,8 @@ class EmailService {
     } = options;
 
     const actionUrl = isCustomer
-      ? `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`
-      : `${CONFIG.FRONTEND_URL}/email-login?redirect=/superadmin/applications&applicationId=${encodeURIComponent(applicationId)}`;
+      ? `${CONFIG.FRONTEND_URL}/login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`
+      : `${CONFIG.FRONTEND_URL}/login?redirect=/superadmin/applications&applicationId=${encodeURIComponent(applicationId)}`;
 
     const formattedPrev = previousStatus.replace(/_/g, ' ');
     const formattedNew = newStatus.replace(/_/g, ' ');
@@ -1011,7 +1011,7 @@ class EmailService {
     remarks?: string;
   }): Promise<boolean> {
     const { recipientEmail, recipientName, applicationId, type, amount, remarks } = options;
-    const viewUrl = `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
+    const viewUrl = `${CONFIG.FRONTEND_URL}/login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
 
     const subject = `Congratulations! Application ${applicationId} Has Been Approved 🎉`;
     const html = this.renderBrandTemplate({
@@ -1052,7 +1052,7 @@ class EmailService {
     rejectionReason: string;
   }): Promise<boolean> {
     const { recipientEmail, recipientName, applicationId, type, rejectionReason } = options;
-    const viewUrl = `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
+    const viewUrl = `${CONFIG.FRONTEND_URL}/login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
 
     const subject = `Update regarding Application ${applicationId} - GFS`;
     const html = this.renderBrandTemplate({
@@ -1094,8 +1094,8 @@ class EmailService {
   }): Promise<boolean> {
     const { recipientEmail, recipientName, applicationId, authorName, commentText, isCustomer = true } = options;
     const actionUrl = isCustomer
-      ? `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`
-      : `${CONFIG.FRONTEND_URL}/email-login?redirect=/loan-agent/applications&applicationId=${encodeURIComponent(applicationId)}`;
+      ? `${CONFIG.FRONTEND_URL}/login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`
+      : `${CONFIG.FRONTEND_URL}/login?redirect=/loan-agent/applications&applicationId=${encodeURIComponent(applicationId)}`;
 
     const subject = `New Note / Comment Added on Application ${applicationId}`;
     const html = this.renderBrandTemplate({
@@ -1135,7 +1135,7 @@ class EmailService {
     dueDate?: Date;
   }): Promise<boolean> {
     const { customerEmail, customerName, applicationId, requestedDocumentNames, reason, dueDate } = options;
-    const uploadUrl = `${CONFIG.FRONTEND_URL}/email-login?redirect=/customer/documents&applicationId=${encodeURIComponent(applicationId)}`;
+    const uploadUrl = `${CONFIG.FRONTEND_URL}/login?redirect=/customer/documents&applicationId=${encodeURIComponent(applicationId)}`;
     const docListStr = requestedDocumentNames.join(', ');
     const formattedDueDate = dueDate ? dueDate.toLocaleDateString('en-US', { dateStyle: 'medium' }) : 'As soon as possible';
 
@@ -1210,7 +1210,7 @@ class EmailService {
     fileName: string;
   }): Promise<boolean> {
     const { recipientEmail, recipientName, customerName, applicationId, documentTitle, fileName } = options;
-    const reviewUrl = `${CONFIG.FRONTEND_URL}/email-login?redirect=/superadmin/documents&applicationId=${encodeURIComponent(applicationId)}`;
+    const reviewUrl = `${CONFIG.FRONTEND_URL}/login?redirect=/superadmin/documents&applicationId=${encodeURIComponent(applicationId)}`;
 
     const subject = `New Document Uploaded by ${customerName} (${applicationId})`;
     const html = this.renderBrandTemplate({
@@ -1598,7 +1598,7 @@ class EmailService {
 
       const { subject, titleHeader, mainParagraphs, detailsCard, alertBox, ctaButtonLabel, applicationId, excludeEmail } = options;
       const redirectPath = applicationId ? `/superadmin/applications` : `/superadmin/dashboard`;
-      const url = `${CONFIG.FRONTEND_URL}/email-login?redirect=${encodeURIComponent(redirectPath)}${applicationId ? `&applicationId=${encodeURIComponent(applicationId)}` : ''}`;
+      const url = `${CONFIG.FRONTEND_URL}/login?redirect=${encodeURIComponent(redirectPath)}${applicationId ? `&applicationId=${encodeURIComponent(applicationId)}` : ''}`;
 
       for (const admin of superAdmins) {
         if (excludeEmail && admin.email.toLowerCase() === excludeEmail.toLowerCase()) continue;
@@ -1661,7 +1661,7 @@ class EmailService {
       if (agent.role === 'INSURANCE_AGENT') agentRoute = '/insurance-agent/applications';
       if (agent.role === 'INVESTMENT_AGENT') agentRoute = '/investment-agent/applications';
 
-      const url = `${CONFIG.FRONTEND_URL}/email-login?redirect=${encodeURIComponent(agentRoute)}&applicationId=${encodeURIComponent(options.applicationId)}`;
+      const url = `${CONFIG.FRONTEND_URL}/login?redirect=${encodeURIComponent(agentRoute)}&applicationId=${encodeURIComponent(options.applicationId)}`;
 
       const html = this.renderBrandTemplate({
         titleHeader: options.titleHeader,

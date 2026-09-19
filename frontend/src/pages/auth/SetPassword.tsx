@@ -149,7 +149,7 @@ export const SetPassword: React.FC = () => {
 
               <div className="pt-4">
                 <Link
-                  to="/email-login"
+                  to="/login"
                   className="w-full flex justify-center items-center gap-2 py-3 px-4 rounded-xl text-xs font-extrabold text-slate-950 bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-lg shadow-amber-500/20 uppercase tracking-wider transition-all"
                 >
                   <span>Proceed to Login</span>
@@ -306,7 +306,7 @@ export const SetPassword: React.FC = () => {
 
           <div className="mt-6 pt-5 border-t border-slate-800 text-center text-xs">
             <Link
-              to="/email-login"
+              to="/login"
               className="inline-flex items-center gap-1.5 font-bold text-slate-400 hover:text-amber-400 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
