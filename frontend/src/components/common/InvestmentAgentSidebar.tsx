@@ -19,6 +19,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { GFSLogo } from './GFSLogo';
 
+import { SidebarIconLoading } from './SidebarIconLoading';
+
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,7 +29,7 @@ interface SidebarProps {
 }
 
 export const InvestmentAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading: authLoading } = useAuth();
   const { unreadCount } = useNotifications();
   const location = useLocation();
   const navigate = useNavigate();
@@ -74,7 +76,18 @@ export const InvestmentAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose
     }
   };
 
-  if (!user) return null;
+  if (authLoading || !user) {
+    return (
+      <SidebarIconLoading
+        isOpen={isOpen}
+        onClose={onClose}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
+        variant="blue"
+        roleName="Investment Agent Desk"
+      />
+    );
+  }
 
   return (
     <>

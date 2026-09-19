@@ -43,6 +43,7 @@ import { LoanAgentSidebar } from './LoanAgentSidebar';
 import { InsuranceAgentSidebar } from './InsuranceAgentSidebar';
 import { InvestmentAgentSidebar } from './InvestmentAgentSidebar';
 import { CustomerSidebar } from './CustomerSidebar';
+import { SidebarIconLoading } from './SidebarIconLoading';
 
 const AVAILABLE_ICONS: Record<string, any> = {
   LayoutDashboard,
@@ -81,19 +82,21 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse }) => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { unreadCount } = useNotifications();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Dynamic Menus State
+  // Dynamic Menus State & Menu Loading
   const [dynamicMenus, setDynamicMenus] = useState<any[]>([]);
+  const [menuLoading, setMenuLoading] = useState<boolean>(true);
   const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({});
 
   const fetchMyMenus = async () => {
     try {
+      setMenuLoading(true);
       const res = await api.get('/menus/my-menus');
-      if (res.data.success) {
+      if (res.data?.success) {
         const filtered = (res.data.data || []).filter(
           (m: any) => !m.url?.includes('/notifications') && m.name !== 'Notifications'
         );
@@ -101,15 +104,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
       }
     } catch (err) {
       console.error('Failed to fetch dynamic menus:', err);
+    } finally {
+      setMenuLoading(false);
     }
   };
 
   useEffect(() => {
     if (user) {
       fetchMyMenus();
+    } else {
+      setMenuLoading(false);
     }
 
-    // Listen for menu updates from Superadmin Permission Manager
     const handleUpdate = () => fetchMyMenus();
     window.addEventListener('menuPermissionsUpdated', handleUpdate);
     return () => window.removeEventListener('menuPermissionsUpdated', handleUpdate);
@@ -181,9 +187,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
     }
   };
 
-  if (!user) return null;
+  // 1. Render Icon-Only Loading State during Authentication / Role Recovery
+  if (authLoading || !user) {
+    return (
+      <SidebarIconLoading
+        isOpen={isOpen}
+        onClose={onClose}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
+        variant="blue"
+        roleName="GFS Portal"
+      />
+    );
+  }
 
-  // Render Role-Specific Sidebar for non-Super Admin roles
+  // 2. Render Role-Specific Sidebar for non-Super Admin roles
   if (user.role === 'LOAN_AGENT') {
     return <LoanAgentSidebar isOpen={isOpen} onClose={onClose} isCollapsed={isCollapsed} onToggleCollapse={onToggleCollapse} />;
   }
@@ -195,6 +213,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
   }
   if (user.role === 'CUSTOMER') {
     return <CustomerSidebar isOpen={isOpen} onClose={onClose} isCollapsed={isCollapsed} onToggleCollapse={onToggleCollapse} />;
+  }
+
+  // 3. Render Icon-Only Loading State while Super Admin Dynamic Menus are Fetching
+  if (menuLoading) {
+    return (
+      <SidebarIconLoading
+        isOpen={isOpen}
+        onClose={onClose}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
+        variant="blue"
+        roleName="Super Admin"
+      />
+    );
   }
 
   const renderIcon = (iconName: string, isActive: boolean) => {
@@ -232,7 +264,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
         />
       )}
 
-      {/* Sidebar Container: Light Soft Blue Background */}
+      {/* Sidebar Container */}
       <aside
         className={`fixed top-0 left-0 z-50 h-full bg-[#e8f1fd] text-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-blue-200/80 shadow-sm relative ${
           isCollapsed ? 'lg:w-20 w-64' : 'w-64'
@@ -259,22 +291,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
               <X className="h-5 w-5" />
             </button>
 
-
-            {/* Clickable GFS Logo at the Top */}
             <div className="transition-all">
               <GFSLogo size={isCollapsed ? 'sm' : 'lg'} variant="card" onClick={handleLogoClick} />
             </div>
 
-            {/* Super Admin Role Badge */}
-            <div className={`mt-3 px-3 py-1 rounded-full bg-white/90 text-[#1e3a8a] border border-blue-200/80 text-xs font-extrabold shadow-sm flex items-center justify-center gap-1.5 font-sans transition-all ${
-              isCollapsed ? 'px-2 py-1' : 'px-4 py-1.5'
-            }`}>
+            <div
+              className={`mt-3 px-3 py-1 rounded-full bg-white/90 text-[#1e3a8a] border border-blue-200/80 text-xs font-extrabold shadow-sm flex items-center justify-center gap-1.5 font-sans transition-all ${
+                isCollapsed ? 'px-2 py-1' : 'px-4 py-1.5'
+              }`}
+            >
               <Crown className="w-4 h-4 text-blue-600 fill-blue-100 flex-shrink-0" />
               {!isCollapsed && <span>Super Admin</span>}
             </div>
           </div>
 
-          {/* Dynamic Menu Navigation List */}
+          {/* Dynamic / Fallback Menu Navigation List */}
           <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-1.5 text-[14.5px] font-semibold custom-scrollbar">
             {dynamicMenus.length > 0 ? (
               dynamicMenus.map((m) => {
@@ -292,7 +323,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                       {({ isActive }) => (
                         <>
                           {renderIcon(m.icon, isActive)}
-                          {!isCollapsed && <span className="truncate">{m.name}</span>}
+                          {!isCollapsed && (
+                            <span className="truncate font-semibold transition-opacity duration-200">{m.name}</span>
+                          )}
                         </>
                       )}
                     </NavLink>
@@ -314,7 +347,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                     >
                       <div className="flex items-center truncate">
                         {renderIcon(m.icon, false)}
-                        {!isCollapsed && <span className="truncate">{m.name}</span>}
+                        {!isCollapsed && (
+                          <span className="truncate font-semibold transition-opacity duration-200">{m.name}</span>
+                        )}
                       </div>
                       {!isCollapsed && (
                         <ChevronDown
@@ -343,17 +378,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                 );
               })
             ) : (
-              /* Hardcoded Navigation */
+              /* Hardcoded Fallback Navigation with Strict Collapsed Checks */
               <>
                 <NavLink
                   to="/superadmin/dashboard"
                   onClick={onClose}
+                  title="Dashboard"
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
                   {({ isActive }) => (
                     <>
-                      <LayoutDashboard className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                      <span>Dashboard</span>
+                      <LayoutDashboard
+                        className={`h-[22px] w-[22px] flex-shrink-0 ${
+                          isCollapsed ? 'mr-0' : 'mr-3.5'
+                        } ${isActive ? 'text-white' : 'text-[#1d63ed]'}`}
+                      />
+                      {!isCollapsed && (
+                        <span className="truncate font-semibold transition-opacity duration-200">Dashboard</span>
+                      )}
                     </>
                   )}
                 </NavLink>
@@ -362,22 +404,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                 <div>
                   <button
                     onClick={() => toggleSubMenu('users-parent')}
-                    className={`w-full flex items-center justify-between px-4 h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/80 hover:text-[#0f2852] font-semibold ${
+                    title="Users Management"
+                    className={`w-full flex items-center ${
+                      isCollapsed ? 'justify-center px-0' : 'justify-between px-4'
+                    } h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/80 hover:text-[#0f2852] font-semibold ${
                       openSubMenus['users-parent'] ? 'bg-blue-100/60 text-[#0f2852]' : ''
                     }`}
                   >
                     <div className="flex items-center truncate">
-                      <Users className="h-[22px] w-[22px] mr-3.5 flex-shrink-0 text-[#1d63ed]" />
-                      <span className="truncate">Users Management</span>
+                      <Users
+                        className={`h-[22px] w-[22px] flex-shrink-0 text-[#1d63ed] ${
+                          isCollapsed ? 'mr-0' : 'mr-3.5'
+                        }`}
+                      />
+                      {!isCollapsed && (
+                        <span className="truncate font-semibold transition-opacity duration-200">
+                          Users Management
+                        </span>
+                      )}
                     </div>
-                    <ChevronDown
-                      className={`h-4 w-4 text-[#1d63ed] ml-auto flex-shrink-0 transition-transform ${
-                        openSubMenus['users-parent'] ? 'rotate-180 text-blue-700' : ''
-                      }`}
-                    />
+                    {!isCollapsed && (
+                      <ChevronDown
+                        className={`h-4 w-4 text-[#1d63ed] ml-auto flex-shrink-0 transition-transform ${
+                          openSubMenus['users-parent'] ? 'rotate-180 text-blue-700' : ''
+                        }`}
+                      />
+                    )}
                   </button>
 
-                  {openSubMenus['users-parent'] && (
+                  {openSubMenus['users-parent'] && !isCollapsed && (
                     <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-blue-100 text-xs shadow-inner">
                       <NavLink
                         to="/superadmin/users"
@@ -415,22 +470,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                 <div>
                   <button
                     onClick={() => toggleSubMenu('applications')}
-                    className={`w-full flex items-center justify-between px-4 h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/80 hover:text-[#0f2852] font-semibold ${
+                    title="Applications"
+                    className={`w-full flex items-center ${
+                      isCollapsed ? 'justify-center px-0' : 'justify-between px-4'
+                    } h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/80 hover:text-[#0f2852] font-semibold ${
                       openSubMenus['applications'] ? 'bg-blue-100/60 text-[#0f2852]' : ''
                     }`}
                   >
                     <div className="flex items-center truncate">
-                      <FileText className="h-[22px] w-[22px] mr-3.5 flex-shrink-0 text-[#1d63ed]" />
-                      <span className="truncate">Applications</span>
+                      <FileText
+                        className={`h-[22px] w-[22px] flex-shrink-0 text-[#1d63ed] ${
+                          isCollapsed ? 'mr-0' : 'mr-3.5'
+                        }`}
+                      />
+                      {!isCollapsed && (
+                        <span className="truncate font-semibold transition-opacity duration-200">
+                          Applications
+                        </span>
+                      )}
                     </div>
-                    <ChevronDown
-                      className={`h-4 w-4 text-[#1d63ed] ml-auto flex-shrink-0 transition-transform ${
-                        openSubMenus['applications'] ? 'rotate-180 text-blue-700' : ''
-                      }`}
-                    />
+                    {!isCollapsed && (
+                      <ChevronDown
+                        className={`h-4 w-4 text-[#1d63ed] ml-auto flex-shrink-0 transition-transform ${
+                          openSubMenus['applications'] ? 'rotate-180 text-blue-700' : ''
+                        }`}
+                      />
+                    )}
                   </button>
 
-                  {openSubMenus['applications'] && (
+                  {openSubMenus['applications'] && !isCollapsed && (
                     <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-blue-100 text-xs shadow-inner">
                       <NavLink
                         to="/superadmin/applications/all"
@@ -478,12 +546,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                 <NavLink
                   to="/superadmin/documents"
                   onClick={onClose}
+                  title="Documents"
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
                   {({ isActive }) => (
                     <>
-                      <FolderOpen className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                      <span>Documents</span>
+                      <FolderOpen
+                        className={`h-[22px] w-[22px] flex-shrink-0 ${
+                          isCollapsed ? 'mr-0' : 'mr-3.5'
+                        } ${isActive ? 'text-white' : 'text-[#1d63ed]'}`}
+                      />
+                      {!isCollapsed && (
+                        <span className="truncate font-semibold transition-opacity duration-200">Documents</span>
+                      )}
                     </>
                   )}
                 </NavLink>
@@ -491,12 +566,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                 <NavLink
                   to="/superadmin/products/catalog"
                   onClick={onClose}
+                  title="Products & Services"
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
                   {({ isActive }) => (
                     <>
-                      <Package className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                      <span>Products & Services</span>
+                      <Package
+                        className={`h-[22px] w-[22px] flex-shrink-0 ${
+                          isCollapsed ? 'mr-0' : 'mr-3.5'
+                        } ${isActive ? 'text-white' : 'text-[#1d63ed]'}`}
+                      />
+                      {!isCollapsed && (
+                        <span className="truncate font-semibold transition-opacity duration-200">
+                          Products & Services
+                        </span>
+                      )}
                     </>
                   )}
                 </NavLink>
@@ -504,12 +588,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                 <NavLink
                   to="/superadmin/permissions/menu-items"
                   onClick={onClose}
+                  title="Roles & Permissions"
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
                   {({ isActive }) => (
                     <>
-                      <ShieldCheck className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                      <span>Roles & Permissions</span>
+                      <ShieldCheck
+                        className={`h-[22px] w-[22px] flex-shrink-0 ${
+                          isCollapsed ? 'mr-0' : 'mr-3.5'
+                        } ${isActive ? 'text-white' : 'text-[#1d63ed]'}`}
+                      />
+                      {!isCollapsed && (
+                        <span className="truncate font-semibold transition-opacity duration-200">
+                          Roles & Permissions
+                        </span>
+                      )}
                     </>
                   )}
                 </NavLink>
@@ -517,12 +610,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                 <NavLink
                   to="/superadmin/system/configurations"
                   onClick={onClose}
+                  title="System Management"
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
                   {({ isActive }) => (
                     <>
-                      <Sliders className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                      <span>System Management</span>
+                      <Sliders
+                        className={`h-[22px] w-[22px] flex-shrink-0 ${
+                          isCollapsed ? 'mr-0' : 'mr-3.5'
+                        } ${isActive ? 'text-white' : 'text-[#1d63ed]'}`}
+                      />
+                      {!isCollapsed && (
+                        <span className="truncate font-semibold transition-opacity duration-200">
+                          System Management
+                        </span>
+                      )}
                     </>
                   )}
                 </NavLink>
@@ -531,22 +633,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                 <div>
                   <button
                     onClick={() => toggleSubMenu('website')}
-                    className={`w-full flex items-center justify-between px-4 h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/80 hover:text-[#0f2852] font-semibold ${
+                    title="Website & Portal"
+                    className={`w-full flex items-center ${
+                      isCollapsed ? 'justify-center px-0' : 'justify-between px-4'
+                    } h-12 rounded-xl transition-all text-[#1e3a8a] hover:bg-blue-100/80 hover:text-[#0f2852] font-semibold ${
                       openSubMenus['website'] ? 'bg-blue-100/60 text-[#0f2852]' : ''
                     }`}
                   >
                     <div className="flex items-center truncate">
-                      <Globe className="h-[22px] w-[22px] mr-3.5 flex-shrink-0 text-[#1d63ed]" />
-                      <span className="truncate">Website & Portal</span>
+                      <Globe
+                        className={`h-[22px] w-[22px] flex-shrink-0 text-[#1d63ed] ${
+                          isCollapsed ? 'mr-0' : 'mr-3.5'
+                        }`}
+                      />
+                      {!isCollapsed && (
+                        <span className="truncate font-semibold transition-opacity duration-200">
+                          Website & Portal
+                        </span>
+                      )}
                     </div>
-                    <ChevronDown
-                      className={`h-4 w-4 text-[#1d63ed] ml-auto flex-shrink-0 transition-transform ${
-                        openSubMenus['website'] ? 'rotate-180 text-blue-700' : ''
-                      }`}
-                    />
+                    {!isCollapsed && (
+                      <ChevronDown
+                        className={`h-4 w-4 text-[#1d63ed] ml-auto flex-shrink-0 transition-transform ${
+                          openSubMenus['website'] ? 'rotate-180 text-blue-700' : ''
+                        }`}
+                      />
+                    )}
                   </button>
 
-                  {openSubMenus['website'] && (
+                  {openSubMenus['website'] && !isCollapsed && (
                     <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-blue-100 text-xs shadow-inner">
                       <NavLink
                         to="/superadmin/website-management/content"
@@ -597,12 +712,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                 <NavLink
                   to="/superadmin/updates/release-notes"
                   onClick={onClose}
+                  title="Updates & Versions"
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
                   {({ isActive }) => (
                     <>
-                      <RefreshCw className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                      <span>Updates & Versions</span>
+                      <RefreshCw
+                        className={`h-[22px] w-[22px] flex-shrink-0 ${
+                          isCollapsed ? 'mr-0' : 'mr-3.5'
+                        } ${isActive ? 'text-white' : 'text-[#1d63ed]'}`}
+                      />
+                      {!isCollapsed && (
+                        <span className="truncate font-semibold transition-opacity duration-200">
+                          Updates & Versions
+                        </span>
+                      )}
                     </>
                   )}
                 </NavLink>
@@ -610,12 +734,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                 <NavLink
                   to="/superadmin/enquiries"
                   onClick={onClose}
+                  title="Enquiries / Complaints"
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
                   {({ isActive }) => (
                     <>
-                      <MessageSquare className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                      <span>Enquiries / Complaints</span>
+                      <MessageSquare
+                        className={`h-[22px] w-[22px] flex-shrink-0 ${
+                          isCollapsed ? 'mr-0' : 'mr-3.5'
+                        } ${isActive ? 'text-white' : 'text-[#1d63ed]'}`}
+                      />
+                      {!isCollapsed && (
+                        <span className="truncate font-semibold transition-opacity duration-200">
+                          Enquiries / Complaints
+                        </span>
+                      )}
                     </>
                   )}
                 </NavLink>
@@ -623,12 +756,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                 <NavLink
                   to="/superadmin/reports"
                   onClick={onClose}
+                  title="Reports"
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
                   {({ isActive }) => (
                     <>
-                      <BarChart3 className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                      <span>Reports</span>
+                      <BarChart3
+                        className={`h-[22px] w-[22px] flex-shrink-0 ${
+                          isCollapsed ? 'mr-0' : 'mr-3.5'
+                        } ${isActive ? 'text-white' : 'text-[#1d63ed]'}`}
+                      />
+                      {!isCollapsed && (
+                        <span className="truncate font-semibold transition-opacity duration-200">Reports</span>
+                      )}
                     </>
                   )}
                 </NavLink>
@@ -636,12 +776,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                 <NavLink
                   to="/superadmin/audit-logs"
                   onClick={onClose}
+                  title="Audit Logs"
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
                   {({ isActive }) => (
                     <>
-                      <History className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                      <span>Audit Logs</span>
+                      <History
+                        className={`h-[22px] w-[22px] flex-shrink-0 ${
+                          isCollapsed ? 'mr-0' : 'mr-3.5'
+                        } ${isActive ? 'text-white' : 'text-[#1d63ed]'}`}
+                      />
+                      {!isCollapsed && (
+                        <span className="truncate font-semibold transition-opacity duration-200">Audit Logs</span>
+                      )}
                     </>
                   )}
                 </NavLink>
@@ -649,12 +796,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
                 <NavLink
                   to="/superadmin/settings/portal"
                   onClick={onClose}
+                  title="Settings"
                   className={({ isActive }) => getNavItemClasses(isActive)}
                 >
                   {({ isActive }) => (
                     <>
-                      <Settings className={`h-[22px] w-[22px] mr-3.5 flex-shrink-0 ${isActive ? 'text-white' : 'text-[#1d63ed]'}`} />
-                      <span>Settings</span>
+                      <Settings
+                        className={`h-[22px] w-[22px] flex-shrink-0 ${
+                          isCollapsed ? 'mr-0' : 'mr-3.5'
+                        } ${isActive ? 'text-white' : 'text-[#1d63ed]'}`}
+                      />
+                      {!isCollapsed && (
+                        <span className="truncate font-semibold transition-opacity duration-200">Settings</span>
+                      )}
                     </>
                   )}
                 </NavLink>
@@ -666,3 +820,5 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed =
     </>
   );
 };
+
+export default Sidebar;

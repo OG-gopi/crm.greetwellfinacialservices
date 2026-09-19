@@ -18,6 +18,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { GFSLogo } from './GFSLogo';
 
+import { SidebarIconLoading } from './SidebarIconLoading';
+
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -26,7 +28,7 @@ interface SidebarProps {
 }
 
 export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading: authLoading } = useAuth();
   const { unreadCount } = useNotifications();
   const location = useLocation();
   const navigate = useNavigate();
@@ -69,7 +71,18 @@ export const CustomerSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCol
     }
   };
 
-  if (!user) return null;
+  if (authLoading || !user) {
+    return (
+      <SidebarIconLoading
+        isOpen={isOpen}
+        onClose={onClose}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
+        variant="blue"
+        roleName="Customer Portal"
+      />
+    );
+  }
 
   const userServices: string[] = Array.isArray(user?.serviceTypes)
     ? user.serviceTypes.map((s) => s.toUpperCase())
