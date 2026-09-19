@@ -42,68 +42,111 @@ export const resolveRoleRedirectPath = (
   const sanitized = sanitizeRedirectPath(redirectUrl);
   let targetPath = sanitized;
 
+  // Extract application ID from query string if embedded in targetPath
+  let existingAppId = applicationId;
+  if (targetPath && targetPath.includes('?')) {
+    try {
+      const searchStr = targetPath.split('?')[1];
+      const params = new URLSearchParams(searchStr);
+      const idFromQuery = params.get('applicationId') || params.get('id') || params.get('appId');
+      if (idFromQuery) {
+        existingAppId = idFromQuery;
+      }
+    } catch (e) {
+      // ignore parse errors
+    }
+  }
+
   // Fallback to role-default path if no valid redirect path provided or points to auth pages
   if (!targetPath || targetPath === '/' || targetPath === '/login' || targetPath === '/email-login') {
     switch (userRole) {
       case 'SUPER_ADMIN':
-        targetPath = applicationId ? '/superadmin/applications' : '/superadmin/dashboard';
+        targetPath = existingAppId ? '/superadmin/applications' : '/superadmin/dashboard';
         break;
       case 'LOAN_AGENT':
-        targetPath = applicationId ? '/loan-agent/applications' : '/loan-agent/dashboard';
+        targetPath = existingAppId ? '/loan-agent/applications' : '/loan-agent/dashboard';
         break;
       case 'INSURANCE_AGENT':
-        targetPath = applicationId ? '/insurance-agent/applications' : '/insurance-agent/dashboard';
+        targetPath = existingAppId ? '/insurance-agent/applications' : '/insurance-agent/dashboard';
         break;
       case 'INVESTMENT_AGENT':
-        targetPath = applicationId ? '/investment-agent/applications' : '/investment-agent/dashboard';
+        targetPath = existingAppId ? '/investment-agent/applications' : '/investment-agent/dashboard';
         break;
       case 'CUSTOMER':
       default:
-        targetPath = applicationId ? '/customer/applications' : '/customer/dashboard';
+        targetPath = existingAppId ? '/customer/applications' : '/customer/dashboard';
         break;
     }
   }
 
-  // Handle generic agent routes (e.g., /agent/customers, /agent/applications)
-  if (targetPath.startsWith('/agent/') || targetPath === '/agent') {
-    const subPath = targetPath === '/agent' ? 'dashboard' : targetPath.substring('/agent/'.length);
+  // Extract main pathname without query string for path translation
+  const pathname = targetPath.split('?')[0];
 
-    switch (userRole) {
-      case 'LOAN_AGENT':
-        targetPath = `/loan-agent/${subPath}`;
-        break;
-      case 'INSURANCE_AGENT':
-        targetPath = `/insurance-agent/${subPath}`;
-        break;
-      case 'INVESTMENT_AGENT':
-        targetPath = `/investment-agent/${subPath}`;
-        break;
-      case 'SUPER_ADMIN':
-        targetPath = `/superadmin/${subPath}`;
-        break;
-      case 'CUSTOMER':
-      default:
-        targetPath = '/customer/dashboard';
-        break;
+  // Detect requested section (applications, documents, enquiries, customers, profile, dashboard, create-application, etc.)
+  let section = '';
+  if (pathname.includes('/applications')) section = 'applications';
+  else if (pathname.includes('/documents')) section = 'documents';
+  else if (pathname.includes('/enquiries')) section = 'enquiries';
+  else if (pathname.includes('/customers')) section = 'customers';
+  else if (pathname.includes('/profile')) section = 'profile';
+  else if (pathname.includes('/dashboard')) section = 'dashboard';
+  else if (pathname.includes('/create-application')) section = 'create-application';
+  else if (pathname.includes('/reports')) section = 'reports';
+  else if (pathname.includes('/notifications')) section = 'notifications';
+
+  // Check route ownership prefixes
+  const isSuperAdminPath = pathname.startsWith('/superadmin/');
+  const isAgentPath = pathname.startsWith('/agent/') || pathname.startsWith('/loan-agent/') || pathname.startsWith('/insurance-agent/') || pathname.startsWith('/investment-agent/');
+  const isCustomerPath = pathname.startsWith('/customer/');
+
+  // Perform Intelligent Cross-Role Route Mapping:
+  if (userRole === 'SUPER_ADMIN') {
+    if (isCustomerPath || isAgentPath) {
+      switch (section) {
+        case 'applications': targetPath = '/superadmin/applications'; break;
+        case 'documents': targetPath = '/superadmin/documents'; break;
+        case 'enquiries': targetPath = '/superadmin/enquiries'; break;
+        case 'customers': targetPath = '/superadmin/customers'; break;
+        case 'create-application': targetPath = '/superadmin/create-application'; break;
+        case 'profile': targetPath = '/superadmin/settings/profile'; break;
+        case 'reports': targetPath = '/superadmin/reports'; break;
+        case 'notifications': targetPath = '/superadmin/notifications'; break;
+        default: targetPath = '/superadmin/dashboard'; break;
+      }
+    }
+  } else if (userRole === 'LOAN_AGENT' || userRole === 'INSURANCE_AGENT' || userRole === 'INVESTMENT_AGENT') {
+    const agentPrefix = userRole.toLowerCase().replace(/_/g, '-');
+    if (isSuperAdminPath || isCustomerPath || isAgentPath) {
+      switch (section) {
+        case 'applications': targetPath = `/${agentPrefix}/applications`; break;
+        case 'documents': targetPath = `/${agentPrefix}/documents`; break;
+        case 'enquiries': targetPath = `/${agentPrefix}/enquiries`; break;
+        case 'customers': targetPath = `/${agentPrefix}/customers`; break;
+        case 'create-application': targetPath = `/${agentPrefix}/create-application`; break;
+        case 'profile': targetPath = '/profile'; break;
+        case 'reports': targetPath = `/${agentPrefix}/reports`; break;
+        case 'notifications': targetPath = `/${agentPrefix}/notifications`; break;
+        default: targetPath = `/${agentPrefix}/dashboard`; break;
+      }
+    }
+  } else if (userRole === 'CUSTOMER') {
+    if (isSuperAdminPath || isAgentPath) {
+      switch (section) {
+        case 'applications': targetPath = '/customer/applications'; break;
+        case 'documents': targetPath = '/customer/documents'; break;
+        case 'enquiries': targetPath = '/customer/enquiries'; break;
+        case 'create-application': targetPath = '/customer/create-application'; break;
+        case 'profile': targetPath = '/profile'; break;
+        case 'notifications': targetPath = '/customer/notifications'; break;
+        default: targetPath = '/customer/dashboard'; break;
+      }
     }
   }
 
-  // Cross-Role Route Authorization Safety Checks:
-  // If non-SuperAdmin user is trying to access a /superadmin route, map to their role prefix
-  if (userRole !== 'SUPER_ADMIN' && targetPath.startsWith('/superadmin/')) {
-    const sub = targetPath.substring('/superadmin/'.length);
-    if (userRole === 'CUSTOMER') {
-      targetPath = `/customer/${sub}`;
-    } else {
-      const agentPrefix = userRole.toLowerCase().replace(/_/g, '-');
-      targetPath = `/${agentPrefix}/${sub}`;
-    }
-  }
-
-  // Append applicationId parameter if present and not already part of query string
-  if (applicationId && !targetPath.includes('id=')) {
+  // Append existingAppId parameter if present and not already in query string
+  if (existingAppId && !targetPath.includes('id=')) {
     const separator = targetPath.includes('?') ? '&' : '?';
-    targetPath = `${targetPath}${separator}id=${encodeURIComponent(applicationId)}`;
+    targetPath = `${targetPath}${separator}id=${encodeURIComponent(existingAppId)}`;
   }
 
   return targetPath;

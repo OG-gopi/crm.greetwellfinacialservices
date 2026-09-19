@@ -29,7 +29,7 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
   const [totalCount, setTotalCount] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const urlAppId = paramAppId || searchParams.get('appId') || searchParams.get('id');
+  const urlAppId = paramAppId || searchParams.get('appId') || searchParams.get('id') || searchParams.get('applicationId');
   const [selectedAppId, setSelectedAppId] = useState<string | null>(urlAppId);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(!!urlAppId);
 
