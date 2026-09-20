@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
-import { Search, Filter, Eye, UserCheck, Briefcase, PlusCircle, ArrowUpDown, ChevronLeft, ChevronRight, Clock, CheckCircle2, FileText, User as UserIcon, Shield } from 'lucide-react';
+import { Search, Filter, Eye, UserCheck, Briefcase, PlusCircle, ArrowUpDown, ChevronLeft, ChevronRight, Clock, CheckCircle2, FileText, User as UserIcon, Shield, Download, MessageSquare } from 'lucide-react';
 import { api } from '../../services/api';
 import { Application, User } from '../../types';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -276,13 +276,143 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
           </p>
         </div>
 
-        <button
-          onClick={handleCreateClick}
-          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl flex items-center gap-2 shadow-md transition-all self-start sm:self-auto"
-        >
-          <PlusCircle className="w-4 h-4" />
-          <span>{getCreateButtonText()}</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={() => {
+              if (applications.length === 0) return alert('No applications to export.');
+              const rowData = [
+                ['Application ID', 'Customer Name', 'Customer Email', 'Customer Phone', 'Created By', 'Type', 'Scheme / Purpose', 'Amount (INR)', 'Status', 'Progress (%)', 'Assigned Agent', 'Submission Date'],
+                ...applications.map((a) => {
+                  let custName = a.customer ? `${a.customer.firstName || ''} ${a.customer.lastName || ''}`.trim() : 'Customer';
+                  let custEmail = a.customer?.email || 'N/A';
+                  let custPhone = a.customer?.phone || 'N/A';
+                  if (a.formData) {
+                    try {
+                      const p = typeof a.formData === 'string' ? JSON.parse(a.formData) : a.formData;
+                      if (p.customerName) custName = p.customerName;
+                      if (p.email) custEmail = p.email;
+                      if (p.phone || p.mobile) custPhone = p.phone || p.mobile;
+                    } catch (e) {}
+                  }
+                  const creatorName = a.createdBy ? `${a.createdBy.firstName || ''} ${a.createdBy.lastName || ''}`.trim() : custName;
+                  const agentName = a.assignedAgent ? `${a.assignedAgent.firstName || ''} ${a.assignedAgent.lastName || ''}`.trim() : 'Unassigned';
+                  return [
+                    a.id,
+                    custName,
+                    custEmail,
+                    custPhone,
+                    creatorName,
+                    a.type,
+                    a.purpose || a.type,
+                    a.amount ? String(a.amount) : '0',
+                    a.status,
+                    String(getProgressPercent(a.status)),
+                    agentName,
+                    new Date(a.createdAt).toLocaleString(),
+                  ];
+                }),
+              ];
+              const csvContent = 'data:text/csv;charset=utf-8,' + rowData.map((e) => e.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+              const encodedUri = encodeURI(csvContent);
+              const link = document.createElement('a');
+              link.setAttribute('href', encodedUri);
+              link.setAttribute('download', `GFS_Applications_Export_${new Date().toISOString().slice(0, 10)}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}
+            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+            title="Export Applications to Excel CSV"
+          >
+            <Download className="w-4 h-4" />
+            <span>Excel CSV</span>
+          </button>
+          <button
+            onClick={() => {
+              if (applications.length === 0) return alert('No applications to export.');
+              const printWin = window.open('', '_blank');
+              if (!printWin) return;
+              const html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <title>Applications Directory - Greetwell Financial Services</title>
+                  <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; color: #1e293b; }
+                    h2 { color: #10233F; margin-bottom: 5px; }
+                    p { color: #64748b; font-size: 12px; margin-top: 0; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
+                    th, td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; }
+                    th { background: #10233F; color: #fff; text-transform: uppercase; font-size: 10px; }
+                    tr:nth-child(even) { background: #f8fafc; }
+                  </style>
+                </head>
+                <body>
+                  <h2>Greetwell Financial Services - Applications Summary</h2>
+                  <p>Exported on ${new Date().toLocaleString()} • Total Applications: ${applications.length}</p>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Customer</th>
+                        <th>Mobile / Email</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Assigned Agent</th>
+                        <th>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${applications.map((a) => {
+                        let custName = a.customer ? `${a.customer.firstName || ''} ${a.customer.lastName || ''}`.trim() : 'Customer';
+                        let custEmail = a.customer?.email || 'N/A';
+                        let custPhone = a.customer?.phone || 'N/A';
+                        if (a.formData) {
+                          try {
+                            const p = typeof a.formData === 'string' ? JSON.parse(a.formData) : a.formData;
+                            if (p.customerName) custName = p.customerName;
+                            if (p.email) custEmail = p.email;
+                            if (p.phone || p.mobile) custPhone = p.phone || p.mobile;
+                          } catch (e) {}
+                        }
+                        const agentName = a.assignedAgent ? `${a.assignedAgent.firstName || ''} ${a.assignedAgent.lastName || ''}`.trim() : 'Unassigned';
+                        return `
+                          <tr>
+                            <td><b>${a.id}</b></td>
+                            <td>${custName}</td>
+                            <td>${custPhone}<br/>${custEmail}</td>
+                            <td>${a.type}</td>
+                            <td>${a.amount ? `₹ ${a.amount.toLocaleString()}` : 'N/A'}</td>
+                            <td>${a.status}</td>
+                            <td>${agentName}</td>
+                            <td>${new Date(a.createdAt).toLocaleDateString()}</td>
+                          </tr>
+                        `;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                  <script>window.onload = function() { window.print(); }</script>
+                </body>
+                </html>
+              `;
+              printWin.document.write(html);
+              printWin.document.close();
+            }}
+            className="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+            title="Print / Export Applications PDF Summary"
+          >
+            <FileText className="w-4 h-4" />
+            <span>PDF Summary</span>
+          </button>
+          <button
+            onClick={handleCreateClick}
+            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl flex items-center gap-2 shadow-md transition-all"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>{getCreateButtonText()}</span>
+          </button>
+        </div>
       </div>
 
       {/* Top Metric Summary Cards matching Reference Image 1 */}
@@ -474,6 +604,16 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
                 applications.map((app) => {
                   const pct = getProgressPercent(app.status);
                   const creator = getCreatorInfo(app);
+                  let custName = app.customer ? `${app.customer.firstName || ''} ${app.customer.lastName || ''}`.trim() : 'Customer';
+                  let custEmail = app.customer?.email || 'N/A';
+                  if (app.formData) {
+                    try {
+                      const p = typeof app.formData === 'string' ? JSON.parse(app.formData) : app.formData;
+                      if (p.customerName && typeof p.customerName === 'string' && p.customerName.trim()) custName = p.customerName.trim();
+                      if (p.email && typeof p.email === 'string' && p.email.trim()) custEmail = p.email.trim();
+                    } catch (e) {}
+                  }
+
                   return (
                     <tr key={app.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-4 px-5 align-top">
@@ -484,7 +624,7 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
                       </td>
                       <td className="py-4 px-5 align-top max-w-[220px]">
                         <p className="font-extrabold text-slate-900 text-xs sm:text-sm truncate">
-                          {app.customer?.firstName} {app.customer?.lastName}
+                          {custName}
                         </p>
                         <div className="flex items-center gap-1.5 flex-wrap mt-1">
                           {app.customer?.customerIdCode && (
@@ -492,7 +632,7 @@ export const AgentApplications: React.FC<{ forcedType?: string }> = ({ forcedTyp
                               {app.customer.customerIdCode}
                             </span>
                           )}
-                          <span className="text-[11px] text-slate-500 truncate">{app.customer?.email}</span>
+                          <span className="text-[11px] text-slate-500 truncate">{custEmail}</span>
                         </div>
                       </td>
                       <td className="py-4 px-5 align-top max-w-[200px]">

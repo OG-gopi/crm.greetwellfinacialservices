@@ -101,12 +101,12 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isCollapsed, on
   };
 
   return (
-    <header className="sticky top-0 z-30 h-[96px] w-full items-center bg-white px-4 sm:px-6 border-b border-[#E4E0D6] shadow-xs font-sans flex justify-between">
+    <header className="sticky top-0 z-30 h-16 sm:h-20 lg:h-[96px] w-full items-center bg-white px-3 sm:px-6 border-b border-[#E4E0D6] shadow-xs font-sans flex justify-between">
       {/* Left side: Portal Name & Icon Badge */}
       <div className="flex items-center">
         <button
           onClick={onToggleSidebar}
-          className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer mr-2.5"
+          className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer mr-1.5 sm:mr-2.5"
           title="Toggle Mobile Sidebar"
         >
           <Menu className="h-5 w-5 stroke-[2.2]" />
@@ -122,9 +122,9 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, isCollapsed, on
           </button>
         )}
 
-        <span className={`inline-flex items-center gap-2 text-xs font-extrabold font-mono px-3.5 py-1.5 rounded-xl border shadow-xs ${portal.badge}`}>
-          <PortalIcon className="w-4 h-4" />
-          {portal.name}
+        <span className={`inline-flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-extrabold font-mono px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-xl border shadow-xs ${portal.badge}`}>
+          <PortalIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span className="truncate max-w-[130px] xs:max-w-none">{portal.name}</span>
         </span>
       </div>
 

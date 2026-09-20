@@ -3,6 +3,7 @@ import { prisma } from '../utils/prisma';
 import { createAuditLog } from '../services/auditService';
 import { createNotification, notifySuperAdmins } from '../services/notificationService';
 import { emailService } from '../services/emailService';
+import { eventNotificationService } from '../services/eventNotificationService';
 import { validateIndianMobile } from '../utils/validation';
 import { AuthRequest } from '../middleware/authMiddleware';
 
@@ -233,22 +234,21 @@ export async function createEnquiry(req: AuthRequest, res: Response) {
       ipAddress: req.ip,
     });
 
-    await notifySuperAdmins(
-      'NEW_ENQUIRY',
-      `New Enquiry Ticket (${enquiry.id})`,
-      `New enquiry ticket ${enquiry.id} (${category}) submitted by ${user.firstName} ${user.lastName || ''}.`,
-      { module: 'ENQUIRY', relatedEntityId: enquiry.id }
-    );
-
-    // Send email acknowledgement
-    await emailService.sendEnquiryCreatedNotification({
-      email: user.email,
-      userName: `${user.firstName} ${user.lastName || ''}`,
+    // Central Event Notification Trigger
+    eventNotificationService.triggerBusinessEvent({
+      eventType: 'ENQUIRY_CREATED',
+      actorUserId: user.id,
+      actorName: `${user.firstName} ${user.lastName || ''}`.trim(),
+      actorRole: user.role,
+      customerId: user.id,
+      customerName: `${user.firstName} ${user.lastName || ''}`.trim(),
+      customerEmail: user.email,
+      customerPhone: user.phone || contactPhone,
       enquiryId: enquiry.id,
-      subject: enquiry.subject,
-      category: enquiry.category,
-      relatedApplicationId: enquiry.relatedApplicationId || undefined,
-    }).catch((err) => console.error('Failed to send enquiry email acknowledgement:', err));
+      enquirySubject: enquiry.subject,
+      applicationId: enquiry.relatedApplicationId || undefined,
+      details: description,
+    }).catch((err) => console.error('Event trigger error:', err));
 
     return res.status(201).json({
       success: true,

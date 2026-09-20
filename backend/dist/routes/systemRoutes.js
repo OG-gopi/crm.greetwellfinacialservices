@@ -15,4 +15,5 @@ router.post('/backups/trigger', (0, authMiddleware_1.requireRole)('SUPER_ADMIN')
 // Super Admin Email Delivery Audit & Retry Routes
 router.get('/email-logs', (0, authMiddleware_1.requireRole)('SUPER_ADMIN'), emailLogController_1.getEmailLogs);
 router.post('/email-logs/:id/retry', (0, authMiddleware_1.requireRole)('SUPER_ADMIN'), emailLogController_1.retryEmail);
+router.post('/email-logs/test-send', (0, authMiddleware_1.requireRole)('SUPER_ADMIN'), emailLogController_1.sendTestEmail);
 exports.default = router;

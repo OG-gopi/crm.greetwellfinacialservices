@@ -13,35 +13,37 @@ class EmailService {
         this.initTransporter();
     }
     initTransporter() {
-        if (config_1.CONFIG.SMTP.USER) {
+        const user = process.env.GMAIL_USER || process.env.SMTP_USER || config_1.CONFIG.SMTP.USER;
+        const pass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASSWORD || config_1.CONFIG.SMTP.PASS;
+        if (user && pass && pass.trim() !== '') {
             try {
                 const isSecure = config_1.CONFIG.SMTP.PORT === 465;
                 this.transporter = nodemailer_1.default.createTransport({
                     host: config_1.CONFIG.SMTP.HOST || 'smtp.gmail.com',
                     port: config_1.CONFIG.SMTP.PORT || 465,
                     secure: isSecure,
-                    auth: {
-                        user: config_1.CONFIG.SMTP.USER,
-                        pass: config_1.CONFIG.SMTP.PASS,
-                    },
+                    auth: { user, pass },
                     tls: {
                         rejectUnauthorized: false,
                     },
                 });
-                console.log(`✉️ Gmail SMTP Transporter initialized for ${config_1.CONFIG.SMTP.USER}`);
+                console.log(`✉️ Gmail SMTP Transporter initialized for ${user}`);
             }
             catch (err) {
                 console.error('❌ Failed to initialize Gmail SMTP transporter:', err);
             }
         }
+        else {
+            console.log(`ℹ️ EmailService running in Development/Log Mode (No SMTP Password configured). Emails will be recorded in DB & Console.`);
+        }
     }
     getTransporter() {
-        const user = process.env.GMAIL_USER || process.env.SMTP_USER || config_1.CONFIG.SMTP.USER || 'greetwell.notify@gmail.com';
+        const user = process.env.GMAIL_USER || process.env.SMTP_USER || config_1.CONFIG.SMTP.USER;
         const pass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASSWORD || config_1.CONFIG.SMTP.PASS || '';
         const host = process.env.SMTP_HOST || config_1.CONFIG.SMTP.HOST || 'smtp.gmail.com';
         const port = parseInt(process.env.SMTP_PORT || String(config_1.CONFIG.SMTP.PORT || 465), 10);
         const isSecure = port === 465;
-        if (user && pass) {
+        if (user && pass && pass.trim() !== '') {
             try {
                 return nodemailer_1.default.createTransport({
                     host,
@@ -55,7 +57,7 @@ class EmailService {
                 console.error('❌ Failed to create SMTP transporter:', err);
             }
         }
-        return this.transporter;
+        return null;
     }
     /**
      * Primary transactional email dispatcher with automated Database Logging (`EmailDeliveryLog`).
@@ -590,7 +592,7 @@ class EmailService {
                 { label: 'Advisor Contact', value: agentEmail },
                 { label: 'Service Domain', value: serviceType },
             ],
-            ctaButton: { label: 'View Customer Dashboard →', url: `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/customer/dashboard` },
+            ctaButton: { label: 'View Customer Dashboard →', url: `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/customer/dashboard` },
         });
         await this.sendMail({
             to: customerEmail,
@@ -599,7 +601,7 @@ class EmailService {
             html: custHtml,
             emailType: 'AGENT_ASSIGNED_CUSTOMER',
             emailCategory: 'TRANSACTIONAL',
-            actionUrl: `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/customer/dashboard`,
+            actionUrl: `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/customer/dashboard`,
         });
         // Notice to Agent
         const agentSubject = `New Customer Assignment: ${customerName} (${serviceType})`;
@@ -614,7 +616,7 @@ class EmailService {
                 { label: 'Customer Email', value: customerEmail },
                 { label: 'Service Domain', value: serviceType },
             ],
-            ctaButton: { label: 'View Customer Profile →', url: `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/agent/customers` },
+            ctaButton: { label: 'View Customer Profile →', url: `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/agent/customers` },
         });
         await this.sendMail({
             to: agentEmail,
@@ -623,7 +625,7 @@ class EmailService {
             html: agentHtml,
             emailType: 'AGENT_ASSIGNED_AGENT',
             emailCategory: 'TRANSACTIONAL',
-            actionUrl: `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/agent/customers`,
+            actionUrl: `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/agent/customers`,
         });
         return true;
     }
@@ -642,7 +644,7 @@ class EmailService {
                 { label: 'New Advisor Email', value: newAgentEmail },
                 { label: 'Service Domain', value: serviceType },
             ],
-            ctaButton: { label: 'Go to Customer Portal →', url: `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/customer/dashboard` },
+            ctaButton: { label: 'Go to Customer Portal →', url: `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/customer/dashboard` },
         });
         return this.sendMail({
             to: customerEmail,
@@ -651,7 +653,7 @@ class EmailService {
             html,
             emailType: 'CUSTOMER_REASSIGNED',
             emailCategory: 'TRANSACTIONAL',
-            actionUrl: `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/customer/dashboard`,
+            actionUrl: `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/customer/dashboard`,
         });
     }
     // =========================================================================
@@ -659,7 +661,7 @@ class EmailService {
     // =========================================================================
     async sendApplicationCreatedNotification(options) {
         const { customerEmail, customerName, applicationId, type, amount, agentEmail, agentName } = options;
-        const viewUrl = `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
+        const viewUrl = `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
         const subject = `Application ${applicationId} Successfully Created - GFS ${type}`;
         const html = this.renderBrandTemplate({
             titleHeader: `APPLICATION CREATED (${applicationId})`,
@@ -691,7 +693,7 @@ class EmailService {
         // Notify agent if assigned
         if (agentEmail && agentEmail.trim()) {
             const agentSubject = `New Application Assigned: ${applicationId} (${customerName})`;
-            const agentViewUrl = `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/loan-agent/applications&applicationId=${encodeURIComponent(applicationId)}`;
+            const agentViewUrl = `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/loan-agent/applications&applicationId=${encodeURIComponent(applicationId)}`;
             const agentHtml = this.renderBrandTemplate({
                 titleHeader: 'NEW APPLICATION ASSIGNMENT',
                 recipientName: agentName || 'Agent',
@@ -739,8 +741,8 @@ class EmailService {
     async sendApplicationStatusUpdatedEmail(options) {
         const { recipientEmail, recipientName, applicationId, type, previousStatus, newStatus, updatedBy, comments, isCustomer = true, } = options;
         const actionUrl = isCustomer
-            ? `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`
-            : `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/superadmin/applications&applicationId=${encodeURIComponent(applicationId)}`;
+            ? `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`
+            : `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/superadmin/applications&applicationId=${encodeURIComponent(applicationId)}`;
         const formattedPrev = previousStatus.replace(/_/g, ' ');
         const formattedNew = newStatus.replace(/_/g, ' ');
         let statusColor = '#2563eb';
@@ -813,7 +815,7 @@ class EmailService {
     }
     async sendApplicationApprovedEmail(options) {
         const { recipientEmail, recipientName, applicationId, type, amount, remarks } = options;
-        const viewUrl = `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
+        const viewUrl = `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
         const subject = `Congratulations! Application ${applicationId} Has Been Approved 🎉`;
         const html = this.renderBrandTemplate({
             titleHeader: 'APPLICATION APPROVED',
@@ -845,7 +847,7 @@ class EmailService {
     }
     async sendApplicationRejectedEmail(options) {
         const { recipientEmail, recipientName, applicationId, type, rejectionReason } = options;
-        const viewUrl = `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
+        const viewUrl = `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`;
         const subject = `Update regarding Application ${applicationId} - GFS`;
         const html = this.renderBrandTemplate({
             titleHeader: 'APPLICATION DECISION UPDATE',
@@ -877,8 +879,8 @@ class EmailService {
     async sendApplicationCommentNotification(options) {
         const { recipientEmail, recipientName, applicationId, authorName, commentText, isCustomer = true } = options;
         const actionUrl = isCustomer
-            ? `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`
-            : `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/loan-agent/applications&applicationId=${encodeURIComponent(applicationId)}`;
+            ? `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/customer/applications&applicationId=${encodeURIComponent(applicationId)}`
+            : `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/loan-agent/applications&applicationId=${encodeURIComponent(applicationId)}`;
         const subject = `New Note / Comment Added on Application ${applicationId}`;
         const html = this.renderBrandTemplate({
             titleHeader: 'APPLICATION COMMENT NOTIFICATION',
@@ -907,7 +909,7 @@ class EmailService {
     // =========================================================================
     async sendDocumentRequestedEmail(options) {
         const { customerEmail, customerName, applicationId, requestedDocumentNames, reason, dueDate } = options;
-        const uploadUrl = `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/customer/documents&applicationId=${encodeURIComponent(applicationId)}`;
+        const uploadUrl = `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/customer/documents&applicationId=${encodeURIComponent(applicationId)}`;
         const docListStr = requestedDocumentNames.join(', ');
         const formattedDueDate = dueDate ? dueDate.toLocaleDateString('en-US', { dateStyle: 'medium' }) : 'As soon as possible';
         const subject = `Action Required: Documents Requested for Application ${applicationId}`;
@@ -969,7 +971,7 @@ class EmailService {
     }
     async sendDocumentUploadedNotification(options) {
         const { recipientEmail, recipientName, customerName, applicationId, documentTitle, fileName } = options;
-        const reviewUrl = `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=/superadmin/documents&applicationId=${encodeURIComponent(applicationId)}`;
+        const reviewUrl = `${config_1.CONFIG.FRONTEND_URL}/login?redirect=/superadmin/documents&applicationId=${encodeURIComponent(applicationId)}`;
         const subject = `New Document Uploaded by ${customerName} (${applicationId})`;
         const html = this.renderBrandTemplate({
             titleHeader: 'NEW DOCUMENT UPLOADED',
@@ -1266,11 +1268,18 @@ class EmailService {
                 return;
             const { subject, titleHeader, mainParagraphs, detailsCard, alertBox, ctaButtonLabel, applicationId, excludeEmail } = options;
             const redirectPath = applicationId ? `/superadmin/applications` : `/superadmin/dashboard`;
-            const url = `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=${encodeURIComponent(redirectPath)}${applicationId ? `&applicationId=${encodeURIComponent(applicationId)}` : ''}`;
+            const url = `${config_1.CONFIG.FRONTEND_URL}/login?redirect=${encodeURIComponent(redirectPath)}${applicationId ? `&applicationId=${encodeURIComponent(applicationId)}` : ''}`;
+            const sentEmails = new Set();
             for (const admin of superAdmins) {
-                if (excludeEmail && admin.email.toLowerCase() === excludeEmail.toLowerCase())
+                if (!admin.email || !admin.email.trim())
                     continue;
-                const name = `${admin.firstName} ${admin.lastName || ''}`.trim();
+                const cleanEmail = admin.email.trim().toLowerCase();
+                if (excludeEmail && cleanEmail === excludeEmail.trim().toLowerCase())
+                    continue;
+                if (sentEmails.has(cleanEmail))
+                    continue;
+                sentEmails.add(cleanEmail);
+                const name = `${admin.firstName} ${admin.lastName || ''}`.trim() || 'Super Admin';
                 const html = this.renderBrandTemplate({
                     titleHeader,
                     recipientName: name,
@@ -1279,16 +1288,17 @@ class EmailService {
                     alertBox,
                     ctaButton: { label: ctaButtonLabel || 'Open SuperAdmin Desk →', url },
                 });
+                const formattedSubject = subject.startsWith('[GFS]') ? subject : `[GFS] ${subject}`;
                 await this.sendMail({
-                    to: admin.email,
+                    to: cleanEmail,
                     recipientName: name,
-                    subject: `[SuperAdmin Alert] ${subject}`,
+                    subject: formattedSubject,
                     html,
                     emailType: 'SUPER_ADMIN_ALERT',
                     emailCategory: 'SYSTEM',
                     applicationId,
                     actionUrl: url,
-                }).catch((err) => console.error(`SuperAdmin notification error (${admin.email}):`, err));
+                }).catch((err) => console.error(`SuperAdmin notification error (${cleanEmail}):`, err));
             }
         }
         catch (err) {
@@ -1319,7 +1329,7 @@ class EmailService {
                 agentRoute = '/insurance-agent/applications';
             if (agent.role === 'INVESTMENT_AGENT')
                 agentRoute = '/investment-agent/applications';
-            const url = `${config_1.CONFIG.FRONTEND_URL}/email-login?redirect=${encodeURIComponent(agentRoute)}&applicationId=${encodeURIComponent(options.applicationId)}`;
+            const url = `${config_1.CONFIG.FRONTEND_URL}/login?redirect=${encodeURIComponent(agentRoute)}&applicationId=${encodeURIComponent(options.applicationId)}`;
             const html = this.renderBrandTemplate({
                 titleHeader: options.titleHeader,
                 recipientName: agentName,

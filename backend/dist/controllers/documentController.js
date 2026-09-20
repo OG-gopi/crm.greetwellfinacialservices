@@ -14,7 +14,7 @@ const config_1 = require("../config");
 const prisma_1 = require("../utils/prisma");
 const auditService_1 = require("../services/auditService");
 const notificationService_1 = require("../services/notificationService");
-const emailService_1 = require("../services/emailService");
+const eventNotificationService_1 = require("../services/eventNotificationService");
 // Configure Multer storage
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
@@ -133,36 +133,23 @@ async function verifyDocument(req, res) {
             description: `${user.role} marked document ${document.title} as ${status}.`,
             ipAddress: req.ip,
         });
-        // Notify customer
-        await (0, notificationService_1.createNotification)({
-            recipientUserId: document.application.customerId,
-            type: 'DOCUMENT_VERIFICATION',
-            title: `Document ${status.replace('_', ' ')}`,
-            message: `Your document '${document.title}' was marked as ${status.replace('_', ' ')}. ${rejectionReason ? 'Reason: ' + rejectionReason : ''}`,
-            relatedEntity: 'APPLICATION',
-            relatedEntityId: document.applicationId,
-        });
-        if (document.application.customer?.email) {
-            const customerEmail = document.application.customer.email;
-            const customerName = `${document.application.customer.firstName} ${document.application.customer.lastName || ''}`.trim();
-            if (status === 'VERIFIED') {
-                await emailService_1.emailService.sendDocumentApprovedEmail({
-                    customerEmail,
-                    customerName,
-                    documentTitle: document.title,
-                    applicationId: document.applicationId,
-                }).catch((err) => console.error('Document approved email error:', err));
-            }
-            else {
-                await emailService_1.emailService.sendDocumentRejectedEmail({
-                    customerEmail,
-                    customerName,
-                    documentTitle: document.title,
-                    applicationId: document.applicationId,
-                    rejectionReason: rejectionReason || 'Document clarity or compliance verification failed.',
-                }).catch((err) => console.error('Document rejected email error:', err));
-            }
-        }
+        // Central Event Notification Trigger
+        const eventType = status === 'VERIFIED' ? 'DOCUMENT_VERIFIED' : 'DOCUMENT_REJECTED';
+        eventNotificationService_1.eventNotificationService.triggerBusinessEvent({
+            eventType,
+            actorUserId: user.id,
+            actorName: `${user.firstName} ${user.lastName || ''}`.trim(),
+            actorRole: user.role,
+            customerId: document.application.customerId,
+            customerName: document.application.customer ? `${document.application.customer.firstName} ${document.application.customer.lastName || ''}`.trim() : undefined,
+            customerEmail: document.application.customer?.email,
+            customerPhone: document.application.customer?.phone,
+            applicationId: document.applicationId,
+            applicationType: document.application.type,
+            documentId: document.id,
+            documentTitle: document.title,
+            rejectionReason: status !== 'VERIFIED' ? (rejectionReason || 'Verification failed') : undefined,
+        }).catch((err) => console.error('Event trigger error:', err));
         return res.json({
             success: true,
             message: `Document status updated to ${status}.`,

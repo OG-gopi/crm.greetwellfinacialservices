@@ -7,6 +7,7 @@ import { prisma } from '../utils/prisma';
 import { createAuditLog } from '../services/auditService';
 import { createNotification } from '../services/notificationService';
 import { emailService } from '../services/emailService';
+import { eventNotificationService } from '../services/eventNotificationService';
 import { AuthRequest } from '../middleware/authMiddleware';
 
 // Configure Multer storage
@@ -142,36 +143,23 @@ export async function verifyDocument(req: AuthRequest, res: Response) {
       ipAddress: req.ip,
     });
 
-    // Notify customer
-    await createNotification({
-      recipientUserId: document.application.customerId,
-      type: 'DOCUMENT_VERIFICATION',
-      title: `Document ${status.replace('_', ' ')}`,
-      message: `Your document '${document.title}' was marked as ${status.replace('_', ' ')}. ${rejectionReason ? 'Reason: ' + rejectionReason : ''}`,
-      relatedEntity: 'APPLICATION',
-      relatedEntityId: document.applicationId,
-    });
-
-    if (document.application.customer?.email) {
-      const customerEmail = document.application.customer.email;
-      const customerName = `${document.application.customer.firstName} ${document.application.customer.lastName || ''}`.trim();
-      if (status === 'VERIFIED') {
-        await emailService.sendDocumentApprovedEmail({
-          customerEmail,
-          customerName,
-          documentTitle: document.title,
-          applicationId: document.applicationId,
-        }).catch((err) => console.error('Document approved email error:', err));
-      } else {
-        await emailService.sendDocumentRejectedEmail({
-          customerEmail,
-          customerName,
-          documentTitle: document.title,
-          applicationId: document.applicationId,
-          rejectionReason: rejectionReason || 'Document clarity or compliance verification failed.',
-        }).catch((err) => console.error('Document rejected email error:', err));
-      }
-    }
+    // Central Event Notification Trigger
+    const eventType = status === 'VERIFIED' ? 'DOCUMENT_VERIFIED' : 'DOCUMENT_REJECTED';
+    eventNotificationService.triggerBusinessEvent({
+      eventType,
+      actorUserId: user.id,
+      actorName: `${user.firstName} ${user.lastName || ''}`.trim(),
+      actorRole: user.role,
+      customerId: document.application.customerId,
+      customerName: document.application.customer ? `${document.application.customer.firstName} ${document.application.customer.lastName || ''}`.trim() : undefined,
+      customerEmail: document.application.customer?.email,
+      customerPhone: document.application.customer?.phone,
+      applicationId: document.applicationId,
+      applicationType: document.application.type,
+      documentId: document.id,
+      documentTitle: document.title,
+      rejectionReason: status !== 'VERIFIED' ? (rejectionReason || 'Verification failed') : undefined,
+    }).catch((err) => console.error('Event trigger error:', err));
 
     return res.json({
       success: true,

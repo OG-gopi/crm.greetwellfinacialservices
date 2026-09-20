@@ -7,8 +7,9 @@ async function main() {
 
   const preservedEmails = [
     'beesugopikrishna@gmail.com',
+    'admin@greetwell.com',
     'gfsgreetwell@gmail.com',
-    'gopikrishnabeesu@gmail.com', // Keep variant as well just in case
+    'gopikrishnabeesu@gmail.com',
   ].map((e) => e.toLowerCase());
 
   // 1. Identify users to delete

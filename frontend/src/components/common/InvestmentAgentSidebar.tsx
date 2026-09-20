@@ -18,7 +18,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { GFSLogo } from './GFSLogo';
-
+import { SidebarTooltip } from './SidebarTooltip';
 import { SidebarIconLoading } from './SidebarIconLoading';
 
 interface SidebarProps {
@@ -28,9 +28,13 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
 }
 
-export const InvestmentAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed = false, onToggleCollapse }) => {
+export const InvestmentAgentSidebar: React.FC<SidebarProps> = ({
+  isOpen,
+  onClose,
+  isCollapsed = false,
+  onToggleCollapse,
+}) => {
   const { user, logout, isLoading: authLoading } = useAuth();
-  const { unreadCount } = useNotifications();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -38,9 +42,6 @@ export const InvestmentAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose
 
   const handleNavItemClick = () => {
     onClose();
-    if (onToggleCollapse && !isCollapsed) {
-      onToggleCollapse();
-    }
   };
 
   useEffect(() => {
@@ -57,6 +58,16 @@ export const InvestmentAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose
       setOpenSubMenus({});
     }
   }, [location.pathname]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const toggleSubMenu = (key: string) => {
     if (isCollapsed && onToggleCollapse) {
@@ -83,22 +94,41 @@ export const InvestmentAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose
         onClose={onClose}
         isCollapsed={isCollapsed}
         onToggleCollapse={onToggleCollapse}
-        variant="blue"
-        roleName="Investment Agent Desk"
+        variant="amber"
+        roleName="Investment Advisor"
       />
     );
   }
+
+  const getNavItemClasses = (isActive: boolean) =>
+    `group flex items-center h-11 rounded-xl transition-all duration-200 select-none ${
+      isCollapsed ? 'justify-center px-0 w-full' : 'px-3.5 justify-start w-full'
+    } ${
+      isActive
+        ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold shadow-md shadow-amber-500/20 border border-amber-400/30'
+        : 'text-amber-950 hover:bg-amber-100/70 hover:text-amber-900 font-semibold'
+    }`;
+
+  const getSubItemClasses = (isActive: boolean) =>
+    `block py-2 px-3 rounded-lg transition-colors font-semibold text-xs ${
+      isActive
+        ? 'text-amber-800 font-extrabold bg-amber-100/80 border border-amber-200/80'
+        : 'text-slate-600 hover:text-amber-800 hover:bg-amber-50'
+    }`;
 
   return (
     <>
       {/* Mobile Backdrop */}
       {isOpen && (
-        <div className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm lg:hidden" onClick={onClose} />
+        <div
+          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm lg:hidden transition-opacity"
+          onClick={onClose}
+        />
       )}
 
-      {/* Sidebar Container: Light Warm Gold Background */}
+      {/* Sidebar Container: Light Warm Gold Theme */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full bg-[#fdf7e7] text-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-amber-200/80 shadow-sm relative ${
+        className={`fixed top-0 left-0 z-50 h-full bg-[#fdf9f0] text-slate-800 flex flex-col justify-between transition-all duration-300 ease-in-out lg:static lg:translate-x-0 border-r border-amber-200/80 shadow-sm relative ${
           isCollapsed ? 'lg:w-20 w-64' : 'w-64'
         } ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
@@ -106,275 +136,303 @@ export const InvestmentAgentSidebar: React.FC<SidebarProps> = ({ isOpen, onClose
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="hidden lg:flex absolute -right-3 top-6 z-20 w-6 h-6 rounded-full bg-amber-600 text-white shadow-md items-center justify-center hover:bg-amber-700 transition-all cursor-pointer border-2 border-white"
+            className="hidden lg:flex absolute -right-3 top-7 z-20 w-6 h-6 rounded-full bg-amber-600 text-white shadow-md items-center justify-center hover:bg-amber-700 transition-transform hover:scale-110 cursor-pointer border-2 border-white"
             title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           >
-            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isCollapsed ? '' : 'rotate-180'}`} />
+            <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-300 ${isCollapsed ? '' : 'rotate-180'}`} />
           </button>
         )}
 
         <div className="flex flex-col h-full overflow-hidden">
-          {/* Header Logo & Investment Desk Role Badge */}
-          <div className="pt-4 pb-4 px-3 flex flex-col items-center justify-center relative bg-[#fdf7e7]">
-            <button onClick={onClose} className="absolute right-3 top-3 text-slate-500 hover:text-slate-900 lg:hidden">
+          {/* Identity Area: GFS Company Logo + Investment Advisor Role */}
+          <div className="pt-5 pb-4 px-3 flex flex-col items-center justify-center relative border-b border-amber-200/60 bg-gradient-to-b from-amber-100/50 to-transparent">
+            <button
+              onClick={onClose}
+              className="absolute right-3 top-3 text-slate-500 hover:text-slate-900 p-1 rounded-lg hover:bg-black/5 lg:hidden"
+            >
               <X className="h-5 w-5" />
             </button>
-            <GFSLogo size={isCollapsed ? 'sm' : 'lg'} variant="card" onClick={handleLogoClick} />
-            <div className={`mt-3 px-3 py-1 rounded-full bg-white/90 text-amber-950 border border-amber-300/80 text-xs font-extrabold shadow-sm flex items-center justify-center gap-1.5 transition-all ${
-              isCollapsed ? 'px-2 py-1' : 'px-4 py-1.5'
-            }`}>
-              <TrendingUp className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-              {!isCollapsed && <span>Investment Desk</span>}
+            <div className="transition-transform duration-300 hover:scale-105">
+              <GFSLogo size={isCollapsed ? 'xs' : 'sm'} variant="card" onClick={handleLogoClick} />
             </div>
+            {!isCollapsed ? (
+              <div className="mt-3 px-3.5 py-1 rounded-full bg-white/95 text-amber-950 border border-amber-200/90 text-[11px] font-extrabold tracking-wide shadow-sm flex items-center justify-center gap-1.5 transition-all">
+                <TrendingUp className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                <span>Investment Advisor</span>
+              </div>
+            ) : (
+              <div className="mt-2 w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse" />
+            )}
           </div>
 
           {/* Navigation List */}
-          <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-1.5 text-[14.5px] font-semibold custom-scrollbar">
-            {/* 1. Dashboard */}
-            <NavLink
-              to="/investment-agent/dashboard"
-              onClick={handleNavItemClick}
-              title="Dashboard"
-              className={({ isActive }) =>
-                `flex items-center h-12 rounded-xl transition-all ${
-                  isCollapsed ? 'justify-center px-0' : 'px-4'
-                } ${
-                  isActive
-                    ? 'bg-amber-600 text-white font-bold shadow-md shadow-amber-500/20'
-                    : 'text-amber-950 hover:bg-amber-100/70 hover:text-amber-900'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <LayoutDashboard className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-amber-600'}`} />
-                  {!isCollapsed && <span>Dashboard</span>}
-                </>
-              )}
-            </NavLink>
-
-            {/* 2. Customers Menu */}
-            <div>
-              <button
-                onClick={() => toggleSubMenu('customers')}
-                title="Investors / Clients"
-                className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-4'} h-12 rounded-xl transition-all text-amber-950 hover:bg-amber-100/70 hover:text-amber-900 ${
-                  openSubMenus['customers'] ? 'bg-amber-100/50' : ''
-                }`}
+          <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-1 text-[13.5px] custom-scrollbar">
+            {/* SECTION 1: MAIN */}
+            {!isCollapsed && (
+              <div className="text-[10px] uppercase tracking-wider font-extrabold text-amber-900/60 px-3 pt-2 pb-1">
+                Investment Desk
+              </div>
+            )}
+            <SidebarTooltip content="Dashboard" isCollapsed={isCollapsed}>
+              <NavLink
+                to="/investment-agent/dashboard"
+                onClick={handleNavItemClick}
+                className={({ isActive }) => getNavItemClasses(isActive)}
               >
-                <div className="flex items-center truncate">
-                  <Users className={`h-[22px] w-[22px] flex-shrink-0 text-amber-600 ${isCollapsed ? 'mr-0' : 'mr-3.5'}`} />
-                  {!isCollapsed && <span className="truncate">Investors / Clients</span>}
-                </div>
-                {!isCollapsed && (
-                  <ChevronDown
-                    className={`h-4 w-4 text-amber-500 ml-auto flex-shrink-0 transition-transform ${
-                      openSubMenus['customers'] ? 'rotate-180 text-amber-700' : ''
-                    }`}
-                  />
+                {({ isActive }) => (
+                  <>
+                    <LayoutDashboard
+                      className={`h-5 w-5 flex-shrink-0 transition-all ${
+                        isCollapsed ? 'mr-0' : 'mr-3'
+                      } ${isActive ? 'text-white' : 'text-amber-600 group-hover:text-amber-700'}`}
+                    />
+                    {!isCollapsed && <span className="truncate font-semibold">Dashboard</span>}
+                  </>
                 )}
-              </button>
+              </NavLink>
+            </SidebarTooltip>
+
+            {/* SECTION 2: INVESTORS */}
+            {!isCollapsed && (
+              <div className="text-[10px] uppercase tracking-wider font-extrabold text-amber-900/60 px-3 pt-3 pb-1">
+                Investors
+              </div>
+            )}
+            <div className="w-full">
+              <SidebarTooltip content="Investors / Clients" isCollapsed={isCollapsed}>
+                <button
+                  onClick={() => toggleSubMenu('customers')}
+                  className={`w-full flex items-center ${
+                    isCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
+                  } h-11 rounded-xl transition-all duration-200 text-amber-950 hover:bg-amber-100/70 hover:text-amber-900 font-semibold ${
+                    openSubMenus['customers'] ? 'bg-amber-100/60' : ''
+                  }`}
+                >
+                  <div className="flex items-center truncate">
+                    <Users
+                      className={`h-5 w-5 flex-shrink-0 text-amber-600 group-hover:text-amber-700 ${
+                        isCollapsed ? 'mr-0' : 'mr-3'
+                      }`}
+                    />
+                    {!isCollapsed && <span className="truncate font-semibold">Investors / Clients</span>}
+                  </div>
+                  {!isCollapsed && (
+                    <ChevronDown
+                      className={`h-4 w-4 text-amber-500 ml-auto flex-shrink-0 transition-transform duration-200 ${
+                        openSubMenus['customers'] ? 'rotate-180 text-amber-700' : ''
+                      }`}
+                    />
+                  )}
+                </button>
+              </SidebarTooltip>
               {openSubMenus['customers'] && !isCollapsed && (
-                <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-amber-100 text-xs shadow-inner">
+                <div className="pl-9 pr-2 py-1.5 space-y-1 bg-white/80 rounded-xl my-1 border border-amber-100/80 shadow-sm">
                   <NavLink
                     to="/investment-agent/customers"
                     onClick={handleNavItemClick}
-                    className={({ isActive }) =>
-                      `block py-2 px-3 rounded-lg transition-colors font-medium ${
-                        isActive ? 'text-amber-700 font-extrabold bg-amber-100/60' : 'text-slate-700 hover:text-amber-700 hover:bg-amber-50'
-                      }`
-                    }
+                    className={({ isActive }) => getSubItemClasses(isActive)}
                   >
-                    My Investors
+                    My Investor Clients
                   </NavLink>
                 </div>
               )}
             </div>
 
-            {/* 3. Applications Menu */}
-            <div>
-              <button
-                onClick={() => toggleSubMenu('applications')}
-                title="Investment Plans"
-                className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-4'} h-12 rounded-xl transition-all text-amber-950 hover:bg-amber-100/70 hover:text-amber-900 ${
-                  openSubMenus['applications'] ? 'bg-amber-100/50' : ''
-                }`}
-              >
-                <div className="flex items-center truncate">
-                  <TrendingUp className={`h-[22px] w-[22px] flex-shrink-0 text-amber-600 ${isCollapsed ? 'mr-0' : 'mr-3.5'}`} />
-                  {!isCollapsed && <span className="truncate">Investment Plans</span>}
-                </div>
-                {!isCollapsed && (
-                  <ChevronDown
-                    className={`h-4 w-4 text-amber-500 ml-auto flex-shrink-0 transition-transform ${
-                      openSubMenus['applications'] ? 'rotate-180 text-amber-700' : ''
-                    }`}
-                  />
-                )}
-              </button>
+            {/* SECTION 3: PORTFOLIOS */}
+            {!isCollapsed && (
+              <div className="text-[10px] uppercase tracking-wider font-extrabold text-amber-900/60 px-3 pt-3 pb-1">
+                Portfolios & Docs
+              </div>
+            )}
+            <div className="w-full">
+              <SidebarTooltip content="Investment Plans" isCollapsed={isCollapsed}>
+                <button
+                  onClick={() => toggleSubMenu('applications')}
+                  className={`w-full flex items-center ${
+                    isCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
+                  } h-11 rounded-xl transition-all duration-200 text-amber-950 hover:bg-amber-100/70 hover:text-amber-900 font-semibold ${
+                    openSubMenus['applications'] ? 'bg-amber-100/60' : ''
+                  }`}
+                >
+                  <div className="flex items-center truncate">
+                    <TrendingUp
+                      className={`h-5 w-5 flex-shrink-0 text-amber-600 group-hover:text-amber-700 ${
+                        isCollapsed ? 'mr-0' : 'mr-3'
+                      }`}
+                    />
+                    {!isCollapsed && <span className="truncate font-semibold">Investment Plans</span>}
+                  </div>
+                  {!isCollapsed && (
+                    <ChevronDown
+                      className={`h-4 w-4 text-amber-500 ml-auto flex-shrink-0 transition-transform duration-200 ${
+                        openSubMenus['applications'] ? 'rotate-180 text-amber-700' : ''
+                      }`}
+                    />
+                  )}
+                </button>
+              </SidebarTooltip>
               {openSubMenus['applications'] && !isCollapsed && (
-                <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-amber-100 text-xs shadow-inner">
+                <div className="pl-9 pr-2 py-1.5 space-y-1 bg-white/80 rounded-xl my-1 border border-amber-100/80 shadow-sm">
                   <NavLink
                     to="/investment-agent/applications"
                     onClick={handleNavItemClick}
-                    className={({ isActive }) =>
-                      `block py-2 px-3 rounded-lg transition-colors font-medium ${
-                        isActive ? 'text-amber-700 font-extrabold bg-amber-100/60' : 'text-slate-700 hover:text-amber-700 hover:bg-amber-50'
-                      }`
-                    }
+                    className={({ isActive }) => getSubItemClasses(isActive)}
                   >
-                    All Investment Apps
+                    All Investments
                   </NavLink>
                   <NavLink
                     to="/investment-agent/create-application?type=INVESTMENT"
                     onClick={handleNavItemClick}
-                    className="block py-2 px-3 rounded-lg font-bold text-amber-700 hover:bg-amber-100/70 border-t border-amber-100 mt-1 pt-2 flex items-center gap-1"
+                    className="block py-2 px-3 rounded-lg font-bold text-amber-700 hover:bg-amber-100/80 border-t border-amber-100 mt-1 pt-2 flex items-center gap-1.5"
                   >
-                    <PlusCircle className="h-3.5 w-3.5" /> + New Investment
+                    <PlusCircle className="h-3.5 w-3.5" /> + New Investment App
                   </NavLink>
                 </div>
               )}
             </div>
 
-            {/* 4. Documents */}
-            <div>
-              <button
-                onClick={() => toggleSubMenu('documents')}
-                title="Documents"
-                className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-4'} h-12 rounded-xl transition-all text-amber-950 hover:bg-amber-100/70 hover:text-amber-900 ${
-                  openSubMenus['documents'] ? 'bg-amber-100/50' : ''
-                }`}
-              >
-                <div className="flex items-center truncate">
-                  <FolderOpen className={`h-[22px] w-[22px] flex-shrink-0 text-amber-600 ${isCollapsed ? 'mr-0' : 'mr-3.5'}`} />
-                  {!isCollapsed && <span className="truncate">Documents</span>}
-                </div>
-                {!isCollapsed && (
-                  <ChevronDown
-                    className={`h-4 w-4 text-amber-500 ml-auto flex-shrink-0 transition-transform ${
-                      openSubMenus['documents'] ? 'rotate-180 text-amber-700' : ''
-                    }`}
-                  />
-                )}
-              </button>
+            <div className="w-full">
+              <SidebarTooltip content="Documents" isCollapsed={isCollapsed}>
+                <button
+                  onClick={() => toggleSubMenu('documents')}
+                  className={`w-full flex items-center ${
+                    isCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
+                  } h-11 rounded-xl transition-all duration-200 text-amber-950 hover:bg-amber-100/70 hover:text-amber-900 font-semibold ${
+                    openSubMenus['documents'] ? 'bg-amber-100/60' : ''
+                  }`}
+                >
+                  <div className="flex items-center truncate">
+                    <FolderOpen
+                      className={`h-5 w-5 flex-shrink-0 text-amber-600 group-hover:text-amber-700 ${
+                        isCollapsed ? 'mr-0' : 'mr-3'
+                      }`}
+                    />
+                    {!isCollapsed && <span className="truncate font-semibold">Documents</span>}
+                  </div>
+                  {!isCollapsed && (
+                    <ChevronDown
+                      className={`h-4 w-4 text-amber-500 ml-auto flex-shrink-0 transition-transform duration-200 ${
+                        openSubMenus['documents'] ? 'rotate-180 text-amber-700' : ''
+                      }`}
+                    />
+                  )}
+                </button>
+              </SidebarTooltip>
               {openSubMenus['documents'] && !isCollapsed && (
-                <div className="pl-11 pr-3 py-1.5 space-y-1 bg-white/70 rounded-xl my-1 border border-amber-100 text-xs shadow-inner">
+                <div className="pl-9 pr-2 py-1.5 space-y-1 bg-white/80 rounded-xl my-1 border border-amber-100/80 shadow-sm">
                   <NavLink
                     to="/investment-agent/documents"
                     onClick={handleNavItemClick}
-                    className={({ isActive }) =>
-                      `block py-2 px-3 rounded-lg transition-colors font-medium ${
-                        isActive ? 'text-amber-700 font-extrabold bg-amber-100/60' : 'text-slate-700 hover:text-amber-700 hover:bg-amber-50'
-                      }`
-                    }
+                    className={({ isActive }) => getSubItemClasses(isActive)}
                   >
-                    Investment Proofs & KYC
+                    Investor KYC & Statements
                   </NavLink>
                 </div>
               )}
             </div>
 
-            {/* 5. Tasks */}
-            <NavLink
-              to="/investment-agent/tasks"
-              onClick={handleNavItemClick}
-              title="Pending Tasks"
-              className={({ isActive }) =>
-                `flex items-center h-12 rounded-xl transition-all ${
-                  isCollapsed ? 'justify-center px-0' : 'px-4'
-                } ${
-                  isActive
-                    ? 'bg-amber-600 text-white font-bold shadow-md shadow-amber-500/20'
-                    : 'text-amber-950 hover:bg-amber-100/70 hover:text-amber-900'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <CheckSquare className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-amber-600'}`} />
-                  {!isCollapsed && <span>Pending Tasks</span>}
-                </>
-              )}
-            </NavLink>
+            {/* SECTION 4: TASKS & SUPPORT */}
+            {!isCollapsed && (
+              <div className="text-[10px] uppercase tracking-wider font-extrabold text-amber-900/60 px-3 pt-3 pb-1">
+                Tasks & Support
+              </div>
+            )}
+            <SidebarTooltip content="Pending Tasks" isCollapsed={isCollapsed}>
+              <NavLink
+                to="/investment-agent/tasks"
+                onClick={handleNavItemClick}
+                className={({ isActive }) => getNavItemClasses(isActive)}
+              >
+                {({ isActive }) => (
+                  <>
+                    <CheckSquare
+                      className={`h-5 w-5 flex-shrink-0 transition-all ${
+                        isCollapsed ? 'mr-0' : 'mr-3'
+                      } ${isActive ? 'text-white' : 'text-amber-600 group-hover:text-amber-700'}`}
+                    />
+                    {!isCollapsed && <span className="truncate font-semibold">Pending Tasks</span>}
+                  </>
+                )}
+              </NavLink>
+            </SidebarTooltip>
 
-            {/* 6. Reports */}
-            <NavLink
-              to="/investment-agent/reports"
-              onClick={handleNavItemClick}
-              title="Investment Reports"
-              className={({ isActive }) =>
-                `flex items-center h-12 rounded-xl transition-all ${
-                  isCollapsed ? 'justify-center px-0' : 'px-4'
-                } ${
-                  isActive
-                    ? 'bg-amber-600 text-white font-bold shadow-md shadow-amber-500/20'
-                    : 'text-amber-950 hover:bg-amber-100/70 hover:text-amber-900'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <BarChart3 className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-amber-600'}`} />
-                  {!isCollapsed && <span>Investment Reports</span>}
-                </>
-              )}
-            </NavLink>
+            <SidebarTooltip content="Portfolio Reports" isCollapsed={isCollapsed}>
+              <NavLink
+                to="/investment-agent/reports"
+                onClick={handleNavItemClick}
+                className={({ isActive }) => getNavItemClasses(isActive)}
+              >
+                {({ isActive }) => (
+                  <>
+                    <BarChart3
+                      className={`h-5 w-5 flex-shrink-0 transition-all ${
+                        isCollapsed ? 'mr-0' : 'mr-3'
+                      } ${isActive ? 'text-white' : 'text-amber-600 group-hover:text-amber-700'}`}
+                    />
+                    {!isCollapsed && <span className="truncate font-semibold">Portfolio Reports</span>}
+                  </>
+                )}
+              </NavLink>
+            </SidebarTooltip>
 
-            {/* 7. Profile */}
-            <NavLink
-              to="/profile"
-              onClick={handleNavItemClick}
-              title="My Profile"
-              className={({ isActive }) =>
-                `flex items-center h-12 rounded-xl transition-all ${
-                  isCollapsed ? 'justify-center px-0' : 'px-4'
-                } ${
-                  isActive
-                    ? 'bg-amber-600 text-white font-bold shadow-md shadow-amber-500/20'
-                    : 'text-amber-950 hover:bg-amber-100/70 hover:text-amber-900'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <UserCheck className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-amber-600'}`} />
-                  {!isCollapsed && <span>My Profile</span>}
-                </>
-              )}
-            </NavLink>
+            <SidebarTooltip content="My Profile" isCollapsed={isCollapsed}>
+              <NavLink
+                to="/profile"
+                onClick={handleNavItemClick}
+                className={({ isActive }) => getNavItemClasses(isActive)}
+              >
+                {({ isActive }) => (
+                  <>
+                    <UserCheck
+                      className={`h-5 w-5 flex-shrink-0 transition-all ${
+                        isCollapsed ? 'mr-0' : 'mr-3'
+                      } ${isActive ? 'text-white' : 'text-amber-600 group-hover:text-amber-700'}`}
+                    />
+                    {!isCollapsed && <span className="truncate font-semibold">My Profile</span>}
+                  </>
+                )}
+              </NavLink>
+            </SidebarTooltip>
 
-            {/* 8. Enquiries */}
-            <NavLink
-              to="/investment-agent/enquiries"
-              onClick={handleNavItemClick}
-              title="Support & Advisory"
-              className={({ isActive }) =>
-                `flex items-center h-12 rounded-xl transition-all ${
-                  isCollapsed ? 'justify-center px-0' : 'px-4'
-                } ${
-                  isActive
-                    ? 'bg-amber-600 text-white font-bold shadow-md shadow-amber-500/20'
-                    : 'text-amber-950 hover:bg-amber-100/70 hover:text-amber-900'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <AlertCircle className={`h-[22px] w-[22px] flex-shrink-0 ${isCollapsed ? 'mr-0' : 'mr-3.5'} ${isActive ? 'text-white' : 'text-amber-600'}`} />
-                  {!isCollapsed && <span>Support & Advisory</span>}
-                </>
-              )}
-            </NavLink>
+            <SidebarTooltip content="Support & Enquiries" isCollapsed={isCollapsed}>
+              <NavLink
+                to="/investment-agent/enquiries"
+                onClick={handleNavItemClick}
+                className={({ isActive }) => getNavItemClasses(isActive)}
+              >
+                {({ isActive }) => (
+                  <>
+                    <AlertCircle
+                      className={`h-5 w-5 flex-shrink-0 transition-all ${
+                        isCollapsed ? 'mr-0' : 'mr-3'
+                      } ${isActive ? 'text-white' : 'text-amber-600 group-hover:text-amber-700'}`}
+                    />
+                    {!isCollapsed && <span className="truncate font-semibold">Support & Enquiries</span>}
+                  </>
+                )}
+              </NavLink>
+            </SidebarTooltip>
           </nav>
-        </div>
 
-        {/* Footer Logout */}
-        <div className="p-3 border-t border-amber-200/70 bg-[#fdf7e7] flex items-center justify-between text-xs">
-          <button onClick={logout} title="Logout Account" className="text-rose-600 hover:text-rose-700 font-extrabold flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-rose-50 transition-colors w-full justify-center border border-rose-200/60 bg-white/80 shadow-sm">
-            <LogOut className="h-4 w-4 shrink-0" /> {!isCollapsed && <span>Logout Account</span>}
-          </button>
+          {/* Footer Logout */}
+          <div className="p-3 border-t border-amber-200/80 bg-gradient-to-t from-amber-100/60 to-transparent">
+            <SidebarTooltip content="Logout Account" isCollapsed={isCollapsed}>
+              <button
+                onClick={logout}
+                title="Logout Account"
+                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-rose-600 hover:text-rose-700 bg-white/90 hover:bg-rose-50 border border-rose-200/80 shadow-sm transition-colors font-bold text-xs ${
+                  isCollapsed ? 'px-0' : 'px-3'
+                }`}
+              >
+                <LogOut className="h-4 w-4 flex-shrink-0" />
+                {!isCollapsed && <span>Logout Account</span>}
+              </button>
+            </SidebarTooltip>
+          </div>
         </div>
       </aside>
     </>
   );
 };
+
+export default InvestmentAgentSidebar;

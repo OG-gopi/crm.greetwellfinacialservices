@@ -5,95 +5,91 @@ const prisma_1 = require("../utils/prisma");
 const config_1 = require("../config");
 class WhatsAppService {
     async sendNotification(payload) {
-        const { to, recipientName, templateType, message, applicationId, metadata } = payload;
+        const { to, recipientName, recipientRole = 'User', templateType, message, applicationId, metadata } = payload;
         try {
-            // 1. Log to console for dev / testing fallback
+            // Clean recipient phone number
+            const cleanPhone = to ? to.trim() : 'N/A';
+            // 1. Structured Local Mock Log Output
             console.log(`\n==================================================`);
-            console.log(`📱 [DEV WHATSAPP SERVICE]`);
-            console.log(`To: ${to} (${recipientName || 'User'})`);
-            console.log(`Template: ${templateType}`);
+            console.log(`📱 WhatsApp Notification – LOCAL TEST MOCK MODE`);
+            console.log(`--------------------------------------------------`);
+            console.log(`Recipient: ${cleanPhone} (${recipientName || 'Valued User'})`);
+            console.log(`Role:      ${recipientRole}`);
+            console.log(`Template:  ${templateType}`);
             if (applicationId)
-                console.log(`Application ID: ${applicationId}`);
-            console.log(`Message:\n${message}`);
+                console.log(`App ID:    ${applicationId}`);
+            console.log(`Event:     ${metadata?.eventType || 'CRM_BUSINESS_EVENT'}`);
+            console.log(`--------------------------------------------------`);
+            console.log(`Message:`);
+            console.log(message);
+            console.log(`--------------------------------------------------`);
+            console.log(`Delivery:  MOCK / NOT SENT (Local Development Mode)`);
             console.log(`==================================================\n`);
-            // 2. Persist log record into DB WhatsAppLog table
+            // 2. Persist log record in DB WhatsAppLog table
             await prisma_1.prisma.whatsAppLog.create({
                 data: {
-                    recipientPhone: to,
+                    recipientPhone: cleanPhone,
                     recipientName: recipientName || null,
                     templateType,
                     message,
-                    status: 'SENT',
+                    status: 'MOCK',
                     applicationId: applicationId || null,
-                    metadata: metadata ? JSON.stringify(metadata) : null,
+                    metadata: metadata ? JSON.stringify({ ...metadata, mode: 'MOCK' }) : JSON.stringify({ mode: 'MOCK' }),
                 },
             });
             return true;
         }
         catch (err) {
-            console.error('Failed to record WhatsApp notification log:', err);
-            // Fallback: log to console if DB fails
-            try {
-                await prisma_1.prisma.whatsAppLog.create({
-                    data: {
-                        recipientPhone: to,
-                        recipientName: recipientName || null,
-                        templateType,
-                        message,
-                        status: 'FAILED',
-                        applicationId: applicationId || null,
-                        metadata: JSON.stringify({ error: String(err), ...(metadata || {}) }),
-                    },
-                });
-            }
-            catch (innerErr) {
-                // Ignore DB save errors for fallback
-            }
+            console.error('⚠️ Failed to record WhatsAppLog in DB:', err?.message || err);
             return false;
         }
     }
     async notifyApplicationCreated(to, customerName, applicationId, appType, status) {
-        const message = `Hello ${customerName},\nYour ${appType} application ${applicationId} has been successfully submitted to GFS Portal.\nCurrent Status: ${status}.\nTrack application: ${config_1.CONFIG.APP_URL}/customer/applications`;
+        const message = `Hello ${customerName},\nYour ${appType} application ${applicationId} has been successfully submitted to GFS Portal.\nCurrent Status: ${status}.\nTrack application: ${config_1.CONFIG.APP_URL}/login?redirect=%2Fcustomer%2Fapplications`;
         return this.sendNotification({
             to,
             recipientName: customerName,
+            recipientRole: 'Customer',
             templateType: 'APP_SUBMITTED',
             message,
             applicationId,
-            metadata: { appType, status },
+            metadata: { appType, status, eventType: 'APPLICATION_CREATED' },
         });
     }
     async notifyStatusUpdate(to, recipientName, applicationId, appType, newStatus) {
-        const message = `Hello ${recipientName},\nYour ${appType} application ${applicationId} status has been updated to: ${newStatus}.\nView details: ${config_1.CONFIG.APP_URL}/customer/applications`;
+        const message = `Hello ${recipientName},\nYour ${appType} application ${applicationId} status has been updated to: ${newStatus}.\nView details: ${config_1.CONFIG.APP_URL}/login?redirect=%2Fcustomer%2Fapplications`;
         return this.sendNotification({
             to,
             recipientName,
+            recipientRole: 'Customer',
             templateType: 'STATUS_UPDATE',
             message,
             applicationId,
-            metadata: { appType, newStatus },
+            metadata: { appType, newStatus, eventType: 'APPLICATION_STATUS_CHANGED' },
         });
     }
     async notifyDocumentRequest(to, customerName, applicationId, requestTitle, description) {
-        const message = `Hello ${customerName},\nAttention Required for Application ${applicationId}:\nRequest: ${requestTitle}${description ? `\nDetails: ${description}` : ''}\nPlease upload requested documents: ${config_1.CONFIG.APP_URL}/customer/applications`;
+        const message = `Hello ${customerName},\nAttention Required for Application ${applicationId}:\nRequest: ${requestTitle}${description ? `\nDetails: ${description}` : ''}\nPlease upload requested documents: ${config_1.CONFIG.APP_URL}/login?redirect=%2Fcustomer%2Fapplications`;
         return this.sendNotification({
             to,
             recipientName: customerName,
+            recipientRole: 'Customer',
             templateType: 'DOCUMENT_REQUEST',
             message,
             applicationId,
-            metadata: { requestTitle, description },
+            metadata: { requestTitle, description, eventType: 'DOCUMENT_REQUESTED' },
         });
     }
     async notifyCustomerReply(to, recipientName, applicationId, requestTitle) {
-        const message = `Hello ${recipientName},\nCustomer has replied to request '${requestTitle}' on Application ${applicationId}.\nReview update: ${config_1.CONFIG.APP_URL}/superadmin/applications`;
+        const message = `Hello ${recipientName},\nCustomer has replied to request '${requestTitle}' on Application ${applicationId}.\nReview update: ${config_1.CONFIG.APP_URL}/login?redirect=%2Fsuperadmin%2Fapplications`;
         return this.sendNotification({
             to,
             recipientName,
+            recipientRole: 'Agent/Admin',
             templateType: 'CUSTOMER_REPLY',
             message,
             applicationId,
-            metadata: { requestTitle },
+            metadata: { requestTitle, eventType: 'DOCUMENT_UPLOADED' },
         });
     }
 }

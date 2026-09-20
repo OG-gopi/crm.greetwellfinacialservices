@@ -23,36 +23,37 @@ class EmailService {
   }
 
   private initTransporter() {
-    if (CONFIG.SMTP.USER) {
+    const user = process.env.GMAIL_USER || process.env.SMTP_USER || CONFIG.SMTP.USER;
+    const pass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASSWORD || CONFIG.SMTP.PASS;
+    if (user && pass && pass.trim() !== '') {
       try {
         const isSecure = CONFIG.SMTP.PORT === 465;
         this.transporter = nodemailer.createTransport({
           host: CONFIG.SMTP.HOST || 'smtp.gmail.com',
           port: CONFIG.SMTP.PORT || 465,
           secure: isSecure,
-          auth: {
-            user: CONFIG.SMTP.USER,
-            pass: CONFIG.SMTP.PASS,
-          },
+          auth: { user, pass },
           tls: {
             rejectUnauthorized: false,
           },
         });
-        console.log(`✉️ Gmail SMTP Transporter initialized for ${CONFIG.SMTP.USER}`);
+        console.log(`✉️ Gmail SMTP Transporter initialized for ${user}`);
       } catch (err) {
         console.error('❌ Failed to initialize Gmail SMTP transporter:', err);
       }
+    } else {
+      console.log(`ℹ️ EmailService running in Development/Log Mode (No SMTP Password configured). Emails will be recorded in DB & Console.`);
     }
   }
 
   private getTransporter(): nodemailer.Transporter | null {
-    const user = process.env.GMAIL_USER || process.env.SMTP_USER || CONFIG.SMTP.USER || 'greetwell.notify@gmail.com';
+    const user = process.env.GMAIL_USER || process.env.SMTP_USER || CONFIG.SMTP.USER;
     const pass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASSWORD || CONFIG.SMTP.PASS || '';
     const host = process.env.SMTP_HOST || CONFIG.SMTP.HOST || 'smtp.gmail.com';
     const port = parseInt(process.env.SMTP_PORT || String(CONFIG.SMTP.PORT || 465), 10);
     const isSecure = port === 465;
 
-    if (user && pass) {
+    if (user && pass && pass.trim() !== '') {
       try {
         return nodemailer.createTransport({
           host,
@@ -65,7 +66,7 @@ class EmailService {
         console.error('❌ Failed to create SMTP transporter:', err);
       }
     }
-    return this.transporter;
+    return null;
   }
 
   /**

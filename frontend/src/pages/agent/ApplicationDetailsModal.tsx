@@ -374,13 +374,150 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
     ? formatFullName(app.assignedAgent.firstName, app.assignedAgent.lastName)
     : '';
 
-  const customerFullName = app?.customer
+  const customerFullName = parsedForm?.customerName || (app?.customer
     ? formatFullName(app.customer.firstName, app.customer.lastName)
-    : 'Customer';
+    : 'Customer');
 
-  const customerInitials = app?.customer
-    ? `${app.customer.firstName ? app.customer.firstName[0].toUpperCase() : ''}${app.customer.lastName ? app.customer.lastName[0].toUpperCase() : ''}`
+  const customerEmail = parsedForm?.email || app?.customer?.email || 'N/A';
+  const customerPhone = parsedForm?.phone || parsedForm?.mobile || app?.customer?.phone || 'N/A';
+
+  const customerInitials = customerFullName !== 'Customer'
+    ? customerFullName.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()
     : 'LC';
+
+  const handleExportCSV = () => {
+    if (!app) return;
+    const rowData = [
+      ['Field', 'Value'],
+      ['Application ID', app.id],
+      ['Category / Type', app.type],
+      ['Status', app.status],
+      ['Priority', app.priority || 'MEDIUM'],
+      ['Customer Name', customerFullName],
+      ['Customer ID Code', app.customer?.customerIdCode || 'N/A'],
+      ['Customer Email', customerEmail],
+      ['Customer Mobile', customerPhone],
+      ['Purpose / Goal', app.purpose || `${app.type} Application`],
+      ['Amount', app.amount ? `INR ${app.amount}` : 'N/A'],
+      ['Tenure / Term', app.term || 'N/A'],
+      ['Assigned Agent', assignedAgentName || 'Unassigned'],
+      ['Submission Date', new Date(app.createdAt).toLocaleString()],
+    ];
+
+    if (parsedForm) {
+      Object.entries(parsedForm).forEach(([k, v]) => {
+        if (!['customerName', 'email', 'phone', 'isDraft'].includes(k) && v !== null && v !== undefined) {
+          const label = k.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
+          rowData.push([label, String(v)]);
+        }
+      });
+    }
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + rowData.map((e) => e.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `${app.id}_Application_Details.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showSuccess('Application details exported to Excel (CSV).');
+  };
+
+  const handleExportPDF = () => {
+    if (!app) return;
+    const printWin = window.open('', '_blank');
+    if (!printWin) return;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Application ${app.id} Summary - Greetwell Financial Services</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 30px; color: #1e293b; line-height: 1.5; }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #10233F; padding-bottom: 15px; margin-bottom: 20px; }
+          .brand { font-size: 20px; font-weight: bold; color: #10233F; }
+          .brand span { color: #B8862E; }
+          .tag { font-size: 11px; font-weight: bold; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; margin-left: 4px; }
+          .section { margin-bottom: 20px; }
+          .section-title { font-size: 13px; font-weight: bold; color: #10233F; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px; }
+          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; }
+          .item { background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0; }
+          .label { font-size: 10px; color: #64748b; font-weight: bold; text-transform: uppercase; display: block; }
+          .value { font-size: 13px; font-weight: bold; color: #0f172a; margin-top: 2px; }
+          .footer { margin-top: 40px; font-size: 10px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="brand">GREETWELL <span>FINANCIAL SERVICES</span></div>
+          <div>
+            <span class="tag">APP ID: ${app.id}</span>
+            <span class="tag" style="background:#dbeafe; color:#1e40af;">${app.type}</span>
+            <span class="tag" style="background:#fef3c7; color:#92400e;">${app.status}</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Customer Information</div>
+          <div class="grid">
+            <div class="item"><span class="label">Customer Full Name</span><div class="value">${customerFullName}</div></div>
+            <div class="item"><span class="label">Customer ID Code</span><div class="value">${app.customer?.customerIdCode || 'N/A'}</div></div>
+            <div class="item"><span class="label">Email Address</span><div class="value">${customerEmail}</div></div>
+            <div class="item"><span class="label">Mobile Phone</span><div class="value">${customerPhone}</div></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Application Parameters</div>
+          <div class="grid">
+            <div class="item"><span class="label">Category / Type</span><div class="value">${app.type}</div></div>
+            <div class="item"><span class="label">Goal / Purpose</span><div class="value">${app.purpose || app.type}</div></div>
+            <div class="item"><span class="label">Requested Amount</span><div class="value">${app.amount ? `₹ ${app.amount.toLocaleString()}` : 'N/A'}</div></div>
+            <div class="item"><span class="label">Tenure / Term</span><div class="value">${app.term || 'N/A'}</div></div>
+            <div class="item"><span class="label">Submission Date</span><div class="value">${new Date(app.createdAt).toLocaleString()}</div></div>
+            <div class="item"><span class="label">Assigned Agent</span><div class="value">${assignedAgentName || 'Unassigned'}</div></div>
+          </div>
+        </div>
+
+        ${parsedForm ? `
+        <div class="section">
+          <div class="section-title">Dynamic Form Fields</div>
+          <div class="grid">
+            ${Object.entries(parsedForm)
+              .filter(([k, v]) => !['customerName', 'email', 'phone', 'isDraft'].includes(k) && v !== null && v !== undefined)
+              .map(([k, v]) => `<div class="item"><span class="label">${k.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}</span><div class="value">${v}</div></div>`)
+              .join('')}
+          </div>
+        </div>` : ''}
+
+        <div class="footer">
+          Official Greetwell Financial Services Document Summary • Generated on ${new Date().toLocaleString()}
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+          }
+        </script>
+      </body>
+      </html>
+    `;
+    printWin.document.write(html);
+    printWin.document.close();
+  };
+
+  const handleOpenWhatsApp = () => {
+    if (!customerPhone || customerPhone === 'N/A') {
+      showError('No phone number available for this customer.');
+      return;
+    }
+    const cleanNum = customerPhone.replace(/[^\d]/g, '');
+    const num = cleanNum.startsWith('91') ? cleanNum : `91${cleanNum}`;
+    const text = encodeURIComponent(`Hello ${customerFullName},\nRegarding your Greetwell Financial Services ${app?.type} application ${app?.id} (Status: ${app?.status}).\nHow can we assist you today?`);
+    window.open(`https://wa.me/${num}?text=${text}`, '_blank');
+  };
 
   const getCategoryTabTitle = () => {
     if (app?.type === 'LOAN') return 'Loan Details';
@@ -450,24 +587,35 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
           </div>
         </div>
 
-        {/* BREADCRUMBS TRAIL */}
-        <div className="px-3.5 py-2 text-xs font-semibold text-slate-500 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center flex-wrap gap-1.5">
-          <span>Dashboard</span>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-          <span>Applications</span>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-          <span className="capitalize">
-            {app?.type === 'LOAN'
-              ? 'Loan Applications'
-              : app?.type === 'INSURANCE'
-              ? 'Insurance Applications'
-              : app?.type === 'INVESTMENT'
-              ? 'Investment Applications'
-              : 'Applications'}
-          </span>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-[#10233F] font-black">{app?.id}</span>
-        </div>
+        {/* Export & WhatsApp Quick Action Bar */}
+        {app && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleOpenWhatsApp}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              title="Contact Customer via WhatsApp"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>WhatsApp</span>
+            </button>
+            <button
+              onClick={handleExportPDF}
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              title="Print / Export PDF Summary"
+            >
+              <FileText className="w-4 h-4" />
+              <span>PDF Report</span>
+            </button>
+            <button
+              onClick={handleExportCSV}
+              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              title="Export Application Data to Excel (CSV)"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export CSV</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {loading || !app ? (
@@ -499,8 +647,8 @@ export const ApplicationDetailsModal: React.FC<ApplicationDetailsModalProps> = (
               </div>
 
               <div className="space-y-2.5">
-                {renderSummaryBlock('Email Address', app.customer?.email)}
-                {renderSummaryBlock('Mobile Phone', app.customer?.phone)}
+                {renderSummaryBlock('Email Address', customerEmail)}
+                {renderSummaryBlock('Mobile Phone', customerPhone)}
                 {app.customer?.education && renderSummaryBlock('Education Qualification', app.customer.education)}
                 {app.customer?.hasExperience !== undefined && renderSummaryBlock('Prior Professional Experience', app.customer.hasExperience ? 'Yes' : 'No')}
                 {app.customer?.previousCompany && renderSummaryBlock('Previous Employer', app.customer.previousCompany)}

@@ -20,12 +20,8 @@ export const Breadcrumb: React.FC = () => {
   // 1. Dashboards MUST NOT display breadcrumb
   const isDashboard =
     currentPath === '/' ||
-    currentPath === '/superadmin/dashboard' ||
-    currentPath === '/admin/dashboard' ||
-    currentPath === '/loan-agent/dashboard' ||
-    currentPath === '/insurance-agent/dashboard' ||
-    currentPath === '/investment-agent/dashboard' ||
-    currentPath === '/customer/dashboard';
+    currentPath.endsWith('/dashboard') ||
+    currentPath.includes('/dashboard');
 
   if (isDashboard) return null;
 

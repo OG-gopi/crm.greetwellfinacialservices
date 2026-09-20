@@ -5,6 +5,7 @@ import { createAuditLog } from '../services/auditService';
 import { createNotification, notifySuperAdmins } from '../services/notificationService';
 import { emailService } from '../services/emailService';
 import { whatsAppService } from '../services/whatsappService';
+import { eventNotificationService } from '../services/eventNotificationService';
 import { validateIndianMobile, safeParseJsonArray } from '../utils/validation';
 import { AuthRequest } from '../middleware/authMiddleware';
 
@@ -347,37 +348,21 @@ export async function createApplication(req: AuthRequest, res: Response) {
       ipAddress: req.ip,
     });
 
-    await notifySuperAdmins(
-      'APPLICATION_SUBMITTED',
-      'New Application Submitted',
-      `Application ${newApp.id} (${type}) submitted by ${user.firstName} ${user.lastName}.`,
-      { module: 'APPLICATION', applicationId: newApp.id }
-    );
-
-    if (newApp.customer?.email) {
-      await emailService.sendApplicationCreatedNotification({
-        customerEmail: newApp.customer.email,
-        customerName: `${newApp.customer.firstName} ${newApp.customer.lastName || ''}`.trim(),
-        applicationId: newApp.id,
-        type: newApp.type,
-        amount: newApp.amount ? Number(newApp.amount) : undefined,
-      }).catch((err) => console.error('Application created email error:', err));
-    }
-
-    // Dispatch WhatsApp Notification if customer phone exists
-    const customerPhone = formData?.mobile || formData?.phone || newApp.customer?.phone;
-    if (customerPhone && customerPhone !== 'N/A') {
-      const mobCheck = validateIndianMobile(customerPhone);
-      if (mobCheck.isValid && mobCheck.cleanPhone) {
-        await whatsAppService.notifyApplicationCreated(
-          mobCheck.cleanPhone,
-          `${newApp.customer?.firstName || 'Customer'}`,
-          newApp.id,
-          type,
-          'SUBMITTED'
-        );
-      }
-    }
+    // Central Business Event Notification Trigger (Super Admins + Customer + WhatsApp Mock)
+    eventNotificationService.triggerBusinessEvent({
+      eventType: 'APPLICATION_CREATED',
+      actorUserId: user.id,
+      actorName: `${user.firstName} ${user.lastName || ''}`.trim(),
+      actorRole: user.role,
+      customerId: newApp.customerId,
+      customerName: `${newApp.customer?.firstName || user.firstName} ${newApp.customer?.lastName || user.lastName || ''}`.trim(),
+      customerEmail: newApp.customer?.email || user.email,
+      customerPhone: formData?.mobile || formData?.phone || newApp.customer?.phone,
+      applicationId: newApp.id,
+      applicationType: type,
+      amount: newApp.amount ? Number(newApp.amount) : undefined,
+      newStatus: 'SUBMITTED',
+    }).catch((err) => console.error('Event trigger error:', err));
 
     return res.status(201).json({
       success: true,
@@ -426,8 +411,8 @@ export async function assignApplication(req: AuthRequest, res: Response) {
         status: application.status === 'SUBMITTED' || application.status === 'PENDING_ASSIGNMENT' ? 'ASSIGNED' : application.status,
       },
       include: {
-        customer: { select: { id: true, email: true, firstName: true, lastName: true } },
-        assignedAgent: { select: { id: true, email: true, firstName: true, lastName: true } },
+        customer: { select: { id: true, email: true, firstName: true, lastName: true, phone: true } },
+        assignedAgent: { select: { id: true, email: true, firstName: true, lastName: true, phone: true } },
       },
     });
 
@@ -457,32 +442,23 @@ export async function assignApplication(req: AuthRequest, res: Response) {
       relatedEntityId: application.id,
     });
 
-    await createNotification({
-      recipientUserId: updatedApp.customerId,
-      recipientRole: 'CUSTOMER',
-      type: 'APPLICATION_AGENT_ASSIGNED',
-      title: 'Agent Assigned to Application',
-      message: `Agent ${agent.firstName} ${agent.lastName} has been assigned to process your application ${application.id}.`,
-      module: application.type === 'LOAN' ? 'LOANS' : application.type === 'INSURANCE' ? 'INSURANCE' : 'INVESTMENTS',
-      source: 'SUPER_ADMIN',
-      actionStatus: 'NONE',
+    // Central Event Notification Trigger
+    eventNotificationService.triggerBusinessEvent({
+      eventType: 'APPLICATION_ASSIGNED',
+      actorUserId: req.user?.id,
+      actorName: req.user ? `${req.user.firstName} ${req.user.lastName || ''}`.trim() : 'Super Admin',
+      actorRole: req.user?.role || 'SUPER_ADMIN',
+      customerId: updatedApp.customerId,
+      customerName: updatedApp.customer ? `${updatedApp.customer.firstName} ${updatedApp.customer.lastName || ''}`.trim() : undefined,
+      customerEmail: updatedApp.customer?.email,
+      customerPhone: updatedApp.customer?.phone,
       agentId: agent.id,
-      customerId: application.customerId,
+      agentName: `${agent.firstName} ${agent.lastName || ''}`.trim(),
+      agentEmail: agent.email,
+      agentPhone: agent.phone,
       applicationId: application.id,
-      relatedEntity: 'APPLICATION',
-      relatedEntityId: application.id,
-    });
-
-    if (updatedApp.customer?.email && agent.email) {
-      await emailService.sendAgentAssignedNotification({
-        customerEmail: updatedApp.customer.email,
-        customerName: `${updatedApp.customer.firstName} ${updatedApp.customer.lastName || ''}`.trim(),
-        agentEmail: agent.email,
-        agentName: `${agent.firstName} ${agent.lastName || ''}`.trim(),
-        serviceType: application.type,
-        assignedBy: req.user ? `${req.user.firstName} ${req.user.lastName || ''}`.trim() : 'Super Admin',
-      }).catch((err) => console.error('Agent assigned email error:', err));
-    }
+      applicationType: application.type,
+    }).catch((err) => console.error('Event trigger error:', err));
 
     return res.json({
       success: true,
@@ -551,48 +527,28 @@ export async function updateApplicationStatus(req: AuthRequest, res: Response) {
       ipAddress: req.ip,
     });
 
-    // Send notifications
-    await createNotification({
-      recipientUserId: application.customerId,
-      type: 'APPLICATION_STATUS_CHANGED',
-      title: `Application ${application.id} Updated`,
-      message: `Your application status has been updated to ${status}.`,
-      relatedEntity: 'APPLICATION',
-      relatedEntityId: application.id,
-    });
-
-    if (application.customer?.email) {
-      const customerName = `${application.customer.firstName} ${application.customer.lastName || ''}`.trim();
-      if (status === 'APPROVED') {
-        await emailService.sendApplicationApprovedEmail({
-          recipientEmail: application.customer.email,
-          recipientName: customerName,
-          applicationId: application.id,
-          type: application.type,
-          amount: application.amount ? Number(application.amount) : undefined,
-          remarks: note,
-        }).catch((err) => console.error('Application approved email error:', err));
-      } else if (status === 'REJECTED') {
-        await emailService.sendApplicationRejectedEmail({
-          recipientEmail: application.customer.email,
-          recipientName: customerName,
-          applicationId: application.id,
-          type: application.type,
-          rejectionReason: note || 'Application specifications did not meet threshold requirements.',
-        }).catch((err) => console.error('Application rejected email error:', err));
-      } else {
-        await emailService.sendApplicationStatusUpdatedEmail({
-          recipientEmail: application.customer.email,
-          recipientName: customerName,
-          applicationId: application.id,
-          type: application.type,
-          previousStatus: application.status,
-          newStatus: status,
-          updatedBy: user ? `${user.firstName} ${user.lastName || ''}`.trim() : 'System',
-          comments: note,
-        }).catch((err) => console.error('Application status email error:', err));
-      }
-    }
+    // Central Event Notification Trigger
+    const eventType = status === 'APPROVED' ? 'APPLICATION_APPROVED' : status === 'REJECTED' ? 'APPLICATION_REJECTED' : 'APPLICATION_STATUS_CHANGED';
+    eventNotificationService.triggerBusinessEvent({
+      eventType,
+      actorUserId: user.id,
+      actorName: `${user.firstName} ${user.lastName || ''}`.trim(),
+      actorRole: user.role,
+      customerId: application.customerId,
+      customerName: application.customer ? `${application.customer.firstName} ${application.customer.lastName || ''}`.trim() : undefined,
+      customerEmail: application.customer?.email,
+      customerPhone: application.customer?.phone,
+      agentId: application.assignedAgentId || undefined,
+      agentName: application.assignedAgent ? `${application.assignedAgent.firstName} ${application.assignedAgent.lastName || ''}`.trim() : undefined,
+      agentEmail: application.assignedAgent?.email,
+      agentPhone: application.assignedAgent?.phone,
+      applicationId: application.id,
+      applicationType: application.type,
+      oldStatus: application.status,
+      newStatus: status,
+      rejectionReason: status === 'REJECTED' ? (note || 'Requirements not met') : undefined,
+      details: note,
+    }).catch((err) => console.error('Event trigger error:', err));
 
     return res.json({
       success: true,
